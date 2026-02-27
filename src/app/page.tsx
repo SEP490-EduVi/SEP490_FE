@@ -39,6 +39,12 @@ export default function HomePage() {
             <h1 className="text-2xl font-bold text-gray-900">EduVi</h1>
           </div>
           <nav className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/admin')}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Admin
+            </button>
             <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
               Help
             </button>
