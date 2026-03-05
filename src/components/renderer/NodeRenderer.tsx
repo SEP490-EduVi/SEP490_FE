@@ -259,7 +259,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
 /**
  * BlockRenderer handles leaf nodes (content blocks)
  */
-function BlockRenderer({ node }: { node: IBlock }) {
+function  BlockRenderer({ node }: { node: IBlock }) {
   const selectedNodeId = useDocumentStore((state) => state.selectedNodeId);
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
   const updateBlockStyles = useDocumentStore((state) => state.updateBlockStyles);
@@ -712,7 +712,7 @@ function CardRenderer({ node }: { node: ICard }) {
             key={child.id}
             className={cn(
               'flex-shrink-0',
-              index < childCount - 1 && 'mb-6'
+              index < childCount - 1 && 'mb-1'
             )}
           >
             <SortableNode node={child as INode} depth={1}>

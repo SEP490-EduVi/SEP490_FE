@@ -24,22 +24,47 @@ IDocument (Root)
 | **LAYOUT** | Container bố cục | 2-column, 3-column, sidebar |
 | **BLOCK** | Nội dung thực tế | Text, Image, Video, Quiz |
 
+### Card Categories
+
+EduVi có **2 loại** card templates:
+
+| Category | Đặc điểm | templateId | Ví dụ |
+|----------|----------|------------|-------|
+| **Basic (Layout)** | Dùng `ILayout` container để chia cột | `template-001` → `template-006` | 2-column, 3-column, sidebar |
+| **Freeform** | KHÔNG dùng Layout, chỉ chứa trực tiếp `IBlock[]` | **Không có** (undefined) | Title, Bullet, Quiz, Flashcard, Fill-in-Blank, Summary, Section Divider |
+
 ### Visual Example (từ UI)
 
 ```
-Document: "EduVi Product Launch"
-  ├── Card 1: "Welcome" (template-001)
-  │   └── Layout: SIDEBAR_LEFT
-  │       ├── Block: IMAGE
-  │       └── Block: TEXT
+Document: "Bài học Địa lí"
+  ├── Card 1: "Title Card" (freeform - no templateId)
+  │   └── Block: TEXT "<h1>Tiêu đề bài học</h1>..."
   │
-  ├── Card 2: "Key Features" (template-003) ← ACTIVE
+  ├── Card 2: "Key Features" (template-003)
   │   ├── Block: HEADING "Why Choose EduVi?"
   │   └── Layout: TWO_COLUMN
   │       ├── Block: TEXT (Left column)
   │       └── Block: TEXT (Right column)
   │
-  └── ... 4 cards khác
+  ├── Card 3: "Bullet List" (freeform - no templateId)
+  │   ├── Block: HEADING "Mục tiêu bài học"
+  │   └── Block: TEXT "<ul><li>...</li></ul>"
+  │
+  ├── Card 4: "Quiz" (freeform - no templateId)
+  │   └── Block: QUIZ { questions: [...] }
+  │
+  ├── Card 5: "Flashcard" (freeform - no templateId)
+  │   └── Block: FLASHCARD { front, back }
+  │
+  ├── Card 6: "Fill in Blank" (freeform - no templateId)
+  │   └── Block: FILL_BLANK { sentence, blanks }
+  │
+  ├── Card 7: "Section Divider" (freeform - backgroundColor: "#1e293b")
+  │   └── Block: TEXT "<h1>Tên chủ đề</h1>"
+  │
+  └── Card 8: "Summary" (freeform - no templateId)
+      ├── Block: HEADING "Tóm tắt bài học"
+      └── Block: TEXT "<ul><li>Ý chính 1</li>...</ul>"
 ```
 
 ---
@@ -1296,7 +1321,9 @@ app.get('/api/analytics/templates', async (req, res) => {
 
 ## 📋 Template Reference Table
 
-Frontend định nghĩa 6 templates chuẩn trong MaterialSidebar. Backend **KHÔNG** cần validate structure, chỉ lưu `templateId` như metadata.
+Frontend định nghĩa **2 nhóm** templates. Backend **KHÔNG** cần validate structure, chỉ lưu data as-is.
+
+### Basic Templates (Layout-based, có `templateId`)
 
 | Template ID | Name | Layout Variant | Mô tả |
 |------------|------|---------------|-------|
@@ -1307,10 +1334,250 @@ Frontend định nghĩa 6 templates chuẩn trong MaterialSidebar. Backend **KH�
 | `template-005` | Three columns | `THREE_COLUMN` | 3 cột text |
 | `template-006` | Three column text | `THREE_COLUMN` | Variant 3 cột với heading |
 
+### Freeform Templates (KHÔNG có `templateId`, KHÔNG dùng Layout)
+
+| Freeform Type | Name | Block Types | Default Children | Mô tả |
+|---------------|------|-------------|------------------|-------|
+| `title-card` | Title Card | `TEXT` | 1 TEXT block (h1 + subtitle) | Slide đầu tiên, tiêu đề bài học |
+| `bullet-card` | Bullet List | `HEADING` + `TEXT` | 1 HEADING + 1 TEXT (ul/li) | Danh sách dạng bullet |
+| `section-divider` | Section Divider | `TEXT` | 1 TEXT block (h1) + `backgroundColor: "#1e293b"` | Slide chuyển tiếp giữa các chủ đề |
+| `quiz-card` | Quiz | `QUIZ` | 1 QUIZ block (1 empty question) | Câu hỏi trắc nghiệm |
+| `flashcard-card` | Flashcard | `FLASHCARD` | 1 FLASHCARD block (front/back) | Thẻ ghi nhớ lật mặt |
+| `fill-blank-card` | Fill in Blank | `FILL_BLANK` | 1 FILL_BLANK block (sentence + blanks) | Điền từ vào chỗ trống |
+| `summary-card` | Summary | `HEADING` + `TEXT` | 1 HEADING + 1 TEXT (ul/li) | Slide tóm tắt cuối bài |
+
 **⚠️ Important:**
+- Freeform cards **KHÔNG có `templateId`** — field `templateId` là `undefined` hoặc không có trong JSON
+- Freeform cards **KHÔNG dùng `ILayout`** — `children` chứa trực tiếp `IBlock[]`
 - User có thể thay đổi structure sau khi tạo
 - Backend KHÔNG validate `children` matching với template
 - `templateId` chỉ để tracking/analytics
+
+---
+
+## 📝 Freeform Card JSON Examples
+
+### Title Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Title Card",
+  "backgroundColor": null,
+  "backgroundImage": null,
+  "children": [
+    {
+      "id": "block-uuid",
+      "type": "BLOCK",
+      "content": {
+        "type": "TEXT",
+        "html": "<h1>Tiêu đề bài học</h1><p>Môn học · Lớp · Giáo viên</p>"
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### Bullet List Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Bullet List",
+  "children": [
+    {
+      "id": "block-uuid-1",
+      "type": "BLOCK",
+      "content": {
+        "type": "HEADING",
+        "html": "Mục tiêu bài học",
+        "level": 2
+      },
+      "children": []
+    },
+    {
+      "id": "block-uuid-2",
+      "type": "BLOCK",
+      "content": {
+        "type": "TEXT",
+        "html": "<ul><li>Mục tiêu 1</li><li>Mục tiêu 2</li><li>Mục tiêu 3</li><li>Mục tiêu 4</li></ul>"
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### Section Divider Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Section Divider",
+  "backgroundColor": "#1e293b",
+  "children": [
+    {
+      "id": "block-uuid",
+      "type": "BLOCK",
+      "content": {
+        "type": "TEXT",
+        "html": "<h1>Tên chủ đề</h1>"
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### Quiz Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Quiz",
+  "children": [
+    {
+      "id": "block-uuid",
+      "type": "BLOCK",
+      "content": {
+        "type": "QUIZ",
+        "title": "",
+        "questions": [
+          {
+            "id": "q-uuid",
+            "question": "What keyword declares a constant?",
+            "options": [
+              { "id": "opt-1", "text": "var" },
+              { "id": "opt-2", "text": "let" },
+              { "id": "opt-3", "text": "const" },
+              { "id": "opt-4", "text": "def" }
+            ],
+            "correctIndex": 2,
+            "explanation": "The 'const' keyword declares a block-scoped constant."
+          }
+        ]
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### Flashcard Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Flashcard",
+  "children": [
+    {
+      "id": "block-uuid",
+      "type": "BLOCK",
+      "content": {
+        "type": "FLASHCARD",
+        "front": "Khái niệm",
+        "back": "Định nghĩa chi tiết của khái niệm..."
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### Fill in Blank Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Fill in Blank",
+  "children": [
+    {
+      "id": "block-uuid",
+      "type": "BLOCK",
+      "content": {
+        "type": "FILL_BLANK",
+        "sentence": "[Từ khoá] là một khái niệm quan trọng trong [lĩnh vực].",
+        "blanks": ["Từ khoá", "lĩnh vực"]
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### Summary Card
+```json
+{
+  "id": "card-uuid",
+  "type": "CARD",
+  "title": "Summary",
+  "children": [
+    {
+      "id": "block-uuid-1",
+      "type": "BLOCK",
+      "content": {
+        "type": "HEADING",
+        "html": "Tóm tắt bài học",
+        "level": 2
+      },
+      "children": []
+    },
+    {
+      "id": "block-uuid-2",
+      "type": "BLOCK",
+      "content": {
+        "type": "TEXT",
+        "html": "<ul><li>Ý chính 1</li><li>Ý chính 2</li><li>Ý chính 3</li><li>Ý chính 4</li></ul>"
+      },
+      "children": []
+    }
+  ]
+}
+```
+
+### ⚠️ So sánh: Basic vs Freeform Card Structure
+
+```json
+// ✅ Basic Card (có templateId, dùng Layout)
+{
+  "id": "card-001",
+  "type": "CARD",
+  "templateId": "template-003",
+  "title": "Key Features",
+  "children": [
+    {
+      "id": "layout-001",
+      "type": "LAYOUT",
+      "variant": "TWO_COLUMN",
+      "gap": 6,
+      "children": [
+        { "id": "block-001", "type": "BLOCK", "content": { "type": "TEXT", "html": "..." }, "children": [] },
+        { "id": "block-002", "type": "BLOCK", "content": { "type": "TEXT", "html": "..." }, "children": [] }
+      ]
+    }
+  ]
+}
+
+// ✅ Freeform Card (KHÔNG có templateId, KHÔNG dùng Layout)
+{
+  "id": "card-002",
+  "type": "CARD",
+  "title": "Quiz",
+  "children": [
+    {
+      "id": "block-003",
+      "type": "BLOCK",
+      "content": {
+        "type": "QUIZ",
+        "title": "",
+        "questions": [...]
+      },
+      "children": []
+    }
+  ]
+}
+```
 
 ---
 
@@ -1332,3 +1599,4 @@ Nếu Backend team có câu hỏi về API contract, hãy liên hệ:
 |---------|------|---------|
 | 1.0.0 | 2026-02-24 | Initial API contract |
 | 1.1.0 | 2026-02-24 | Added `templateId` optional field, enum serialization clarification |
+| 1.2.0 | 2026-03-05 | Added Freeform templates documentation (Title, Bullet, Section Divider, Quiz, Flashcard, Fill-in-Blank, Summary) |
