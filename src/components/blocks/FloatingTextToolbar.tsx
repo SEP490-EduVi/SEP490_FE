@@ -16,6 +16,7 @@
  */
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Editor } from '@tiptap/react';
 import { cn } from '@/lib/utils';
 import {
@@ -57,17 +58,22 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
 
   if (!show) return null;
 
-  return (
+  const editorDom = editor.view.dom as HTMLElement;
+  const rect = editorDom.getBoundingClientRect();
+  const toolbarTop = Math.max(8, rect.top - 60);
+  const toolbarLeft = rect.left;
+
+  return createPortal(
     <div
       className={cn(
-        'absolute -top-14 left-0 z-50',
+        'fixed z-[9999]',
         'flex items-center gap-1 px-2 py-2',
         'bg-white rounded-lg shadow-xl border border-gray-200',
         'animate-in fade-in slide-in-from-top-2 duration-200'
       )}
+      style={{ top: toolbarTop, left: toolbarLeft }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => {
-        // Prevent blur event when clicking toolbar
         e.preventDefault();
       }}
     >
@@ -229,11 +235,10 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
-
-// Toolbar Button Component
 interface ToolbarButtonProps {
   onClick: () => void;
   isActive?: boolean;

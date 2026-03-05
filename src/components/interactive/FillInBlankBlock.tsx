@@ -17,13 +17,11 @@ import {
   PenLine,
   Eye,
   Pencil,
-  Info,
   AlertCircle,
-  CheckCircle,
-  XCircle,
   RotateCcw,
   Trophy,
 } from 'lucide-react';
+import { FillInBlankBlockEdit } from './FillInBlankBlockEdit';
 
 // ============================================================================
 // TYPES
@@ -78,99 +76,7 @@ function validateSentence(sentence: string): { valid: boolean; errors: string[] 
   return { valid: errors.length === 0, errors };
 }
 
-// ============================================================================
-// FILL IN BLANK EDITOR
-// ============================================================================
 
-interface FillInBlankEditorProps {
-  data: FillBlankData;
-  onUpdate: (data: Partial<FillBlankData>) => void;
-}
-
-function FillInBlankEditor({ data, onUpdate }: FillInBlankEditorProps) {
-  const sentence = data.sentence || '';
-  const blanks = useMemo(() => extractBlanks(sentence), [sentence]);
-  const validation = useMemo(() => validateSentence(sentence), [sentence]);
-
-  const handleSentenceChange = useCallback((value: string) => {
-    const newBlanks = extractBlanks(value);
-    onUpdate({ sentence: value, blanks: newBlanks });
-  }, [onUpdate]);
-
-  return (
-    <div className="space-y-4">
-      {/* Instructions */}
-      <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
-        <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-        <p className="text-sm text-blue-700">
-          Wrap words in <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">[brackets]</code> to
-          create blanks. Students will need to fill in those words.
-        </p>
-      </div>
-
-      {/* Input Area */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Sentence with Blanks
-        </label>
-        <textarea
-          value={sentence}
-          onChange={(e) => handleSentenceChange(e.target.value)}
-          placeholder="Example: The [capital] of France is [Paris]."
-          className={cn(
-            'w-full px-4 py-3 text-base border rounded-lg font-mono',
-            'focus:outline-none focus:ring-2 resize-none',
-            'placeholder:text-gray-400',
-            validation.valid
-              ? 'border-gray-200 focus:ring-emerald-500'
-              : 'border-red-300 focus:ring-red-500 bg-red-50'
-          )}
-          rows={3}
-        />
-        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-          <span>{sentence.length} characters</span>
-          <span>{blanks.length} blank{blanks.length !== 1 ? 's' : ''} detected</span>
-        </div>
-      </div>
-
-      {/* Validation Errors */}
-      {!validation.valid && (
-        <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-          <div className="flex items-center gap-2 text-red-600 font-medium text-sm mb-1">
-            <AlertCircle className="w-4 h-4" />
-            Syntax Error
-          </div>
-          <ul className="list-disc list-inside text-xs text-red-600 space-y-0.5">
-            {validation.errors.map((error, idx) => (
-              <li key={idx}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Extracted Blanks */}
-      {blanks.length > 0 && validation.valid && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
-            Correct Answers (Hidden from Students)
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {blanks.map((blank, idx) => (
-              <div
-                key={idx}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700"
-              >
-                <span className="text-xs text-emerald-500 font-medium">#{idx + 1}</span>
-                <span className="font-medium">{blank}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ============================================================================
 // FILL IN BLANK PLAYER
@@ -361,6 +267,28 @@ export function FillInBlankBlock({ id, data, isSelected, onUpdate }: FillInBlank
   // In presentation mode, always show player
   const effectiveMode = appMode === 'PRESENT' ? 'preview' : localMode;
 
+  if (effectiveMode === 'edit') {
+    return (
+      <div className="relative">
+        <FillInBlankBlockEdit
+          id={id}
+          data={data as unknown as Record<string, unknown>}
+          isSelected={isSelected}
+          onUpdate={onUpdate as (data: Record<string, unknown>) => void}
+        />
+        {appMode === 'EDITOR' && (
+          <button
+            onClick={() => setLocalMode('preview')}
+            className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            Preview
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -374,43 +302,24 @@ export function FillInBlankBlock({ id, data, isSelected, onUpdate }: FillInBlank
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PenLine className="w-5 h-5 text-white/80" />
-            <span className="text-xs font-medium text-white/80 uppercase tracking-wide">
+            <span className="text-lg font-medium text-white/80 uppercase tracking-wide">
               Fill in the Blank
             </span>
           </div>
-          
-          {/* Mode Toggle (only in editor) */}
           {appMode === 'EDITOR' && (
             <button
-              onClick={() => setLocalMode(localMode === 'edit' ? 'preview' : 'edit')}
-              className={cn(
-                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium',
-                'bg-white/20 hover:bg-white/30 text-white transition-colors'
-              )}
+              onClick={() => setLocalMode('edit')}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-white/20 hover:bg-white/30 text-white transition-colors"
             >
-              {localMode === 'edit' ? (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Preview
-                </>
-              ) : (
-                <>
-                  <Pencil className="w-4 h-4" />
-                  Edit
-                </>
-              )}
+              <Pencil className="w-4 h-4" />
+              Edit
             </button>
           )}
         </div>
       </div>
-
       {/* Content */}
       <div className="p-4">
-        {effectiveMode === 'edit' ? (
-          <FillInBlankEditor data={data} onUpdate={onUpdate} />
-        ) : (
-          <FillInBlankPlayer data={data} />
-        )}
+        <FillInBlankPlayer data={data} />
       </div>
     </div>
   );

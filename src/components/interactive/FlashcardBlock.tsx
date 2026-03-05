@@ -21,6 +21,7 @@ import {
   Pencil,
   RotateCcw,
 } from 'lucide-react';
+import { FlashcardBlockEdit } from './FlashcardBlockEdit';
 
 // ============================================================================
 // TYPES
@@ -38,74 +39,7 @@ interface FlashcardBlockProps {
   onUpdate: (data: Partial<FlashcardData>) => void;
 }
 
-// ============================================================================
-// FLASHCARD EDITOR
-// ============================================================================
 
-interface FlashcardEditorProps {
-  data: FlashcardData;
-  onUpdate: (data: Partial<FlashcardData>) => void;
-}
-
-function FlashcardEditor({ data, onUpdate }: FlashcardEditorProps) {
-  const front = data.front || '';
-  const back = data.back || '';
-
-  const handleFrontChange = useCallback((value: string) => {
-    onUpdate({ front: value });
-  }, [onUpdate]);
-
-  const handleBackChange = useCallback((value: string) => {
-    onUpdate({ back: value });
-  }, [onUpdate]);
-
-  return (
-    <div className="space-y-4">
-      {/* Front Side */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">FRONT</span>
-          Question / Term
-        </label>
-        <textarea
-          value={front}
-          onChange={(e) => handleFrontChange(e.target.value)}
-          placeholder="Enter the question or term..."
-          className={cn(
-            'w-full px-4 py-3 text-base border border-gray-200 rounded-lg',
-            'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent',
-            'resize-none'
-          )}
-          rows={3}
-        />
-      </div>
-
-      {/* Back Side */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-          <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">BACK</span>
-          Answer / Definition
-        </label>
-        <textarea
-          value={back}
-          onChange={(e) => handleBackChange(e.target.value)}
-          placeholder="Enter the answer or definition..."
-          className={cn(
-            'w-full px-4 py-3 text-base border border-gray-200 rounded-lg',
-            'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent',
-            'resize-none'
-          )}
-          rows={3}
-        />
-      </div>
-
-      {/* Preview hint */}
-      <p className="text-xs text-gray-400 text-center">
-        Click &quot;Preview&quot; to see the interactive flip card
-      </p>
-    </div>
-  );
-}
 
 // ============================================================================
 // FLASHCARD PLAYER
@@ -210,6 +144,28 @@ export function FlashcardBlock({ id, data, isSelected, onUpdate }: FlashcardBloc
   // In presentation mode, always show player
   const effectiveMode = appMode === 'PRESENT' ? 'preview' : localMode;
 
+  if (effectiveMode === 'edit') {
+    return (
+      <div className="relative">
+        <FlashcardBlockEdit
+          id={id}
+          data={data as unknown as Record<string, unknown>}
+          isSelected={isSelected}
+          onUpdate={onUpdate as (data: Record<string, unknown>) => void}
+        />
+        {appMode === 'EDITOR' && (
+          <button
+            onClick={() => setLocalMode('preview')}
+            className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            Preview
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -227,39 +183,20 @@ export function FlashcardBlock({ id, data, isSelected, onUpdate }: FlashcardBloc
               Flashcard Block
             </span>
           </div>
-          
-          {/* Mode Toggle (only in editor) */}
           {appMode === 'EDITOR' && (
             <button
-              onClick={() => setLocalMode(localMode === 'edit' ? 'preview' : 'edit')}
-              className={cn(
-                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium',
-                'bg-white/20 hover:bg-white/30 text-white transition-colors'
-              )}
+              onClick={() => setLocalMode('edit')}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-white/20 hover:bg-white/30 text-white transition-colors"
             >
-              {localMode === 'edit' ? (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Preview
-                </>
-              ) : (
-                <>
-                  <Pencil className="w-4 h-4" />
-                  Edit
-                </>
-              )}
+              <Pencil className="w-4 h-4" />
+              Edit
             </button>
           )}
         </div>
       </div>
-
       {/* Content */}
       <div className="p-4">
-        {effectiveMode === 'edit' ? (
-          <FlashcardEditor data={data} onUpdate={onUpdate} />
-        ) : (
-          <FlashcardPlayer data={data} />
-        )}
+        <FlashcardPlayer data={data} />
       </div>
     </div>
   );

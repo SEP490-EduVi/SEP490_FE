@@ -186,11 +186,6 @@ export function PresentationLayer() {
               >
                 {currentCard ? (
                   <div className="p-8 overflow-y-auto max-h-[calc(100vh-12rem)]">
-                    {/* Slide Title */}
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-4 border-b border-gray-100">
-                      {currentCard.title}
-                    </h2>
-
                     {/* Slide Content */}
                     <div className="space-y-6">
                       {currentCard.children && currentCard.children.length > 0 ? (

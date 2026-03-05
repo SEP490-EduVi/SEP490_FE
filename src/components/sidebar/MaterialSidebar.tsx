@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { IMaterial, MaterialCategory } from '@/types';
 import { Modal } from '@/components/common/Modal';
+import { basicCardTemplates, freeformCardTemplates } from './cardTemplates';
 import * as LucideIcons from 'lucide-react';
 import { 
   Loader2, 
@@ -381,143 +382,13 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
 
 function QuickLayoutSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'basic' | 'freeform'>('basic');
   const addCardFromTemplate = useDocumentStore((state) => state.addCardFromTemplate);
 
   const handleAddTemplate = (templateType: string) => {
     addCardFromTemplate(templateType);
     setIsModalOpen(false);
   };
-
-  // Card template definitions (6 templates như Gamma)
-  const cardTemplates = [
-    {
-      id: 'template-001',
-      type: 'image-text-left',
-      label: 'Image and text',
-      preview: (
-        <div className="w-full h-full flex gap-1 p-2 bg-white border border-gray-200 rounded">
-          <div className="w-1/3  bg-gray-200 rounded flex items-center justify-center">
-            <LucideIcons.ImagePlus  className="text-gray-400" />
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <div className="h-5 bg-gray-300 rounded w-3/4" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-5/6" />
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'template-002',
-      type: 'text-image-right',
-      label: 'Text and image',
-      preview: (
-        <div className="w-full h-full flex gap-1 p-2 bg-white border border-gray-200 rounded">
-          <div className="flex-1 flex flex-col gap-1">
-            <div className="h-5 bg-gray-300 rounded w-3/4" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-5/6" />
-          </div>
-          <div className="w-1/3 bg-gray-200 rounded flex items-center justify-center">
-            <LucideIcons.ImagePlus className="text-gray-400" />
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'template-003',
-      type: 'two-columns',
-      label: 'Two columns',
-      preview: (
-        <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
-          <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
-          <div className="flex-1 flex gap-1">
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-4/5" />
-            </div>
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-4/5" />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'template-004',
-      type: 'two-columns-alt',
-      label: 'Two column text',
-      preview: (
-        <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
-          <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
-          <div className="flex-1 flex gap-1">
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-3/4" />
-            </div>
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-3/4" />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'template-005',
-      type: 'three-columns',
-      label: 'Three columns',
-      preview: (
-        <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
-          <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
-          <div className="flex-1 flex gap-1">
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-4/5" />
-            </div>
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-4/5" />
-            </div>
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-4/5" />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'template-006',
-      type: 'three-columns-alt',
-      label: 'Three column text',
-      preview: (
-        <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
-          <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
-          <div className="flex-1 flex gap-1">
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-3/4" />
-            </div>
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-3/4" />
-            </div>
-            <div className="flex-1 flex flex-col gap-0.5">
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded" />
-              <div className="h-3 bg-gray-200 rounded w-3/4" />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <>
@@ -545,42 +416,101 @@ function QuickLayoutSection() {
         className="max-w-4xl"
       >
         <div className="max-h-[70vh] overflow-y-auto">
-          {/* Basic Section */}
-          <div className="px-6 py-4">
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-sm font-medium text-gray-700">Basic</h3>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              {cardTemplates.map((template) => (
-                <button
-                  key={template.type}
-                  onClick={() => handleAddTemplate(template.type)}
-                  className={cn(
-                    'flex flex-col gap-2 p-0 rounded-lg',
-                    'transition-all duration-150',
-                    'hover:scale-[1.02]'
-                  )}
-                >
-                  {/* Template Preview */}
-                  <div
+          {/* Tabs */}
+          <div className="px-6 pt-4 flex gap-1 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('basic')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
+                activeTab === 'basic'
+                  ? 'bg-white text-indigo-600 border border-b-white border-gray-200 -mb-px'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              Basic
+            </button>
+            <button
+              onClick={() => setActiveTab('freeform')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
+                activeTab === 'freeform'
+                  ? 'bg-white text-indigo-600 border border-b-white border-gray-200 -mb-px'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              Freeform
+            </button>
+          </div>
+
+          {/* Basic Tab */}
+          {activeTab === 'basic' && (
+            <div className="px-6 py-4">
+              <p className="text-xs text-gray-500 mb-4">
+                Layout-based templates with column structures
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                {basicCardTemplates.map((template) => (
+                  <button
+                    key={template.type}
+                    onClick={() => handleAddTemplate(template.type)}
                     className={cn(
-                      'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
-                      'border-2 transition-all duration-150',
-                      'border-gray-200 hover:border-indigo-400 hover:shadow-md'
+                      'flex flex-col gap-2 p-0 rounded-lg',
+                      'transition-all duration-150',
+                      'hover:scale-[1.02]'
                     )}
                   >
-                    {template.preview}
-                  </div>
-                  
-                  {/* Template Label */}
-                  <span className="text-xs text-center px-1 text-gray-700">
-                    {template.label}
-                  </span>
-                </button>
-              ))}
+                    <div
+                      className={cn(
+                        'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
+                        'border-2 transition-all duration-150',
+                        'border-gray-200 hover:border-indigo-400 hover:shadow-md'
+                      )}
+                    >
+                      {template.preview}
+                    </div>
+                    <span className="text-xs text-center px-1 text-gray-700">
+                      {template.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Freeform Tab */}
+          {activeTab === 'freeform' && (
+            <div className="px-6 py-4">
+              <p className="text-xs text-gray-500 mb-4">
+                Special-purpose cards without fixed layout structure
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                {freeformCardTemplates.map((template) => (
+                  <button
+                    key={template.type}
+                    onClick={() => handleAddTemplate(template.type)}
+                    className={cn(
+                      'flex flex-col gap-2 p-0 rounded-lg',
+                      'transition-all duration-150',
+                      'hover:scale-[1.02]'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'w-full h-32 rounded-lg overflow-hidden',
+                        'border-2 transition-all duration-150',
+                        'border-gray-200 hover:border-indigo-400 hover:shadow-md'
+                      )}
+                    >
+                      {template.preview}
+                    </div>
+                    <span className="text-xs text-center px-1 text-gray-700">
+                      {template.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </>

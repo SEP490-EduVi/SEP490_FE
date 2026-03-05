@@ -12,16 +12,12 @@
  * a Preview/Edit toggle button in Editor mode.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useDocumentStore, AppMode } from '@/store';
+import { useDocumentStore } from '@/store';
 import {
   HelpCircle,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
   Check,
   X,
   Eye,
@@ -30,6 +26,7 @@ import {
   Trophy,
   ChevronRight,
 } from 'lucide-react';
+import { QuizBlockEdit } from './QuizBlockEdit';
 
 // ============================================================================
 // TYPES
@@ -53,278 +50,6 @@ interface QuizBlockProps {
   data: QuizData;
   isSelected?: boolean;
   onUpdate: (data: Partial<QuizData>) => void;
-}
-
-// ============================================================================
-// QUIZ EDITOR
-// ============================================================================
-
-interface QuizEditorProps {
-  data: QuizData;
-  onUpdate: (data: Partial<QuizData>) => void;
-}
-
-function QuizEditor({ data, onUpdate }: QuizEditorProps) {
-  const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(
-    data.questions[0]?.id || null
-  );
-
-  const questions = useMemo(() => data.questions || [], [data.questions]);
-  const title = data.title || 'Quiz';
-
-  const generateId = () => `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  const generateOptionId = () => `opt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  const handleTitleChange = useCallback((newTitle: string) => {
-    onUpdate({ title: newTitle });
-  }, [onUpdate]);
-
-  const handleAddQuestion = useCallback(() => {
-    const newQuestion: QuizQuestion = {
-      id: generateId(),
-      question: '',
-      options: [
-        { id: generateOptionId(), text: '' },
-        { id: generateOptionId(), text: '' },
-      ],
-      correctIndex: 0,
-    };
-    onUpdate({ questions: [...questions, newQuestion] });
-    setExpandedQuestionId(newQuestion.id);
-  }, [questions, onUpdate]);
-
-  const handleRemoveQuestion = useCallback((questionId: string) => {
-    const filtered = questions.filter((q) => q.id !== questionId);
-    onUpdate({ questions: filtered });
-    if (expandedQuestionId === questionId) {
-      setExpandedQuestionId(filtered[0]?.id || null);
-    }
-  }, [questions, expandedQuestionId, onUpdate]);
-
-  const handleQuestionChange = useCallback((questionId: string, text: string) => {
-    const updated = questions.map((q) =>
-      q.id === questionId ? { ...q, question: text } : q
-    );
-    onUpdate({ questions: updated });
-  }, [questions, onUpdate]);
-
-  const handleOptionChange = useCallback((questionId: string, optionIndex: number, text: string) => {
-    const updated = questions.map((q) => {
-      if (q.id !== questionId) return q;
-      const newOptions = [...q.options];
-      newOptions[optionIndex] = { ...newOptions[optionIndex], text };
-      return { ...q, options: newOptions };
-    });
-    onUpdate({ questions: updated });
-  }, [questions, onUpdate]);
-
-  const handleCorrectIndexChange = useCallback((questionId: string, index: number) => {
-    const updated = questions.map((q) =>
-      q.id === questionId ? { ...q, correctIndex: index } : q
-    );
-    onUpdate({ questions: updated });
-  }, [questions, onUpdate]);
-
-  const handleAddOption = useCallback((questionId: string) => {
-    const updated = questions.map((q) => {
-      if (q.id !== questionId || q.options.length >= 6) return q;
-      return {
-        ...q,
-        options: [...q.options, { id: generateOptionId(), text: '' }],
-      };
-    });
-    onUpdate({ questions: updated });
-  }, [questions, onUpdate]);
-
-  const handleRemoveOption = useCallback((questionId: string, optionIndex: number) => {
-    const updated = questions.map((q) => {
-      if (q.id !== questionId || q.options.length <= 2) return q;
-      const newOptions = q.options.filter((_, i) => i !== optionIndex);
-      const newCorrectIndex = q.correctIndex >= newOptions.length
-        ? newOptions.length - 1
-        : q.correctIndex;
-      return { ...q, options: newOptions, correctIndex: newCorrectIndex };
-    });
-    onUpdate({ questions: updated });
-  }, [questions, onUpdate]);
-
-  const handleExplanationChange = useCallback((questionId: string, explanation: string) => {
-    const updated = questions.map((q) =>
-      q.id === questionId ? { ...q, explanation } : q
-    );
-    onUpdate({ questions: updated });
-  }, [questions, onUpdate]);
-
-  const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
-
-  return (
-    <div className="space-y-4">
-      {/* Title Input */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Quiz Title</label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Enter quiz title..."
-        />
-      </div>
-
-      {/* Questions List */}
-      <div className="space-y-3">
-        {questions.map((question, qIndex) => {
-          const isExpanded = expandedQuestionId === question.id;
-          return (
-            <div
-              key={question.id}
-              className="border border-gray-200 rounded-lg overflow-hidden"
-            >
-              {/* Question Header */}
-              <div
-                onClick={() => setExpandedQuestionId(isExpanded ? null : question.id)}
-                className={cn(
-                  'flex items-center justify-between px-4 py-3 cursor-pointer',
-                  'hover:bg-gray-50 transition-colors',
-                  isExpanded && 'bg-gray-50 border-b border-gray-200'
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-xs font-bold">
-                    {qIndex + 1}
-                  </span>
-                  <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
-                    {question.question || 'New Question'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveQuestion(question.id);
-                    }}
-                    className="p-1 hover:bg-red-100 rounded text-gray-400 hover:text-red-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  )}
-                </div>
-              </div>
-
-              {/* Question Body */}
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="p-4 space-y-4">
-                      {/* Question Text */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">
-                          Question
-                        </label>
-                        <textarea
-                          value={question.question}
-                          onChange={(e) => handleQuestionChange(question.id, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                          rows={2}
-                          placeholder="Enter your question..."
-                        />
-                      </div>
-
-                      {/* Options */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-2">
-                          Options (click to mark correct)
-                        </label>
-                        <div className="space-y-2">
-                          {question.options.map((option, optIndex) => (
-                            <div key={option.id} className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleCorrectIndexChange(question.id, optIndex)}
-                                className={cn(
-                                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                                  question.correctIndex === optIndex
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                )}
-                              >
-                                {optionLabels[optIndex]}
-                              </button>
-                              <input
-                                type="text"
-                                value={option.text}
-                                onChange={(e) => handleOptionChange(question.id, optIndex, e.target.value)}
-                                className={cn(
-                                  'flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2',
-                                  question.correctIndex === optIndex
-                                    ? 'border-green-300 focus:ring-green-500 bg-green-50'
-                                    : 'border-gray-200 focus:ring-indigo-500'
-                                )}
-                                placeholder={`Option ${optionLabels[optIndex]}...`}
-                              />
-                              {question.options.length > 2 && (
-                                <button
-                                  onClick={() => handleRemoveOption(question.id, optIndex)}
-                                  className="p-1 hover:bg-red-100 rounded text-gray-400 hover:text-red-500"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        {question.options.length < 6 && (
-                          <button
-                            onClick={() => handleAddOption(question.id)}
-                            className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Add Option
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Explanation */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">
-                          Explanation (optional)
-                        </label>
-                        <textarea
-                          value={question.explanation || ''}
-                          onChange={(e) => handleExplanationChange(question.id, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-sm"
-                          rows={2}
-                          placeholder="Explain the correct answer..."
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Add Question Button */}
-      <button
-        onClick={handleAddQuestion}
-        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2"
-      >
-        <Plus className="w-4 h-4" />
-        Add Question
-      </button>
-    </div>
-  );
 }
 
 // ============================================================================
@@ -560,6 +285,31 @@ export function QuizBlock({ id, data, isSelected, onUpdate }: QuizBlockProps) {
   // In presentation mode, always show player
   const effectiveMode = appMode === 'PRESENT' ? 'preview' : localMode;
 
+  if (effectiveMode === 'edit') {
+    return (
+      <div className="relative">
+        <QuizBlockEdit
+          id={id}
+          data={data as unknown as Record<string, unknown>}
+          isSelected={isSelected}
+          onUpdate={(d) => onUpdate(d as Partial<QuizData>)}
+        />
+        {appMode === 'EDITOR' && (
+          <button
+            onClick={() => setLocalMode('preview')}
+            className={cn(
+              'absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium',
+              'bg-white/20 hover:bg-white/30 text-white transition-colors'
+            )}
+          >
+            <Eye className="w-4 h-4" />
+            Preview
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -577,39 +327,23 @@ export function QuizBlock({ id, data, isSelected, onUpdate }: QuizBlockProps) {
               Quiz Block
             </span>
           </div>
-          
-          {/* Mode Toggle (only in editor) */}
           {appMode === 'EDITOR' && (
             <button
-              onClick={() => setLocalMode(localMode === 'edit' ? 'preview' : 'edit')}
+              onClick={() => setLocalMode('edit')}
               className={cn(
                 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium',
                 'bg-white/20 hover:bg-white/30 text-white transition-colors'
               )}
             >
-              {localMode === 'edit' ? (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Preview
-                </>
-              ) : (
-                <>
-                  <Pencil className="w-4 h-4" />
-                  Edit
-                </>
-              )}
+              <Pencil className="w-4 h-4" />
+              Edit
             </button>
           )}
         </div>
       </div>
-
       {/* Content */}
       <div className="p-4">
-        {effectiveMode === 'edit' ? (
-          <QuizEditor data={data} onUpdate={onUpdate} />
-        ) : (
-          <QuizPlayer data={data} />
-        )}
+        <QuizPlayer data={data} />
       </div>
     </div>
   );

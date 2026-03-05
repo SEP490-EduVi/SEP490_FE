@@ -43,6 +43,7 @@ export function TextBlock({
   onSelect,
 }: TextBlockProps) {
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
+  const setEditingNodeId = useDocumentStore((state) => state.setEditingNodeId);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showToolbar, setShowToolbar] = useState(false);
 
@@ -97,20 +98,18 @@ export function TextBlock({
       }, 500); // Wait 500ms after user stops typing
     },
     onFocus: () => {
-      // Don't show toolbar on focus, only when there's selection
       onSelect?.();
     },
     onSelectionUpdate: ({ editor }) => {
-      // Show toolbar ONLY when there's a text selection (not just cursor)
       const { from, to } = editor.state.selection;
       const hasSelection = from !== to;
-      
       setShowToolbar(hasSelection);
+      setEditingNodeId(hasSelection ? id : null);
     },
     onBlur: () => {
-      // Hide toolbar when clicking away (unless clicking on toolbar itself)
       setTimeout(() => {
         setShowToolbar(false);
+        setEditingNodeId(null);
       }, 150);
     },
   });
@@ -153,7 +152,6 @@ export function TextBlock({
         editor={editor}
         className={cn(
           'w-full',
-          'px-3 py-2',
           'rounded-lg',
           'bg-white',
           'hover:bg-gray-50/50',

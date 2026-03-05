@@ -51,6 +51,7 @@ export function HeadingBlock({
   onSelect,
 }: HeadingBlockProps) {
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
+  const setEditingNodeId = useDocumentStore((state) => state.setEditingNodeId);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showToolbar, setShowToolbar] = useState(false);
 
@@ -107,10 +108,12 @@ export function HeadingBlock({
       const { from, to } = editor.state.selection;
       const hasSelection = from !== to;
       setShowToolbar(hasSelection);
+      setEditingNodeId(hasSelection ? id : null);
     },
     onBlur: () => {
       setTimeout(() => {
         setShowToolbar(false);
+        setEditingNodeId(null);
       }, 150);
     },
   });
@@ -158,7 +161,6 @@ export function HeadingBlock({
         editor={editor}
         className={cn(
           'w-full',
-          'px-3 py-2',
           'rounded-lg',
           'bg-white',
           'hover:bg-gray-50/50',

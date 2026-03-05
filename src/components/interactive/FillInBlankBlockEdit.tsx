@@ -142,7 +142,7 @@ export function FillInBlankBlockEdit({ id, data, isSelected, onUpdate }: Interac
       <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-4">
         <div className="flex items-center gap-2">
           <PenLine className="w-5 h-5 text-white/80" />
-          <span className="text-xs font-medium text-white/80 uppercase tracking-wide">
+          <span className="text-lg font-medium text-white/80 uppercase tracking-wide">
             Fill in the Blank
           </span>
         </div>
@@ -152,7 +152,7 @@ export function FillInBlankBlockEdit({ id, data, isSelected, onUpdate }: Interac
         {/* Instructions */}
         <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
           <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-blue-700">
+          <p className="text-xm text-blue-700">
             Wrap words in <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">[brackets]</code> to 
             create blanks. Students will need to fill in those words.
           </p>
@@ -160,7 +160,7 @@ export function FillInBlankBlockEdit({ id, data, isSelected, onUpdate }: Interac
 
         {/* Input Area */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-lg font-medium text-gray-700 mb-2">
             Sentence with Blanks
           </label>
           <textarea
@@ -204,7 +204,7 @@ export function FillInBlankBlockEdit({ id, data, isSelected, onUpdate }: Interac
         {/* Preview Section */}
         {sentence && validation.valid && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <div className="flex items-center gap-2 text-lg font-medium text-gray-700">
               <Eye className="w-4 h-4 text-gray-500" />
               Student Preview
             </div>
@@ -220,7 +220,7 @@ export function FillInBlankBlockEdit({ id, data, isSelected, onUpdate }: Interac
         {/* Extracted Blanks (Answers) */}
         {blanks.length > 0 && validation.valid && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <div className="flex items-center gap-2 text-lg font-medium text-gray-700">
               <CheckCircle className="w-4 h-4 text-emerald-500" />
               Correct Answers (Hidden from Students)
             </div>

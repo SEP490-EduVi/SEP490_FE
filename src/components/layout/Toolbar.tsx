@@ -14,20 +14,10 @@ import { useDocumentStore } from '@/store';
 import { BlockType, LayoutVariant } from '@/types';
 import { exportToEduvi } from '@/lib/exportToEduvi';
 import {
-  Type,
-  Heading1,
-  Image,
-  Video,
   Undo2,
   Redo2,
-  Save,
-  Download,
   Play,
   ShoppingBag,
-  // Interactive icons
-  HelpCircle,
-  Layers,
-  PenLine,
 } from 'lucide-react';
 
 interface ToolbarButtonProps {

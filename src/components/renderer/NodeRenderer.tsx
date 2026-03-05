@@ -20,7 +20,8 @@
  * NO absolute positioning is used for content elements.
  */
 
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import {
@@ -94,145 +95,160 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
   const selectedNodeId = useDocumentStore((state) => state.selectedNodeId);
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
   const deleteNode = useDocumentStore((state) => state.deleteNode);
+  const editingNodeId = useDocumentStore((state) => state.editingNodeId);
 
   const isSelected = selectedNodeId === node.id;
+  const isEditing = editingNodeId === node.id;
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (isSelected && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const toolbarHeight = 44;
+      const above = rect.top - toolbarHeight - 4;
+      const top = above < 8 ? rect.bottom + 4 : above;
+      const left = rect.left + rect.width / 2;
+      setToolbarPos({ top, left });
+    } else {
+      setToolbarPos(null);
+    }
+  }, [isSelected]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'relative group',
-        isDragging && 'opacity-50 z-50'
-      )}
-    >
-      {/* Block toolbar - appears when block is selected (not when editing content inside) */}
-      {depth > 0 && isSelected && (
-        <div
-          className={cn(
-            'absolute -top-12 left-1/2 -translate-x-1/2 z-50',
-            'flex items-center gap-1 px-2 py-1.5',
-            'bg-white rounded-lg shadow-lg border border-gray-200',
-            'transition-opacity duration-200'
-          )}
-        >
-          <button
-            {...attributes}
-            {...listeners}
-            className="p-1.5 rounded hover:bg-gray-100 cursor-grab active:cursor-grabbing transition-colors"
-            title="Di chuyển"
-          >
-            <GripVertical className="w-4 h-4 text-gray-600" />
-          </button>
-          
-          <div className="w-px h-5 bg-gray-200 mx-0.5" />
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const activeCard = useDocumentStore.getState().activeCardId;
-              if (activeCard) {
-                useDocumentStore.getState().addBlockToCard(activeCard, BlockType.HEADING);
-              }
-            }}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-            title="Thêm Heading"
-          >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-            </svg>
-          </button>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const activeCard = useDocumentStore.getState().activeCardId;
-              if (activeCard) {
-                useDocumentStore.getState().addBlockToCard(activeCard, BlockType.TEXT);
-              }
-            }}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-            title="Thêm Text"
-          >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-          </button>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const activeCard = useDocumentStore.getState().activeCardId;
-              if (activeCard) {
-                useDocumentStore.getState().addBlockToCard(activeCard, BlockType.IMAGE);
-              }
-            }}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-            title="Thêm Image"
-          >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </button>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const activeCard = useDocumentStore.getState().activeCardId;
-              if (activeCard) {
-                useDocumentStore.getState().addBlockToCard(activeCard, BlockType.VIDEO);
-              }
-            }}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-            title="Thêm Video"
-          >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          </button>
-          
-          <div className="w-px h-5 bg-gray-200 mx-0.5" />
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // Copy action - TODO: implement
-            }}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-            title="Sao chép"
-          >
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          </button>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteNode(node.id);
-            }}
-            className="p-1.5 rounded hover:bg-red-50 text-gray-600 hover:text-red-500 transition-colors"
-            title="Xóa"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+  const toolbarContent = (
+    <>
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-1.5 rounded hover:bg-gray-100 cursor-grab active:cursor-grabbing transition-colors"
+        title="Di chuyển"
+      >
+        <GripVertical className="w-4 h-4 text-gray-600" />
+      </button>
 
-      <div
+      <div className="w-px h-5 bg-gray-200 mx-0.5" />
+
+      <button
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedNode(node.id);
+          const activeCard = useDocumentStore.getState().activeCardId;
+          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.HEADING);
         }}
+        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+        title="Thêm Heading"
       >
-        {children}
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const activeCard = useDocumentStore.getState().activeCardId;
+          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.TEXT);
+        }}
+        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+        title="Thêm Text"
+      >
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+        </svg>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const activeCard = useDocumentStore.getState().activeCardId;
+          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.IMAGE);
+        }}
+        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+        title="Thêm Image"
+      >
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const activeCard = useDocumentStore.getState().activeCardId;
+          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.VIDEO);
+        }}
+        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+        title="Thêm Video"
+      >
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </button>
+
+      <div className="w-px h-5 bg-gray-200 mx-0.5" />
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          // Copy action - TODO: implement
+        }}
+        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+        title="Sao chép"
+      >
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          deleteNode(node.id);
+        }}
+        className="p-1.5 rounded hover:bg-red-50 text-gray-600 hover:text-red-500 transition-colors"
+        title="Xóa"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </>
+  );
+
+  return (
+    <>
+      {depth > 0 && isSelected && !isEditing && toolbarPos && createPortal(
+        <div
+          className="fixed z-[9999] flex items-center gap-1 px-2 py-1.5 bg-white rounded-lg shadow-lg border border-gray-200 -translate-x-1/2"
+          style={{ top: toolbarPos.top, left: toolbarPos.left }}
+        >
+          {toolbarContent}
+        </div>,
+        document.body
+      )}
+      <div
+        ref={(el) => {
+          setNodeRef(el);
+          (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        }}
+        style={style}
+        className={cn(
+          'relative group',
+          isDragging && 'opacity-50 z-50'
+        )}
+      >
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedNode(node.id);
+          }}
+        >
+          {children}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -670,7 +686,7 @@ function CardRenderer({ node }: { node: ICard }) {
       className={cn(
         'w-full h-[600px]',
         'flex flex-col',
-        'p-8 md:p-12',
+        'pl-5',
         'overflow-hidden',
         // Card styling
         'bg-white rounded-2xl shadow-stage',

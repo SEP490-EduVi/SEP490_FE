@@ -50,7 +50,7 @@ export function ImageBlock({
       </div>
       
       {content.caption && (
-        <figcaption className="px-3 py-2 text-sm text-gray-600 text-center bg-gray-50">
+        <figcaption className=" text-sm text-gray-600 text-center bg-gray-50">
           {content.caption}
         </figcaption>
       )}
