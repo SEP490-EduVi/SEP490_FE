@@ -322,42 +322,32 @@ export const emptyDocument: IDocument = {
 /**
  * Example API Response: Task result for "BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG"
  * 
- * taskId: "05f723f4-c8bf-4a28-b0cd-57562d196485"
+ * taskId: "d8e48da4-6eb1-4b76-b71c-503c0f3e97a5"
  * userId: "5" | productId: 1 | status: "completed"
  */
 export const mockDocument: IDocument = {
-  id: '05f723f4-c8bf-4a28-b0cd-57562d196485',
+  id: 'd8e48da4-6eb1-4b76-b71c-503c0f3e97a5',
   title: 'BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG',
-  activeCardId: 'card-a6fdb051',
-  createdAt: '2026-03-04T10:00:00.000Z',
-  updatedAt: '2026-03-04T10:00:00.000Z',
+  activeCardId: 'card-7dc58994',
+  createdAt: '2026-03-06T10:00:00.000Z',
+  updatedAt: '2026-03-06T10:00:00.000Z',
   cards: [
     // ========================================================================
     // CARD 1: Title slide
     // ========================================================================
     {
-      id: 'card-a6fdb051',
+      id: 'card-7dc58994',
       type: NodeType.CARD,
       title: 'BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-d353aa7c',
-          type: NodeType.BLOCK,
-          content: {
-            type: BlockType.HEADING,
-            html: 'BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG',
-            level: 1,
-          },
-          children: [],
-        },
-        {
-          id: 'block-1544785c',
+          id: 'block-90a00cfd',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.TEXT,
-            html: '<p>Môn Địa lí · Lớp 10 · Giáo viên</p>',
+            html: '<h1>BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG</h1><p>Lớp 10</p>',
           },
           children: [],
         },
@@ -368,14 +358,14 @@ export const mockDocument: IDocument = {
     // CARD 2: Mục tiêu bài học
     // ========================================================================
     {
-      id: 'card-1d257967',
+      id: 'card-e58720dd',
       type: NodeType.CARD,
       title: 'Mục tiêu bài học',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-b91183c5',
+          id: 'block-a85bc490',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.HEADING,
@@ -385,11 +375,11 @@ export const mockDocument: IDocument = {
           children: [],
         },
         {
-          id: 'block-594de69c',
+          id: 'block-8aafbfb6',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.TEXT,
-            html: '<ul><li>Nêu được đặc điểm của môn Địa lí ở trường phổ thông.</li><li>Trình bày được vai trò của môn Địa lí đối với việc hình thành phẩm chất và năng lực của học sinh.</li><li>Phân tích được ý nghĩa của kiến thức Địa lí trong đời sống và các ngành nghề.</li><li>Vận dụng kiến thức Địa lí để giải thích các vấn đề thực tiễn.</li><li>Hình thành năng lực tư duy tổng hợp, liên hệ giữa các lĩnh vực.</li></ul>',
+            html: '<ul><li>Nêu được khái niệm, đặc điểm và vai trò của Địa lí học.</li><li>Rèn luyện khả năng tự học, giao tiếp, hợp tác và giải quyết vấn đề.</li><li>Phát triển năng lực nhận thức, tìm tòi, khám phá và vận dụng kiến thức địa lí vào thực tiễn.</li><li>Hình thành ý thức chăm chỉ, trách nhiệm với môi trường và xã hội.</li></ul>',
           },
           children: [],
         },
@@ -397,104 +387,21 @@ export const mockDocument: IDocument = {
     },
 
     // ========================================================================
-    // CARD 3: Section divider - Đặc điểm và Vai trò
+    // CARD 3: Section divider - Địa lí học là gì?
     // ========================================================================
     {
-      id: 'card-0c0cb6c4',
+      id: 'card-76541604',
       type: NodeType.CARD,
-      title: 'Đặc điểm và Vai trò của Địa lí học',
+      title: 'Địa lí học là gì?',
       backgroundColor: '#1e293b',
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-8ee97291',
-          type: NodeType.BLOCK,
-          content: {
-            type: BlockType.HEADING,
-            html: 'Đặc điểm và Vai trò của Địa lí học',
-            level: 1,
-          },
-          children: [],
-        },
-      ],
-    },
-
-    // ========================================================================
-    // CARD 4: Khái niệm và Tính chất (Two Column, Template 004)
-    // ========================================================================
-    {
-      id: 'card-6285a076',
-      type: NodeType.CARD,
-      templateId: 'template-004',
-      title: 'Khái niệm và Tính chất của Địa lí học',
-      backgroundColor: undefined,
-      backgroundImage: undefined,
-      children: [
-        {
-          id: 'block-4a836b9c',
-          type: NodeType.BLOCK,
-          content: {
-            type: BlockType.HEADING,
-            html: 'Khái niệm và Tính chất của Địa lí học',
-            level: 2,
-          },
-          children: [],
-        },
-        {
-          id: 'layout-20dea364',
-          type: NodeType.LAYOUT,
-          variant: LayoutVariant.TWO_COLUMN,
-          gap: 6,
-          children: [
-            {
-              id: 'block-9b037cd7',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>1. Khái niệm Địa lí học</h4><ul><li>Địa lí học là một ngành khoa học nghiên cứu về Trái Đất, đặc biệt là bề mặt Trái Đất.</li><li>Phạm vi nghiên cứu rộng lớn, bao gồm cả các yếu tố tự nhiên (địa hình, khí hậu, sông ngòi,...) và các yếu tố kinh tế - xã hội (dân cư, hoạt động sản xuất, văn hóa,...).</li></ul>',
-              },
-              children: [],
-            },
-            {
-              id: 'block-6cb1f47a',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>2. Tính chất tổng hợp</h4><ul><li>Môn Địa lí mang tính chất tổng hợp, kết hợp kiến thức của cả khoa học tự nhiên (Vật lí, Hóa học, Sinh học) và khoa học xã hội (Lịch sử, Kinh tế, Xã hội học).</li><li>Giúp chúng ta hiểu rõ mối quan hệ phức tạp giữa tự nhiên và con người, giữa các vùng miền trên Trái Đất.</li></ul>',
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-
-    // ========================================================================
-    // CARD 5: Địa lí trong chương trình phổ thông
-    // ========================================================================
-    {
-      id: 'card-e81b1c09',
-      type: NodeType.CARD,
-      title: 'Địa lí trong chương trình phổ thông',
-      backgroundColor: undefined,
-      backgroundImage: undefined,
-      children: [
-        {
-          id: 'block-4e8678d1',
-          type: NodeType.BLOCK,
-          content: {
-            type: BlockType.HEADING,
-            html: 'Địa lí trong chương trình phổ thông',
-            level: 2,
-          },
-          children: [],
-        },
-        {
-          id: 'block-f00cbd6e',
+          id: 'block-63bdea3c',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.TEXT,
-            html: '<ul><li>Môn Địa lí được giảng dạy ở tất cả các cấp học phổ thông (Tiểu học, THCS, THPT).</li><li>Ở cấp Tiểu học và THCS: Nội dung giáo dục địa lí được tích hợp trong môn Lịch sử và Địa lí.</li><li>Ở cấp THPT: Địa lí là một môn học độc lập, thuộc nhóm môn khoa học xã hội.</li><li>Nội dung và hình thức giảng dạy được thiết kế phù hợp với đặc điểm tâm sinh lí và khả năng nhận thức của học sinh từng cấp học.</li></ul>',
+            html: '<h1>Địa lí học là gì?</h1>',
           },
           children: [],
         },
@@ -502,18 +409,81 @@ export const mockDocument: IDocument = {
     },
 
     // ========================================================================
-    // CARD 6: Vai trò của môn Địa lí (Three Column, Template 005)
+    // CARD 4: Khái niệm Địa lí học
     // ========================================================================
     {
-      id: 'card-7cf05756',
+      id: 'card-354877e8',
       type: NodeType.CARD,
-      templateId: 'template-005',
+      title: 'Khái niệm Địa lí học',
+      backgroundColor: undefined,
+      backgroundImage: undefined,
+      children: [
+        {
+          id: 'block-13d0a063',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.HEADING,
+            html: 'Khái niệm Địa lí học',
+            level: 2,
+          },
+          children: [],
+        },
+        {
+          id: 'block-14588e7b',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.TEXT,
+            html: '<ul><li>Là một ngành khoa học nghiên cứu về không gian địa lí.</li><li>Tìm hiểu các hiện tượng tự nhiên và xã hội trên bề mặt Trái Đất.</li><li>Là một hệ thống khoa học, bao gồm địa lí tự nhiên và địa lí kinh tế – xã hội.</li><li>Có tính tổng hợp cao, kết nối nhiều lĩnh vực kiến thức.</li></ul>',
+          },
+          children: [],
+        },
+      ],
+    },
+
+    // ========================================================================
+    // CARD 5: Đặc điểm của môn Địa lí ở trường phổ thông
+    // ========================================================================
+    {
+      id: 'card-5245c77a',
+      type: NodeType.CARD,
+      title: 'Đặc điểm của môn Địa lí ở trường phổ thông',
+      backgroundColor: undefined,
+      backgroundImage: undefined,
+      children: [
+        {
+          id: 'block-11ad3315',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.HEADING,
+            html: 'Đặc điểm của môn Địa lí ở trường phổ thông',
+            level: 2,
+          },
+          children: [],
+        },
+        {
+          id: 'block-ea2ffb51',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.TEXT,
+            html: '<ul><li>Được học ở tất cả các cấp học phổ thông (Tiểu học, THCS, THPT).</li><li>Ở Tiểu học và THCS: nội dung địa lí thuộc môn Lịch sử và Địa lí.</li><li>Ở THPT: Địa lí là môn học thuộc nhóm môn khoa học xã hội.</li><li>Có tính chất tổng hợp, bao gồm cả khoa học tự nhiên và khoa học xã hội.</li><li>Có mối liên quan chặt chẽ với nhiều môn học khác.</li></ul>',
+          },
+          children: [],
+        },
+      ],
+    },
+
+    // ========================================================================
+    // CARD 6: Vai trò của môn Địa lí
+    // ========================================================================
+    {
+      id: 'card-16041832',
+      type: NodeType.CARD,
       title: 'Vai trò của môn Địa lí',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-79768805',
+          id: 'block-21e6428a',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.HEADING,
@@ -523,39 +493,13 @@ export const mockDocument: IDocument = {
           children: [],
         },
         {
-          id: 'layout-ffd3130a',
-          type: NodeType.LAYOUT,
-          variant: LayoutVariant.THREE_COLUMN,
-          gap: 6,
-          children: [
-            {
-              id: 'block-e353e44c',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>1. Cung cấp kiến thức</h4><ul><li>Giúp các em có cái nhìn toàn diện về Trái Đất, tự nhiên, dân cư và các hoạt động kinh tế - xã hội.</li><li>Là nền tảng để hiểu sâu hơn về các vấn đề toàn cầu như biến đổi khí hậu, phát triển bền vững.</li></ul>',
-              },
-              children: [],
-            },
-            {
-              id: 'block-26a534e3',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>2. Rèn luyện kĩ năng</h4><ul><li>Phát triển kĩ năng đọc, phân tích bản đồ, biểu đồ, số liệu thống kê.</li><li>Rèn luyện tư duy không gian, khả năng giải quyết vấn đề thực tiễn liên quan đến môi trường và xã hội.</li></ul>',
-              },
-              children: [],
-            },
-            {
-              id: 'block-db3e619f',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>3. Định hướng và phát triển</h4><ul><li>Nâng cao ý thức bảo vệ môi trường, tài nguyên thiên nhiên.</li><li>Định hướng nghề nghiệp trong các lĩnh vực như du lịch, quy hoạch, quản lí tài nguyên, môi trường.</li><li>Bồi dưỡng tình yêu quê hương, đất nước và ý thức công dân toàn cầu.</li></ul>',
-              },
-              children: [],
-            },
-          ],
+          id: 'block-892a3df6',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.TEXT,
+            html: '<ul><li>Cung cấp kiến thức cơ bản về khoa học địa lí.</li><li>Giúp hiểu biết về môi trường, tài nguyên, dân cư, kinh tế.</li><li>Phát triển khả năng ứng dụng kiến thức địa lí vào đời sống thực tiễn.</li><li>Góp phần hình thành thế giới quan khoa học và giáo dục phẩm chất.</li><li>Giúp các em hiểu rõ hơn về thế giới xung quanh và các vấn đề toàn cầu.</li></ul>',
+          },
+          children: [],
         },
       ],
     },
@@ -564,65 +508,31 @@ export const mockDocument: IDocument = {
     // CARD 7: Kiểm tra kiến thức (Quiz)
     // ========================================================================
     {
-      id: 'card-2ff29ba2',
+      id: 'card-718bb740',
       type: NodeType.CARD,
       title: 'Kiểm tra kiến thức',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-0472c9ea',
-          type: NodeType.BLOCK,
-          content: {
-            type: BlockType.HEADING,
-            html: 'Kiểm tra kiến thức',
-            level: 2,
-          },
-          children: [],
-        },
-        {
-          id: 'block-10bd8610',
+          id: 'block-166693c3',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.QUIZ,
             title: 'Kiểm tra kiến thức',
             questions: [
               {
-                id: 'q-3b4a9a44',
-                question: 'Địa lí học được hiểu là gì?',
+                id: 'q-71ade54d',
+                question: 'Đặc điểm nổi bật nhất của môn Địa lí ở trường phổ thông là gì?',
                 options: [
-                  { id: 'opt-f53b7411', text: 'A. Một môn học chỉ nghiên cứu về tự nhiên.' },
-                  { id: 'opt-72dd4b10', text: 'B. Một ngành khoa học tổng hợp nghiên cứu cả tự nhiên và kinh tế – xã hội.' },
-                  { id: 'opt-71616478', text: 'C. Một môn học chỉ nghiên cứu về kinh tế – xã hội.' },
-                  { id: 'opt-9c076363', text: 'D. Một môn học chỉ có ở cấp Trung học phổ thông.' },
-                ],
-                correctIndex: 1,
-                explanation: 'Địa lí học là một ngành khoa học tổng hợp, nghiên cứu cả địa lí tự nhiên và địa lí kinh tế – xã hội.',
-              },
-              {
-                id: 'q-81368b75',
-                question: 'Tính chất nổi bật của môn Địa lí được đề cập trong sách giáo khoa là gì?',
-                options: [
-                  { id: 'opt-70b32655', text: 'A. Chỉ nghiên cứu về các hiện tượng tự nhiên.' },
-                  { id: 'opt-c6f2e72c', text: 'B. Chỉ nghiên cứu về các hoạt động kinh tế.' },
-                  { id: 'opt-4ef7d6e4', text: 'C. Mang tính chất tổng hợp, bao gồm cả khoa học tự nhiên và khoa học xã hội.' },
-                  { id: 'opt-6428a56e', text: 'D. Chỉ liên quan đến môn Lịch sử.' },
+                  { id: 'opt-166804cd', text: 'Chỉ thuộc nhóm môn khoa học xã hội' },
+                  { id: 'opt-296ff523', text: 'Chỉ thuộc nhóm môn khoa học tự nhiên' },
+                  { id: 'opt-825fead7', text: 'Mang tính chất tổng hợp, bao gồm cả khoa học tự nhiên và xã hội' },
+                  { id: 'opt-17331bf8', text: 'Không liên quan đến các môn học khác' },
                 ],
                 correctIndex: 2,
-                explanation: 'Môn Địa lí có tính chất tổng hợp, kết hợp cả kiến thức khoa học tự nhiên và khoa học xã hội.',
-              },
-              {
-                id: 'q-939b2d9c',
-                question: 'Một trong những vai trò quan trọng của môn Địa lí đối với học sinh là gì?',
-                options: [
-                  { id: 'opt-3a30d149', text: 'A. Cung cấp kiến thức chuyên sâu về toán học.' },
-                  { id: 'opt-7d270f39', text: 'B. Giúp hình thành khả năng ứng dụng kiến thức địa lí vào đời sống.' },
-                  { id: 'opt-b2c3abc5', text: 'C. Chỉ giúp ghi nhớ các địa danh.' },
-                  { id: 'opt-656bbb8e', text: 'D. Phát triển kỹ năng vẽ bản đồ.' },
-                ],
-                correctIndex: 1,
-                explanation: 'Môn Địa lí giúp học sinh có khả năng ứng dụng kiến thức vào thực tiễn đời sống.',
-              },
+                explanation: 'Môn Địa lí mang tính chất tổng hợp, nghiên cứu cả các hiện tượng tự nhiên và các hoạt động kinh tế - xã hội của con người.',
+              }
             ],
           },
           children: [],
@@ -631,22 +541,21 @@ export const mockDocument: IDocument = {
     },
 
     // ========================================================================
-    // CARD 8: Section divider - Ứng dụng và Định hướng nghề nghiệp
+    // CARD 8: Section divider - Ứng dụng và định hướng nghề nghiệp
     // ========================================================================
     {
-      id: 'card-8763bbb4',
+      id: 'card-3e728417',
       type: NodeType.CARD,
-      title: 'Ứng dụng và Định hướng nghề nghiệp',
+      title: 'Ứng dụng và định hướng nghề nghiệp',
       backgroundColor: '#1e293b',
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-d9b90b3b',
+          id: 'block-39674eed',
           type: NodeType.BLOCK,
           content: {
-            type: BlockType.HEADING,
-            html: 'Ứng dụng và Định hướng nghề nghiệp',
-            level: 1,
+            type: BlockType.TEXT,
+            html: '<h1>Ứng dụng và định hướng nghề nghiệp</h1>',
           },
           children: [],
         },
@@ -657,14 +566,14 @@ export const mockDocument: IDocument = {
     // CARD 9: Ứng dụng của Địa lí học trong đời sống
     // ========================================================================
     {
-      id: 'card-e7cb7a1c',
+      id: 'card-1a1defb8',
       type: NodeType.CARD,
       title: 'Ứng dụng của Địa lí học trong đời sống',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-d4bd7411',
+          id: 'block-cc808261',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.HEADING,
@@ -674,11 +583,11 @@ export const mockDocument: IDocument = {
           children: [],
         },
         {
-          id: 'block-02762f32',
+          id: 'block-f463814d',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.TEXT,
-            html: '<ul><li><strong>Trong nông nghiệp:</strong> Xác định vùng đất phù hợp cho cây trồng, vật nuôi, tối ưu hóa sản xuất.</li><li><strong>Trong quy hoạch đô thị:</strong> Phân tích địa hình, dân cư, tài nguyên để xây dựng thành phố bền vững.</li><li><strong>Trong du lịch:</strong> Khám phá, quảng bá các địa điểm du lịch, phát triển các tour tuyến hấp dẫn.</li><li><strong>Trong quản lí tài nguyên và môi trường:</strong> Cung cấp dữ liệu để bảo vệ rừng, nguồn nước, ứng phó biến đổi khí hậu.</li><li><strong>Trong dự báo thời tiết:</strong> Phân tích các yếu tố khí hậu, đưa ra dự báo chính xác, phục vụ đời sống và sản xuất.</li><li><strong>Trong hệ thống định vị toàn cầu (GPS):</strong> Giúp xác định vị trí, dẫn đường, quản lí phương tiện giao thông.</li></ul>',
+            html: '<ul><li><strong>Quy hoạch đô thị và nông thôn:</strong> Địa lí giúp phân tích vị trí, điều kiện tự nhiên, dân cư để xây dựng các khu dân cư, công nghiệp, giao thông một cách hợp lí.</li><li><strong>Quản lí tài nguyên và môi trường:</strong> Nghiên cứu sự phân bố, khai thác và bảo vệ tài nguyên (đất, nước, rừng...) cũng như đánh giá tác động môi trường.</li><li><strong>Dự báo thời tiết và khí hậu:</strong> Phân tích các yếu tố địa lí để đưa ra dự báo về thời tiết, cảnh báo thiên tai (bão, lũ lụt, hạn hán).</li><li><strong>Phát triển du lịch:</strong> Xác định các địa điểm có tiềm năng du lịch, xây dựng tuyến điểm và quản lí hoạt động du lịch bền vững.</li><li><strong>Hệ thống định vị toàn cầu (GPS) và bản đồ số:</strong> Ứng dụng trong giao thông, vận tải, tìm đường, quản lí đất đai và nhiều lĩnh vực khác.</li></ul>',
           },
           children: [],
         },
@@ -686,18 +595,49 @@ export const mockDocument: IDocument = {
     },
 
     // ========================================================================
-    // CARD 10: Mối liên hệ của Địa lí với các môn học khác (Two Column, Template 003)
+    // CARD 10: Môn Địa lí với định hướng nghề nghiệp
     // ========================================================================
     {
-      id: 'card-333130e8',
+      id: 'card-d54dcc40',
       type: NodeType.CARD,
-      templateId: 'template-003',
+      title: 'Môn Địa lí với định hướng nghề nghiệp',
+      backgroundColor: undefined,
+      backgroundImage: undefined,
+      children: [
+        {
+          id: 'block-ed5a421e',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.HEADING,
+            html: 'Môn Địa lí với định hướng nghề nghiệp',
+            level: 2,
+          },
+          children: [],
+        },
+        {
+          id: 'block-fb50dbd8',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.TEXT,
+            html: '<ul><li><strong>Chuyên gia Quy hoạch:</strong> Lập kế hoạch phát triển đô thị, nông thôn, sử dụng đất đai hiệu quả.</li><li><strong>Hướng dẫn viên du lịch, Quản lí du lịch:</strong> Khám phá, giới thiệu các vùng đất, văn hóa và cảnh quan.</li><li><strong>Kĩ sư Địa chất, Khí tượng thủy văn:</strong> Nghiên cứu đất đai, khoáng sản, dự báo thời tiết và khí hậu.</li><li><strong>Chuyên viên Hệ thống thông tin địa lí (GIS):</strong> Xử lí, phân tích dữ liệu không gian để đưa ra các quyết định.</li><li><strong>Giáo viên Địa lí:</strong> Truyền đạt kiến thức, niềm đam mê về thế giới tự nhiên và con người.</li><li><strong>Nghiên cứu viên Địa lí:</strong> Khám phá, giải quyết các vấn đề môi trường, xã hội và phát triển bền vững.</li></ul>',
+          },
+          children: [],
+        },
+      ],
+    },
+
+    // ========================================================================
+    // CARD 11: Mối liên hệ của Địa lí với các môn học khác
+    // ========================================================================
+    {
+      id: 'card-a8eff5e0',
+      type: NodeType.CARD,
       title: 'Mối liên hệ của Địa lí với các môn học khác',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-aa9c5eb3',
+          id: 'block-9e23a8c3',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.HEADING,
@@ -707,51 +647,11 @@ export const mockDocument: IDocument = {
           children: [],
         },
         {
-          id: 'layout-07cd3ed8',
-          type: NodeType.LAYOUT,
-          variant: LayoutVariant.TWO_COLUMN,
-          gap: 6,
-          children: [
-            {
-              id: 'block-ddac33f9',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>1. Địa lí và Lịch sử</h4><p>Địa lí cung cấp bối cảnh không gian cho các sự kiện lịch sử. Ví dụ, hiểu về địa hình, khí hậu, tài nguyên của một vùng giúp chúng ta lí giải tại sao các nền văn minh lại phát triển ở đó, hoặc tại sao một cuộc chiến tranh lại diễn ra theo cách này hay cách khác.</p><p>Địa lí giúp chúng ta hiểu rõ hơn về bối cảnh và nguyên nhân của các sự kiện trong quá khứ.</p>',
-              },
-              children: [],
-            },
-            {
-              id: 'block-24ce7d86',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<h4>2. Địa lí và Sinh học</h4><p>Địa lí nghiên cứu sự phân bố của các loài sinh vật, hệ sinh thái trên Trái Đất. Kiến thức địa lí về khí hậu, thổ nhưỡng, địa hình giúp giải thích tại sao một loài cây, con vật chỉ sống được ở một số vùng nhất định, hoặc tại sao có sự đa dạng sinh học khác nhau giữa các khu vực.</p><p>Địa lí là nền tảng để nghiên cứu sự sống và môi trường sống của sinh vật.</p>',
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-
-    // ========================================================================
-    // CARD 11: Ôn tập khái niệm (Flashcards)
-    // ========================================================================
-    {
-      id: 'card-dddc16eb',
-      type: NodeType.CARD,
-      title: 'Ôn tập khái niệm',
-      backgroundColor: undefined,
-      backgroundImage: undefined,
-      children: [
-        {
-          id: 'block-a5c5ff81',
+          id: 'block-8e554541',
           type: NodeType.BLOCK,
           content: {
-            type: BlockType.FLASHCARD,
-            front: 'Ứng dụng của Địa lí học trong đời sống và định hướng nghề nghiệp',
-            back: 'Kiến thức Địa lí được ứng dụng rộng rãi trong quy hoạch đô thị, quản lí tài nguyên, du lịch, dự báo thời tiết, phòng chống thiên tai và nhiều ngành nghề khác như địa chất, môi trường, quy hoạch, giáo viên Địa lí.',
+            type: BlockType.TEXT,
+            html: '<ul><li><strong>Lịch sử:</strong> Hiểu bối cảnh không gian của các sự kiện lịch sử, sự hình thành và phát triển của các nền văn minh.</li><li><strong>Toán học:</strong> Ứng dụng trong xử lí số liệu, tính toán tỉ lệ bản đồ, diện tích, vẽ biểu đồ, đồ thị.</li><li><strong>Vật lí, Hóa học:</strong> Giải thích các hiện tượng tự nhiên như khí hậu, thủy văn, cấu tạo địa chất, tài nguyên.</li><li><strong>Sinh học:</strong> Nghiên cứu sự phân bố của các loài sinh vật, hệ sinh thái và mối quan hệ với môi trường địa lí.</li><li><strong>Tin học:</strong> Ứng dụng công nghệ thông tin trong thu thập, phân tích dữ liệu không gian (GIS, viễn thám).</li><li><strong>Giáo dục kinh tế và pháp luật:</strong> Phân tích các vấn đề kinh tế, xã hội, môi trường dưới góc độ không gian và chính sách.</li></ul>',
           },
           children: [],
         },
@@ -759,17 +659,70 @@ export const mockDocument: IDocument = {
     },
 
     // ========================================================================
-    // CARD 12: Tóm tắt bài học
+    // CARD 12: Ôn tập khái niệm (Flashcards)
     // ========================================================================
     {
-      id: 'card-d6c9004c',
+      id: 'card-5b0f66c8',
+      type: NodeType.CARD,
+      title: 'Ôn tập khái niệm',
+      backgroundColor: undefined,
+      backgroundImage: undefined,
+      children: [
+        {
+          id: 'block-fc-077d6c7c',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.FLASHCARD,
+            front: 'Khái niệm Địa lí học',
+            back: 'Địa lí là một ngành khoa học nghiên cứu về Trái Đất, bao gồm các yếu tố tự nhiên và kinh tế – xã hội, sự phân bố và mối quan hệ giữa chúng.',
+          },
+          children: [],
+        },
+        {
+          id: 'block-fc-2963a541',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.FLASHCARD,
+            front: 'Tính chất tổng hợp của môn Địa lí',
+            back: 'Địa lí là môn học tổng hợp, kết hợp kiến thức từ cả khoa học tự nhiên (địa lí tự nhiên) và khoa học xã hội (địa lí kinh tế – xã hội).',
+          },
+          children: [],
+        },
+        {
+          id: 'block-fc-5d041154',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.FLASHCARD,
+            front: 'Vai trò của môn Địa lí',
+            back: 'Cung cấp kiến thức về thế giới, rèn luyện kĩ năng, hình thành phẩm chất, giúp hiểu và giải quyết các vấn đề thực tiễn, định hướng nghề nghiệp.',
+          },
+          children: [],
+        },
+        {
+          id: 'block-fc-bb5aecde',
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.FLASHCARD,
+            front: 'Ứng dụng của Địa lí học trong đời sống và định hướng nghề nghiệp',
+            back: 'Ứng dụng trong quy hoạch, quản lí tài nguyên, du lịch, dự báo thời tiết, nghiên cứu môi trường, và nhiều ngành nghề khác như địa chất, GIS, giáo dục.',
+          },
+          children: [],
+        },
+      ],
+    },
+
+    // ========================================================================
+    // CARD 13: Tóm tắt bài học
+    // ========================================================================
+    {
+      id: 'card-270ad76b',
       type: NodeType.CARD,
       title: 'Tóm tắt bài học',
       backgroundColor: undefined,
       backgroundImage: undefined,
       children: [
         {
-          id: 'block-0cf1e2cf',
+          id: 'block-4d21c994',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.HEADING,
@@ -779,11 +732,11 @@ export const mockDocument: IDocument = {
           children: [],
         },
         {
-          id: 'block-7ee4a167',
+          id: 'block-d1e9740b',
           type: NodeType.BLOCK,
           content: {
             type: BlockType.TEXT,
-            html: '<ul><li>Địa lí học là khoa học nghiên cứu về Trái Đất, bao gồm cả tự nhiên và xã hội.</li><li>Môn Địa lí có tính chất tổng hợp, kết nối kiến thức từ nhiều lĩnh vực khác nhau.</li><li>Địa lí giúp chúng ta hiểu biết về thế giới, rèn luyện kĩ năng và hình thành phẩm chất công dân.</li><li>Kiến thức Địa lí có nhiều ứng dụng quan trọng trong đời sống và mở ra nhiều cơ hội nghề nghiệp.</li><li>Địa lí có mối liên hệ chặt chẽ với các môn học khác như Lịch sử, Sinh học, Toán học, thể hiện tính liên ngành sâu sắc.</li></ul>',
+            html: '<ul><li>Địa lí là một ngành khoa học tổng hợp, nghiên cứu cả tự nhiên và kinh tế – xã hội.</li><li>Môn Địa lí có tính đặc thù, được giảng dạy ở tất cả các cấp học và có mối liên hệ với nhiều môn khoa học khác.</li><li>Vai trò của Địa lí là cung cấp kiến thức cơ bản, giúp hiểu biết về thế giới và ứng dụng vào thực tiễn cuộc sống.</li><li>Kiến thức Địa lí có giá trị giáo dục to lớn và liên quan đến nhiều ngành nghề trong xã hội.</li></ul>',
           },
           children: [],
         },
