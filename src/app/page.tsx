@@ -45,6 +45,12 @@ export default function HomePage() {
             >
               Admin
             </button>
+            <button
+              onClick={() => router.push('/login')}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Login
+            </button>
             <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
               Help
             </button>
