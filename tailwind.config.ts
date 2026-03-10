@@ -9,27 +9,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // EduVi Brand Colors
+        // EduVi Brand Colors — Creative Energy
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          50: '#fff1f2',
+          100: '#ffe4e6',
+          200: '#fecdd3',
+          300: '#fda4af',
+          400: '#fb7185',
+          500: '#f43f5e',
+          600: '#e11d48',
+          700: '#be123c',
+          800: '#9f1239',
+          900: '#881337',
+        },
+        secondary: {
+          50: '#f5f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#a78bfa',
+          500: '#8b5cf6',
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
         },
         surface: {
           DEFAULT: '#ffffff',
-          secondary: '#f8fafc',
-          tertiary: '#f1f5f9',
+          secondary: '#fafafa',
+          tertiary: '#f5f5f5',
         },
         border: {
-          DEFAULT: '#e2e8f0',
-          focus: '#0ea5e9',
+          DEFAULT: '#e5e7eb',
+          focus: '#f43f5e',
         },
       },
       boxShadow: {

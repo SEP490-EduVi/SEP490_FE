@@ -665,8 +665,13 @@ function getGridClasses(variant: LayoutVariant, gap: number = 4): string {
  * Acts as the main container for a slide's content.
  */
 function CardRenderer({ node }: { node: ICard }) {
-  const childCount = node.children.length;
-  
+  // Map contentAlignment to Tailwind justify class
+  const alignmentClass = {
+    top: 'justify-start',
+    center: 'justify-center',
+    bottom: 'justify-end',
+  }[node.contentAlignment ?? 'center'];
+
   // Make the card a droppable zone for materials
   const { isOver, setNodeRef } = useDroppable({
     id: `card-${node.id}`,
@@ -692,7 +697,7 @@ function CardRenderer({ node }: { node: ICard }) {
         // Smooth transitions for layout shifts
         'transition-all duration-300 ease-out',
         // Drop indicator
-        isOver && 'ring-4 ring-indigo-400 ring-inset'
+        isOver && 'ring-4 ring-rose-400 ring-inset'
       )}
       style={{
         backgroundColor: node.backgroundColor || undefined,
@@ -703,35 +708,28 @@ function CardRenderer({ node }: { node: ICard }) {
         backgroundPosition: 'center',
       }}
     >
-      {/* Padded content area — keeps blocks away from slide edges */}
-      <div className="flex flex-col flex-1 px-4 pt-2 pb-4 overflow-y-auto gap-1">
-      {/* Wrap children in SortableContext for drag and drop */}
-      <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-        {/* Render children (layouts and blocks) */}
-        {node.children.map((child, index) => (
-          <div 
-            key={child.id}
-            className={cn(
-              'flex-shrink-0',
-              index < childCount - 1 && 'mb-1'
-            )}
-          >
-            <SortableNode node={child as INode} depth={1}>
-              <NodeRenderer node={child as INode} depth={1} />
-            </SortableNode>
-          </div>
-        ))}
-      </SortableContext>
+      {/* Padded content area — vertically aligned based on card.contentAlignment */}
+      <div className={cn('flex flex-col flex-1 px-6 py-6 gap-3', alignmentClass)}>
+        {/* Wrap children in SortableContext for drag and drop */}
+        <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+          {node.children.map((child) => (
+            <div key={child.id} className="flex-shrink-0">
+              <SortableNode node={child as INode} depth={1}>
+                <NodeRenderer node={child as INode} depth={1} />
+              </SortableNode>
+            </div>
+          ))}
+        </SortableContext>
 
-      {/* Empty state */}
-      {node.children.length === 0 && (
-        <div className="flex-1 flex items-center justify-center text-gray-400">
-          <div className="text-center">
-            <p className="mb-2">This slide is empty. Add some content using the toolbar above.</p>
-            {isOver && <p className="text-indigo-600 font-semibold">Drop material here</p>}
+        {/* Empty state */}
+        {node.children.length === 0 && (
+          <div className="flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <p className="mb-2">Slide đang trống. Thêm nội dung từ thanh công cụ bên trên.</p>
+              {isOver && <p className="text-rose-500 font-semibold">Thả tài nguyên vào đây</p>}
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

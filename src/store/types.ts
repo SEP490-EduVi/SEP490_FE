@@ -87,6 +87,7 @@ export interface DocumentState {
   updateBlockContent: (blockId: string, content: BlockContent) => void;
   updateBlockStyles: (blockId: string, styles: IBlockStyles) => void;
   updateCardTitle: (cardId: string, title: string) => void;
+  setCardContentAlignment: (cardId: string, alignment: 'top' | 'center' | 'bottom') => void;
   
   // Delete Actions
   deleteNode: (nodeId: string) => void;

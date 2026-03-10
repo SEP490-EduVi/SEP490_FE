@@ -72,11 +72,11 @@ function getIconByName(name: string): React.ReactNode {
 // CATEGORY LABELS & ICONS
 // ============================================================================
 
-const categoryConfig: Record<MaterialCategory, { label: string; icon: keyof typeof LucideIcons }> = {
-  [MaterialCategory.MEDIA]: { label: 'Phương tiện', icon: 'Film' },
-  [MaterialCategory.INTERACTIVE]: { label: 'Tương tác', icon: 'MousePointer2' },
-  [MaterialCategory.DATA]: { label: 'Dữ liệu & Biểu đồ', icon: 'BarChart3' },
-  [MaterialCategory.EMBED]: { label: 'Nhúng ngoài', icon: 'Code' },
+const categoryConfig: Record<MaterialCategory, { label: string; icon: keyof typeof LucideIcons; color: string; bg: string }> = {
+  [MaterialCategory.MEDIA]: { label: 'Phương tiện', icon: 'Film', color: 'text-rose-500', bg: 'bg-rose-50' },
+  [MaterialCategory.INTERACTIVE]: { label: 'Tương tác', icon: 'MousePointer2', color: 'text-violet-500', bg: 'bg-violet-50' },
+  [MaterialCategory.DATA]: { label: 'Dữ liệu & Biểu đồ', icon: 'BarChart3', color: 'text-orange-400', bg: 'bg-orange-50' },
+  [MaterialCategory.EMBED]: { label: 'Nhúng ngoài', icon: 'Code', color: 'text-pink-500', bg: 'bg-pink-50' },
 };
 
 // ============================================================================
@@ -105,16 +105,16 @@ function DraggableMaterialItem({ material }: MaterialItemProps) {
       style={style}
       className={cn(
         'group flex items-center gap-3 p-2 rounded-lg cursor-grab',
-        'bg-white border border-gray-200',
-        'hover:border-primary-300 hover:bg-primary-50/50',
+        'bg-white border border-gray-100',
+        'hover:border-rose-300 hover:bg-rose-50/40',
         'transition-all duration-150',
-        isDragging && 'opacity-50 shadow-lg ring-2 ring-primary-400'
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-rose-400'
       )}
       {...listeners}
       {...attributes}
     >
       {/* Drag Handle */}
-      <div className="flex-shrink-0 text-gray-400 group-hover:text-primary-500">
+      <div className="flex-shrink-0 text-gray-300 group-hover:text-rose-400">
         <GripVertical className="w-4 h-4" />
       </div>
 
@@ -122,8 +122,8 @@ function DraggableMaterialItem({ material }: MaterialItemProps) {
       <div
         className={cn(
           'flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center',
-          'bg-primary-50',
-          'text-primary-600'
+          'bg-violet-50',
+          'text-violet-500'
         )}
       >
         {getIconByName(material.icon)}
@@ -158,7 +158,7 @@ function CategorySection({ category, materials, isExpanded, onToggle }: Category
         onClick={onToggle}
         className={cn(
           'w-full flex items-center gap-2 px-3 py-2.5',
-          'text-left hover:bg-gray-50 transition-colors'
+          'text-left hover:bg-rose-50/50 transition-colors'
         )}
       >
         {isExpanded ? (
@@ -166,11 +166,13 @@ function CategorySection({ category, materials, isExpanded, onToggle }: Category
         ) : (
           <ChevronRight className="w-4 h-4 text-gray-400" />
         )}
-        {CategoryIcon && <CategoryIcon className="w-4 h-4 text-gray-600" />}
-        <span className="flex-1 text-base font-semibold text-gray-800">
+        <div className={cn('w-6 h-6 rounded flex items-center justify-center flex-shrink-0', config.bg)}>
+          {CategoryIcon && <CategoryIcon className={cn('w-3.5 h-3.5', config.color)} />}
+        </div>
+        <span className="flex-1 text-sm font-semibold text-slate-700">
           {config.label}
         </span>
-        <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+        <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', config.bg, config.color)}>
           {materials.length}
         </span>
       </button>
@@ -281,14 +283,14 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
   return (
     <aside
       className={cn(
-        'w-72 bg-gray-50 border-l border-gray-200',
+        'w-72 bg-white border-l border-gray-100',
         'flex flex-col h-full overflow-hidden',
         className
       )}
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white">
-        <h2 className="text-lg font-bold text-gray-900 mb-3">
+      <div className="p-4 border-b border-gray-100 bg-white">
+        <h2 className="text-base font-bold text-slate-800 mb-3">
           Thư viện tài nguyên
         </h2>
 
@@ -303,7 +305,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             className={cn(
               'w-full pl-9 pr-3 py-2 text-sm',
               'border border-gray-200 rounded-lg',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+              'focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent',
               'placeholder:text-gray-400'
             )}
           />
@@ -315,7 +317,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
+            <Loader2 className="w-6 h-6 text-rose-400 animate-spin" />
           </div>
         )}
 
@@ -325,7 +327,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             <p className="text-sm text-red-500">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-primary-600 hover:underline"
+              className="mt-2 text-sm text-rose-500 hover:underline"
             >
               Thử lại
             </button>
@@ -367,8 +369,8 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
       <QuickLayoutSection />
 
       {/* Footer Hint */}
-      <div className="p-3 bg-primary-50 border-t border-primary-100">
-        <p className="text-xs text-primary-700 text-center">
+      <div className="p-3 bg-gradient-to-r from-rose-50 to-violet-50 border-t border-rose-100">
+        <p className="text-xs text-rose-500 text-center">
           <span className="font-semibold">Mẹo:</span> Kéo tài nguyên vào các cột bố cục
         </p>
       </div>
@@ -392,13 +394,13 @@ function QuickLayoutSection() {
 
   return (
     <>
-      <div className="p-3 border-t border-gray-200 bg-white">
+      <div className="p-3 border-t border-gray-100 bg-white">
         <button
           onClick={() => setIsModalOpen(true)}
           className={cn(
             'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
             'font-semibold text-sm transition-all duration-150',
-            'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow-md'
+            'bg-gradient-to-r from-rose-500 to-violet-500 text-white hover:from-rose-600 hover:to-violet-600 shadow-sm hover:shadow-md'
           )}
         >
           <Sparkles className="w-4 h-4" />
@@ -423,7 +425,7 @@ function QuickLayoutSection() {
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
                 activeTab === 'basic'
-                  ? 'bg-white text-primary-600 border border-b-white border-gray-200 -mb-px'
+                  ? 'bg-white text-rose-500 border border-b-white border-gray-200 -mb-px'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
@@ -434,7 +436,7 @@ function QuickLayoutSection() {
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
                 activeTab === 'freeform'
-                  ? 'bg-white text-primary-600 border border-b-white border-gray-200 -mb-px'
+                  ? 'bg-white text-rose-500 border border-b-white border-gray-200 -mb-px'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
@@ -463,7 +465,7 @@ function QuickLayoutSection() {
                       className={cn(
                         'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
                         'border-2 transition-all duration-150',
-                        'border-gray-200 hover:border-primary-400 hover:shadow-md'
+                        'border-gray-100 hover:border-rose-400 hover:shadow-md'
                       )}
                     >
                       {template.preview}
@@ -498,7 +500,7 @@ function QuickLayoutSection() {
                       className={cn(
                         'w-full h-32 rounded-lg overflow-hidden',
                         'border-2 transition-all duration-150',
-                        'border-gray-200 hover:border-primary-400 hover:shadow-md'
+                        'border-gray-100 hover:border-rose-400 hover:shadow-md'
                       )}
                     >
                       {template.preview}

@@ -28,6 +28,9 @@ import {
   PenLine,
   Columns2,
   Columns3,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
 } from 'lucide-react';
 
 // ============================================================================
@@ -54,8 +57,8 @@ function InsertButton({ icon, label, onClick, disabled, accent }: InsertButtonPr
         disabled
           ? 'text-gray-300 cursor-not-allowed'
           : accent
-          ? 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
-          : 'text-gray-700 hover:bg-gray-100 hover:text-primary-700'
+          ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
+          : 'text-slate-600 hover:bg-gray-100 hover:text-rose-500'
       )}
     >
       <span className="flex-shrink-0">{icon}</span>
@@ -82,7 +85,10 @@ export function Toolbar() {
   const canUndo = useDocumentStore((state) => state.canUndo());
   const canRedo = useDocumentStore((state) => state.canRedo());
   const onlineUsers = useDocumentStore((state) => state.onlineUsers);
+  const setCardContentAlignment = useDocumentStore((state) => state.setCardContentAlignment);
 
+  const activeCard = document?.cards.find((c) => c.id === activeCardId);
+  const currentAlignment = activeCard?.contentAlignment ?? 'center';
   const hasActiveCard = !!activeCardId;
 
   // Keyboard shortcuts for undo/redo
@@ -120,7 +126,7 @@ export function Toolbar() {
   return (
     <div className="flex flex-col shadow-md">
       {/* ── Row 1: Main navigation bar ────────────────────────────────────── */}
-      <header className="h-14 bg-primary-700 px-4 flex items-center justify-between">
+      <header className="h-14 bg-gradient-to-r from-rose-500 via-pink-500 to-violet-500 px-4 flex items-center justify-between">
         {/* Left: menu + title + undo/redo */}
         <div className="flex items-center gap-3">
           <button
@@ -219,7 +225,7 @@ export function Toolbar() {
             disabled={!document}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-white text-primary-700 hover:bg-gray-100 font-semibold text-sm transition-colors shadow-sm',
+              'bg-white text-rose-600 hover:bg-rose-50 font-semibold text-sm transition-colors shadow-sm',
               'disabled:opacity-40 disabled:cursor-not-allowed'
             )}
             title="Chia sẻ"
@@ -260,6 +266,57 @@ export function Toolbar() {
           onClick={() => handleAddBlock(BlockType.VIDEO)}
           disabled={!hasActiveCard}
         />
+
+        <InsertDivider />
+
+        {/* Content alignment buttons */}
+        <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+          <button
+            onClick={() => activeCardId && setCardContentAlignment(activeCardId, 'top')}
+            disabled={!hasActiveCard}
+            title="Nội dung đầu trang"
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
+              !hasActiveCard && 'opacity-40 cursor-not-allowed',
+              hasActiveCard && currentAlignment === 'top'
+                ? 'bg-white text-rose-600 shadow-sm'
+                : 'text-slate-500 hover:text-rose-500'
+            )}
+          >
+            <AlignStartVertical className="w-3.5 h-3.5" />
+            <span>Đầu</span>
+          </button>
+          <button
+            onClick={() => activeCardId && setCardContentAlignment(activeCardId, 'center')}
+            disabled={!hasActiveCard}
+            title="Nội dung giữa trang"
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
+              !hasActiveCard && 'opacity-40 cursor-not-allowed',
+              hasActiveCard && currentAlignment === 'center'
+                ? 'bg-white text-rose-600 shadow-sm'
+                : 'text-slate-500 hover:text-rose-500'
+            )}
+          >
+            <AlignCenterVertical className="w-3.5 h-3.5" />
+            <span>Giữa</span>
+          </button>
+          <button
+            onClick={() => activeCardId && setCardContentAlignment(activeCardId, 'bottom')}
+            disabled={!hasActiveCard}
+            title="Nội dung cuối trang"
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
+              !hasActiveCard && 'opacity-40 cursor-not-allowed',
+              hasActiveCard && currentAlignment === 'bottom'
+                ? 'bg-white text-rose-600 shadow-sm'
+                : 'text-slate-500 hover:text-rose-500'
+            )}
+          >
+            <AlignEndVertical className="w-3.5 h-3.5" />
+            <span>Cuối</span>
+          </button>
+        </div>
 
         <InsertDivider />
 

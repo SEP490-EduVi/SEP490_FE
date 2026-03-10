@@ -107,6 +107,7 @@ export interface IBaseNode {
  * @property children - Layout or Block nodes within this card
  * @property backgroundColor - Optional background color
  * @property backgroundImage - Optional background image URL
+ * @property contentAlignment - Vertical alignment of content group: 'top' | 'center' | 'bottom'
  */
 export interface ICard extends IBaseNode {
   type: NodeType.CARD;
@@ -115,6 +116,7 @@ export interface ICard extends IBaseNode {
   children: (ILayout | IBlock)[];
   backgroundColor?: string;
   backgroundImage?: string;
+  contentAlignment?: 'top' | 'center' | 'bottom';
 }
 
 // ============================================================================

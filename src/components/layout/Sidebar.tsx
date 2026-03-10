@@ -78,7 +78,7 @@ function SlideThumbnailPreview({ card, isActive }: { card: ICard; isActive: bool
         isActive ? 'border-primary-500' : 'border-gray-200'
       )}
       style={{
-        backgroundColor: card.backgroundColor || (isActive ? '#e0f2fe' : '#f1f5f9'),
+        backgroundColor: card.backgroundColor || (isActive ? '#ffe4e6' : '#f5f5f5'),
         backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -281,11 +281,9 @@ export function Sidebar() {
         <button
           onClick={() => addCard()}
           className={cn(
-            'w-full flex items-center justify-center gap-2',
-            'px-4 py-2.5 rounded-lg',
-            'bg-primary-600 hover:bg-primary-700 text-white',
-            'font-semibold text-sm',
-            'transition-colors duration-150 shadow-sm'
+            'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
+            'font-semibold text-sm transition-all duration-150',
+            'bg-gradient-to-r from-rose-500 to-violet-500 text-white hover:from-rose-600 hover:to-violet-600 shadow-sm hover:shadow-md'
           )}
         >
           <Plus className="w-4 h-4" />

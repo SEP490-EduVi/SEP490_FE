@@ -121,6 +121,21 @@ export function createNodeActions(
       setDocumentWithHistory(newDoc);
     },
 
+    setCardContentAlignment: (cardId: string, alignment: 'top' | 'center' | 'bottom') => {
+      const { document } = get();
+      if (!document) return;
+
+      const newDoc = {
+        ...document,
+        cards: document.cards.map((card) =>
+          card.id === cardId ? { ...card, contentAlignment: alignment } : card
+        ),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setDocumentWithHistory(newDoc);
+    },
+
     // ======================================================================
     // DELETE ACTIONS
     // ======================================================================
