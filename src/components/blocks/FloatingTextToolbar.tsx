@@ -5,14 +5,7 @@
  * ==============================
  * 
  * Floating formatting toolbar for Tiptap editor.
- * Appears when text is being edited.
- * 
- * Features:
- * - Bold, Italic, Underline, Strikethrough
- * - Text alignment (left, center, right, justify)
- * - Text color picker
- * - Heading levels
- * - Lists (bullet, ordered)
+ * Appears when text is being edited or focused.
  */
 
 import React, { useState } from 'react';
@@ -34,6 +27,8 @@ import {
   Heading2,
   Heading3,
   Palette,
+  ChevronDown,
+  Type,
 } from 'lucide-react';
 
 interface FloatingTextToolbarProps {
@@ -53,8 +48,18 @@ const TEXT_COLORS = [
   { name: 'Pink', value: '#ec4899' },
 ];
 
+const FONT_FAMILIES = [
+  { label: 'Mặc định', value: '' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Times New Roman', value: '"Times New Roman", serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Courier New', value: '"Courier New", monospace' },
+  { label: 'Verdana', value: 'Verdana, sans-serif' },
+];
+
 export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFontFamily, setShowFontFamily] = useState(false);
 
   if (!show) return null;
 
@@ -62,6 +67,9 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
   const rect = editorDom.getBoundingClientRect();
   const toolbarTop = Math.max(8, rect.top - 60);
   const toolbarLeft = rect.left;
+
+  const currentFont = (editor.getAttributes('textStyle') as any).fontFamily || '';
+  const currentFontLabel = FONT_FAMILIES.find(f => f.value === currentFont)?.label || 'Font';
 
   return createPortal(
     <div
@@ -77,6 +85,59 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
         e.preventDefault();
       }}
     >
+      {/* Font Family */}
+      <div className="relative pr-2 border-r border-gray-200">
+        <button
+          onClick={() => {
+            setShowFontFamily(!showFontFamily);
+            setShowColorPicker(false);
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          className={cn(
+            'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors min-w-[72px]',
+            showFontFamily ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-gray-100 text-gray-600'
+          )}
+          title="Font"
+        >
+          <Type className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate max-w-[56px]">{currentFontLabel}</span>
+          <ChevronDown className="w-3 h-3 flex-shrink-0" />
+        </button>
+
+        {showFontFamily && (
+          <div
+            className={cn(
+              'absolute top-full left-0 mt-2 z-50',
+              'bg-white rounded-lg shadow-xl border border-gray-200 py-1',
+              'animate-in fade-in slide-in-from-top-2 duration-200 w-44'
+            )}
+          >
+            {FONT_FAMILIES.map((font) => (
+              <button
+                key={font.label}
+                onClick={() => {
+                  if (font.value) {
+                    (editor.chain().focus() as any).setFontFamily(font.value).run();
+                  } else {
+                    (editor.chain().focus() as any).unsetFontFamily().run();
+                  }
+                  setShowFontFamily(false);
+                }}
+                className={cn(
+                  'w-full text-left px-3 py-1.5 text-sm transition-colors',
+                  currentFont === font.value
+                    ? 'bg-indigo-50 text-indigo-600'
+                    : 'hover:bg-gray-50 text-gray-700'
+                )}
+                style={{ fontFamily: font.value || 'inherit' }}
+              >
+                {font.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Text Formatting */}
       <div className="flex items-center gap-0.5 pr-2 border-r border-gray-200">
         <ToolbarButton
@@ -177,7 +238,12 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
       {/* Lists */}
       <div className="flex items-center gap-0.5 px-2 border-r border-gray-200">
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() => {
+            if (editor.isActive('orderedList')) {
+              editor.chain().focus().toggleOrderedList().run();
+            }
+            editor.chain().focus().toggleBulletList().run();
+          }}
           isActive={editor.isActive('bulletList')}
           title="Bullet List"
         >
@@ -185,7 +251,12 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
         </ToolbarButton>
 
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={() => {
+            if (editor.isActive('bulletList')) {
+              editor.chain().focus().toggleBulletList().run();
+            }
+            editor.chain().focus().toggleOrderedList().run();
+          }}
           isActive={editor.isActive('orderedList')}
           title="Numbered List"
         >
@@ -196,7 +267,10 @@ export function FloatingTextToolbar({ editor, show }: FloatingTextToolbarProps) 
       {/* Text Color */}
       <div className="relative pl-2">
         <ToolbarButton
-          onClick={() => setShowColorPicker(!showColorPicker)}
+          onClick={() => {
+            setShowColorPicker(!showColorPicker);
+            setShowFontFamily(false);
+          }}
           isActive={showColorPicker}
           title="Text Color"
         >

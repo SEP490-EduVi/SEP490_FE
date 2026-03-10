@@ -74,14 +74,16 @@ export const basicCardTemplates: CardTemplateItem[] = [
     preview: (
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
-        <div className="flex-1 flex gap-1">
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-4/5" />
+        <div className="flex-1 flex gap-1.5">
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1.5">
+            <div className="h-2.5 bg-gray-400 rounded w-2/3" />
+            <div className="h-2 bg-gray-200 rounded" />
+            <div className="h-2 bg-gray-200 rounded w-4/5" />
           </div>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-4/5" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1.5">
+            <div className="h-2.5 bg-gray-400 rounded w-2/3" />
+            <div className="h-2 bg-gray-200 rounded" />
+            <div className="h-2 bg-gray-200 rounded w-4/5" />
           </div>
         </div>
       </div>
@@ -94,16 +96,18 @@ export const basicCardTemplates: CardTemplateItem[] = [
     preview: (
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
-        <div className="flex-1 flex gap-1">
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-3/4" />
+        <div className="flex-1 flex gap-1.5">
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1.5">
+            <div className="h-2.5 bg-gray-400 rounded w-2/3" />
+            <div className="h-2 bg-gray-200 rounded" />
+            <div className="h-2 bg-gray-200 rounded" />
+            <div className="h-2 bg-gray-200 rounded w-3/4" />
           </div>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-3/4" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1.5">
+            <div className="h-2.5 bg-gray-400 rounded w-2/3" />
+            <div className="h-2 bg-gray-200 rounded" />
+            <div className="h-2 bg-gray-200 rounded" />
+            <div className="h-2 bg-gray-200 rounded w-3/4" />
           </div>
         </div>
       </div>
@@ -117,17 +121,20 @@ export const basicCardTemplates: CardTemplateItem[] = [
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
         <div className="flex-1 flex gap-1">
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-4/5" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1">
+            <div className="h-2 bg-gray-400 rounded w-3/4" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded w-4/5" />
           </div>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-4/5" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1">
+            <div className="h-2 bg-gray-400 rounded w-3/4" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded w-4/5" />
           </div>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-4/5" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1">
+            <div className="h-2 bg-gray-400 rounded w-3/4" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded w-4/5" />
           </div>
         </div>
       </div>
@@ -141,20 +148,23 @@ export const basicCardTemplates: CardTemplateItem[] = [
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
         <div className="flex-1 flex gap-1">
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-3/4" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1">
+            <div className="h-2 bg-gray-400 rounded w-3/4" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded w-3/4" />
           </div>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-3/4" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1">
+            <div className="h-2 bg-gray-400 rounded w-3/4" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded w-3/4" />
           </div>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded" />
-            <div className="h-3 bg-gray-200 rounded w-3/4" />
+          <div className="flex-1 flex flex-col gap-0.5 bg-gray-100 rounded p-1">
+            <div className="h-2 bg-gray-400 rounded w-3/4" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded" />
+            <div className="h-1.5 bg-gray-200 rounded w-3/4" />
           </div>
         </div>
       </div>

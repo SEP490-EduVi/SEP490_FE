@@ -291,22 +291,38 @@ export const emptyDocument: IDocument = {
           gap: 6,
           children: [
             {
-              id: 'block-new-002',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p>Start typing your content...</p>',
-              },
-              children: [],
+              id: 'layout-new-001a',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-new-002',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p>Start typing your content...</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
             {
-              id: 'block-new-003',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p>Add more content here...</p>',
-              },
-              children: [],
+              id: 'layout-new-001b',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-new-003',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p>Add more content here...</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
           ],
         },
@@ -468,22 +484,38 @@ export const mockDocument: IDocument = {
           gap: 6,
           children: [
             {
-              id: 'block-cbcbf485',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>1. Các hiện tượng tự nhiên</strong></p><ul><li>Nghiên cứu về địa hình, khí hậu, thủy văn, thổ nhưỡng, sinh vật trên bề mặt Trái Đất.</li><li>Tìm hiểu quy luật hình thành, phân bố và biến đổi của các yếu tố tự nhiên.</li><li>Ví dụ: Tại sao có sa mạc, tại sao có núi lửa, sự thay đổi của khí hậu toàn cầu.</li></ul>',
-              },
-              children: [],
+              id: 'layout-ad08a1f5-col1',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-cbcbf485',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>1. Các hiện tượng tự nhiên</strong></p><ul><li>Nghiên cứu về địa hình, khí hậu, thủy văn, thổ nhưỡng, sinh vật trên bề mặt Trái Đất.</li><li>Tìm hiểu quy luật hình thành, phân bố và biến đổi của các yếu tố tự nhiên.</li><li>Ví dụ: Tại sao có sa mạc, tại sao có núi lửa, sự thay đổi của khí hậu toàn cầu.</li></ul>',
+                  },
+                  children: [],
+                },
+              ],
             },
             {
-              id: 'block-d7b46f1d',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>2. Các hiện tượng kinh tế - xã hội và mối quan hệ</strong></p><ul><li>Nghiên cứu về dân cư, các hoạt động sản xuất (nông nghiệp, công nghiệp, dịch vụ), văn hóa, xã hội.</li><li>Phân tích sự phân bố, phát triển và mối liên hệ giữa các hoạt động kinh tế - xã hội với môi trường tự nhiên.</li><li>Ví dụ: Ảnh hưởng của khí hậu đến nông nghiệp, sự phân bố dân cư theo địa hình, tác động của con người đến môi trường.</li></ul>',
-              },
-              children: [],
+              id: 'layout-ad08a1f5-col2',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-d7b46f1d',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>2. Các hiện tượng kinh tế - xã hội và mối quan hệ</strong></p><ul><li>Nghiên cứu về dân cư, các hoạt động sản xuất (nông nghiệp, công nghiệp, dịch vụ), văn hóa, xã hội.</li><li>Phân tích sự phân bố, phát triển và mối liên hệ giữa các hoạt động kinh tế - xã hội với môi trường tự nhiên.</li><li>Ví dụ: Ảnh hưởng của khí hậu đến nông nghiệp, sự phân bố dân cư theo địa hình, tác động của con người đến môi trường.</li></ul>',
+                  },
+                  children: [],
+                },
+              ],
             },
           ],
         },
@@ -516,22 +548,38 @@ export const mockDocument: IDocument = {
           gap: 6,
           children: [
             {
-              id: 'block-75dfc3b8',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>1. Học ở tất cả các cấp</strong></p><ul><li>Tiểu học &amp; THCS: Nội dung Địa lí được tích hợp trong môn Lịch sử và Địa lí.</li><li>THPT: Địa lí là môn học độc lập, thuộc nhóm Khoa học xã hội.</li></ul><p><strong>2. Tính chất tổng hợp</strong></p><p>Môn Địa lí kết hợp kiến thức từ cả khoa học tự nhiên (như địa chất, khí tượng, sinh học) và khoa học xã hội (như kinh tế, dân số, văn hóa), giúp học sinh có cái nhìn đa chiều về thế giới.</p>',
-              },
-              children: [],
+              id: 'layout-fc06d92a-col1',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-75dfc3b8',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>1. Học ở tất cả các cấp</strong></p><ul><li>Tiểu học &amp; THCS: Nội dung Địa lí được tích hợp trong môn Lịch sử và Địa lí.</li><li>THPT: Địa lí là môn học độc lập, thuộc nhóm Khoa học xã hội.</li></ul><p><strong>2. Tính chất tổng hợp</strong></p><p>Môn Địa lí kết hợp kiến thức từ cả khoa học tự nhiên (như địa chất, khí tượng, sinh học) và khoa học xã hội (như kinh tế, dân số, văn hóa), giúp học sinh có cái nhìn đa chiều về thế giới.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
             {
-              id: 'block-c0af0d70',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>3. Mối liên hệ với các môn học khác</strong></p><p>Địa lí có mối liên hệ chặt chẽ với nhiều môn học:</p><ul><li>Khoa học tự nhiên: Toán (thống kê, biểu đồ), Vật lí (khí hậu, địa chất), Hóa học (đất, nước), Sinh học (hệ sinh thái).</li><li>Khoa học xã hội: Lịch sử (bối cảnh địa lí của các sự kiện), Giáo dục kinh tế và pháp luật (phát triển kinh tế, quản lí tài nguyên).</li></ul><p>Điều này giúp học sinh vận dụng kiến thức liên môn để giải quyết các vấn đề thực tiễn.</p>',
-              },
-              children: [],
+              id: 'layout-fc06d92a-col2',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-c0af0d70',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>3. Mối liên hệ với các môn học khác</strong></p><p>Địa lí có mối liên hệ chặt chẽ với nhiều môn học:</p><ul><li>Khoa học tự nhiên: Toán (thống kê, biểu đồ), Vật lí (khí hậu, địa chất), Hóa học (đất, nước), Sinh học (hệ sinh thái).</li><li>Khoa học xã hội: Lịch sử (bối cảnh địa lí của các sự kiện), Giáo dục kinh tế và pháp luật (phát triển kinh tế, quản lí tài nguyên).</li></ul><p>Điều này giúp học sinh vận dụng kiến thức liên môn để giải quyết các vấn đề thực tiễn.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
           ],
         },
@@ -717,22 +765,38 @@ export const mockDocument: IDocument = {
           gap: 6,
           children: [
             {
-              id: 'block-766126cc',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>1. Quy hoạch lãnh thổ &amp; Quản lí tài nguyên</strong></p><p>Địa lí giúp chúng ta hiểu rõ đặc điểm tự nhiên, kinh tế - xã hội của một vùng để quy hoạch sử dụng đất hiệu quả, phát triển bền vững.</p><p>Giúp đánh giá, quản lí và khai thác tài nguyên (đất, nước, khoáng sản, rừng) một cách hợp lí, tránh lãng phí và suy thoái.</p>',
-              },
-              children: [],
+              id: 'layout-a6a360c5-col1',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-766126cc',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>1. Quy hoạch lãnh thổ &amp; Quản lí tài nguyên</strong></p><p>Địa lí giúp chúng ta hiểu rõ đặc điểm tự nhiên, kinh tế - xã hội của một vùng để quy hoạch sử dụng đất hiệu quả, phát triển bền vững.</p><p>Giúp đánh giá, quản lí và khai thác tài nguyên (đất, nước, khoáng sản, rừng) một cách hợp lí, tránh lãng phí và suy thoái.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
             {
-              id: 'block-d98988ae',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>2. Dự báo, phòng chống thiên tai</strong></p><p>Phân tích các hiện tượng tự nhiên (lũ lụt, hạn hán, bão, động đất) để dự báo, cảnh báo sớm và xây dựng kế hoạch phòng chống, giảm nhẹ thiệt hại.</p><p><strong>3. Hỗ trợ phát triển kinh tế - xã hội</strong></p><p>Cung cấp thông tin để xây dựng các dự án phát triển nông nghiệp, công nghiệp, du lịch, giao thông vận tải phù hợp với điều kiện địa lí từng địa phương. Giúp giải quyết các vấn đề môi trường, xã hội.</p>',
-              },
-              children: [],
+              id: 'layout-a6a360c5-col2',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-d98988ae',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>2. Dự báo, phòng chống thiên tai</strong></p><p>Phân tích các hiện tượng tự nhiên (lũ lụt, hạn hán, bão, động đất) để dự báo, cảnh báo sớm và xây dựng kế hoạch phòng chống, giảm nhẹ thiệt hại.</p><p><strong>3. Hỗ trợ phát triển kinh tế - xã hội</strong></p><p>Cung cấp thông tin để xây dựng các dự án phát triển nông nghiệp, công nghiệp, du lịch, giao thông vận tải phù hợp với điều kiện địa lí từng địa phương. Giúp giải quyết các vấn đề môi trường, xã hội.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
           ],
         },
@@ -765,31 +829,55 @@ export const mockDocument: IDocument = {
           gap: 6,
           children: [
             {
-              id: 'block-cbbfc380',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>Nông nghiệp &amp; Công nghiệp</strong></p><p>Nông nghiệp: Chọn cây trồng, vật nuôi phù hợp với khí hậu, thổ nhưỡng; quy hoạch vùng sản xuất.</p><p>Công nghiệp: Lựa chọn địa điểm xây dựng nhà máy, khu công nghiệp dựa trên nguồn nguyên liệu, lao động, thị trường.</p>',
-              },
-              children: [],
+              id: 'layout-cb7008cb-col1',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-cbbfc380',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>Nông nghiệp &amp; Công nghiệp</strong></p><p>Nông nghiệp: Chọn cây trồng, vật nuôi phù hợp với khí hậu, thổ nhưỡng; quy hoạch vùng sản xuất.</p><p>Công nghiệp: Lựa chọn địa điểm xây dựng nhà máy, khu công nghiệp dựa trên nguồn nguyên liệu, lao động, thị trường.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
             {
-              id: 'block-9d3d11d4',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>Du lịch &amp; Giao thông vận tải</strong></p><p>Du lịch: Khai thác các cảnh quan tự nhiên, di tích lịch sử - văn hóa để phát triển du lịch bền vững.</p><p>Giao thông: Thiết kế tuyến đường, cầu cống, cảng biển tối ưu, an toàn, hiệu quả.</p>',
-              },
-              children: [],
+              id: 'layout-cb7008cb-col2',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-9d3d11d4',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>Du lịch &amp; Giao thông vận tải</strong></p><p>Du lịch: Khai thác các cảnh quan tự nhiên, di tích lịch sử - văn hóa để phát triển du lịch bền vững.</p><p>Giao thông: Thiết kế tuyến đường, cầu cống, cảng biển tối ưu, an toàn, hiệu quả.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
             {
-              id: 'block-c60731dd',
-              type: NodeType.BLOCK,
-              content: {
-                type: BlockType.TEXT,
-                html: '<p><strong>Y tế &amp; Quản lí đô thị</strong></p><p>Y tế: Phân tích sự phân bố bệnh tật, dịch tễ để đưa ra giải pháp phòng ngừa, điều trị.</p><p>Quản lí đô thị: Quy hoạch không gian sống, xây dựng hạ tầng, quản lí dân cư và môi trường đô thị.</p>',
-              },
-              children: [],
+              id: 'layout-cb7008cb-col3',
+              type: NodeType.LAYOUT,
+              variant: LayoutVariant.SINGLE,
+              gap: 4,
+              children: [
+                {
+                  id: 'block-c60731dd',
+                  type: NodeType.BLOCK,
+                  content: {
+                    type: BlockType.TEXT,
+                    html: '<p><strong>Y tế &amp; Quản lí đô thị</strong></p><p>Y tế: Phân tích sự phân bố bệnh tật, dịch tễ để đưa ra giải pháp phòng ngừa, điều trị.</p><p>Quản lí đô thị: Quy hoạch không gian sống, xây dựng hạ tầng, quản lí dân cư và môi trường đô thị.</p>',
+                  },
+                  children: [],
+                },
+              ],
             },
           ],
         },

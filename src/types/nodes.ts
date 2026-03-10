@@ -135,6 +135,8 @@ export interface ILayout extends IBaseNode {
   variant: LayoutVariant;
   children: (ILayout | IBlock)[];
   gap?: number;
+  /** Flexible column widths as percentages (must sum to 100). E.g. [50, 50] or [40, 60] */
+  columnWidths?: number[];
 }
 
 // ============================================================================

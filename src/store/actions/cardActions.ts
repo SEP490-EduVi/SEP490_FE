@@ -135,7 +135,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 1...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 1', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung cột 1...</p>'),
                 ],
               },
               {
@@ -144,7 +145,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 2...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 2', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung cột 2...</p>'),
                 ],
               },
             ],
@@ -168,6 +170,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 1', 3),
                   createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 1...</p>'),
                 ],
               },
@@ -177,6 +180,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 2', 3),
                   createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 2...</p>'),
                 ],
               },
@@ -201,7 +205,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 1...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 1', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung cột 1...</p>'),
                 ],
               },
               {
@@ -210,7 +215,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 2...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 2', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung cột 2...</p>'),
                 ],
               },
               {
@@ -219,7 +225,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 3...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 3', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung cột 3...</p>'),
                 ],
               },
             ],
@@ -243,7 +250,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 1</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 1', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 1...</p>'),
                 ],
               },
               {
@@ -252,7 +260,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 2</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 2', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 2...</p>'),
                 ],
               },
               {
@@ -261,7 +270,8 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 3</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề cột 3', 3),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 3...</p>'),
                 ],
               },
             ],

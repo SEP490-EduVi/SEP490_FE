@@ -20,7 +20,7 @@
  * NO absolute positioning is used for content elements.
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
@@ -323,7 +323,6 @@ function  BlockRenderer({ node }: { node: IBlock }) {
         isSelected={isSelected}
         onStyleChange={handleStyleChange}
         onClick={handleSelect}
-        maintainAspectRatio={true}
         minHeight={100}
       >
         <ImageBlock
@@ -344,7 +343,6 @@ function  BlockRenderer({ node }: { node: IBlock }) {
         isSelected={isSelected}
         onStyleChange={handleStyleChange}
         onClick={handleSelect}
-        maintainAspectRatio={true}
         minHeight={200}
       >
         <VideoBlock
@@ -457,6 +455,18 @@ function getColumnCount(variant: LayoutVariant): number {
 }
 
 /**
+ * Default column widths (percentages) for each layout variant
+ */
+function getDefaultColumnWidths(variant: LayoutVariant, columnCount: number): number[] {
+  switch (variant) {
+    case LayoutVariant.SIDEBAR_LEFT:  return [33, 67];
+    case LayoutVariant.SIDEBAR_RIGHT: return [67, 33];
+    case LayoutVariant.THREE_COLUMN:  return [33.33, 33.33, 33.34];
+    default: return Array(columnCount).fill(100 / columnCount);
+  }
+}
+
+/**
  * ColumnDropZone - A droppable zone for a specific column in a layout
  */
 function ColumnDropZone({ 
@@ -482,26 +492,26 @@ function ColumnDropZone({
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[120px] rounded-lg transition-all duration-200',
-        isOver && 'bg-indigo-50 ring-2 ring-indigo-400 ring-inset',
+        'min-h-[120px] rounded-lg transition-all duration-200 w-full h-full',
+        isOver && 'bg-rose-50 ring-2 ring-rose-400 ring-inset',
         children.length === 0 && !isOver && 'border-2 border-dashed border-gray-200'
       )}
     >
       {children.length > 0 ? (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 h-full">
           {children}
         </div>
       ) : (
         <div
           className={cn(
             'flex items-center justify-center h-full min-h-[120px]',
-            isOver ? 'text-indigo-600' : 'text-gray-400'
+            isOver ? 'text-rose-600' : 'text-gray-400'
           )}
         >
           <div className="text-center p-4">
             <Plus className="w-5 h-5 mx-auto mb-1" />
             <p className="text-xs">
-              {isOver ? 'Drop here' : 'Drop widget'}
+              {isOver ? 'Thả vào đây' : 'Kéo thả widget'}
             </p>
           </div>
         </div>
@@ -511,9 +521,80 @@ function ColumnDropZone({
 }
 
 /**
+ * ColumnResizeDivider — draggable handle between two adjacent columns.
+ * Calls updateLayoutColumnWidths with the new percentages on every mousemove.
+ */
+function ColumnResizeDivider({
+  layoutId,
+  dividerIndex,
+  columnWidths,
+  containerRef,
+}: {
+  layoutId: string;
+  dividerIndex: number;
+  columnWidths: number[];
+  containerRef: React.RefObject<HTMLDivElement>;
+}) {
+  const updateLayoutColumnWidths = useDocumentStore((s) => s.updateLayoutColumnWidths);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidths = useRef<number[]>([]);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging.current = true;
+      startX.current = e.clientX;
+      startWidths.current = [...columnWidths];
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        if (!isDragging.current || !containerRef.current) return;
+        const containerWidth = containerRef.current.clientWidth;
+        if (containerWidth === 0) return;
+
+        const deltaX = ev.clientX - startX.current;
+        const deltaPercent = (deltaX / containerWidth) * 100;
+        const MIN_COL = 15;
+
+        const newWidths = [...startWidths.current];
+        newWidths[dividerIndex] = Math.max(MIN_COL, startWidths.current[dividerIndex] + deltaPercent);
+        newWidths[dividerIndex + 1] = Math.max(MIN_COL, startWidths.current[dividerIndex + 1] - deltaPercent);
+
+        // Re-normalise so columns always sum to 100%
+        const total = newWidths.reduce((s, w) => s + w, 0);
+        const normalized = newWidths.map((w) => (w / total) * 100);
+        updateLayoutColumnWidths(layoutId, normalized);
+      };
+
+      const handleMouseUp = () => {
+        isDragging.current = false;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [columnWidths, dividerIndex, layoutId, containerRef, updateLayoutColumnWidths]
+  );
+
+  return (
+    <div
+      className="flex-shrink-0 w-3 cursor-col-resize flex items-center justify-center group select-none z-10"
+      onMouseDown={handleMouseDown}
+    >
+      <div className="w-0.5 h-8 bg-gray-200 group-hover:bg-rose-400 transition-colors duration-150 rounded-full" />
+    </div>
+  );
+}
+
+/**
  * LayoutRenderer handles container nodes with Flex/Grid layouts.
- * For multi-column layouts, if children are nested LAYOUT nodes (one per column),
- * render them directly. Otherwise, distribute blocks across ColumnDropZones.
  */
 function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) {
   const selectedNodeId = useDocumentStore((state) => state.selectedNodeId);
@@ -521,15 +602,14 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
   const isSelected = selectedNodeId === node.id;
 
   const columnCount = getColumnCount(node.variant);
-  
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Check if all children are LAYOUT nodes (nested layouts for columns)
   const childrenAreLayouts = node.children.every(child => isLayout(child));
-  
-  // Single column layout - simpler rendering with drop zone
+
+  // ---- SINGLE COLUMN ----
   if (columnCount === 1) {
-    // Get child IDs for SortableContext
     const childIds = node.children.map(child => child.id);
-    
     return (
       <div
         onClick={(e) => {
@@ -543,14 +623,12 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
         )}
       >
         {childrenAreLayouts ? (
-          // Render nested layouts directly (they have their own drop zones)
           node.children.map((child) => (
             <div key={child.id} className="min-w-0">
               <NodeRenderer node={child as INode} depth={depth + 1} />
             </div>
           ))
         ) : (
-          // Wrap blocks in SortableContext and drop zone
           <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
             <ColumnDropZone layoutId={node.id} columnIndex={0}>
               {node.children.map((child) => (
@@ -567,93 +645,90 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
     );
   }
 
-  // Multi-column layout
-  const gridClasses = getGridClasses(node.variant, node.gap);
+  // ---- MULTI-COLUMN: flex row with draggable column dividers ----
+  const defaultWidths = getDefaultColumnWidths(node.variant, columnCount);
+  const columnWidths = node.columnWidths ?? defaultWidths;
 
-  // If children are nested layouts (one per column), render them directly
+  // Build the content for each column
+  let columnContents: React.ReactNode[];
+
   if (childrenAreLayouts && node.children.length <= columnCount) {
-    return (
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedNode(node.id);
-        }}
-        className={cn(
-          'relative',
-          gridClasses,
-          isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
-          'transition-all duration-200'
-        )}
-      >
-        {node.children.map((child) => (
-          <div key={child.id} className="min-w-0">
-            <NodeRenderer node={child as INode} depth={depth + 1} />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  // Otherwise, distribute children across columns with drop zones
-  const childrenByColumn: React.ReactNode[][] = Array.from({ length: columnCount }, () => []);
-  
-  node.children.forEach((child, index) => {
-    const columnIndex = index % columnCount;
-    childrenByColumn[columnIndex].push(
-      <div key={child.id} className="min-w-0">
+    // Each direct child is a column layout — wrap in card box with border
+    columnContents = node.children.map((child) => (
+      <div key={child.id} className="bg-gray-100 border border-gray-200 rounded-xl p-4 h-full min-h-[120px]">
         <NodeRenderer node={child as INode} depth={depth + 1} />
       </div>
+    ));
+    // Pad missing columns with empty drop zones
+    while (columnContents.length < columnCount) {
+      const emptyIdx = columnContents.length;
+      columnContents.push(
+        <div key={`empty-${emptyIdx}`} className="bg-gray-50 border border-gray-200 rounded-xl p-4 h-full min-h-[120px]">
+          <ColumnDropZone layoutId={node.id} columnIndex={emptyIdx}>
+            {[]}
+          </ColumnDropZone>
+        </div>
+      );
+    }
+  } else {
+    // Distribute children across columns
+    const childrenByColumn: React.ReactNode[][] = Array.from({ length: columnCount }, () => []);
+    node.children.forEach((child, index) => {
+      const columnIndex = index % columnCount;
+      childrenByColumn[columnIndex].push(
+        <div key={child.id} className="min-w-0">
+          <NodeRenderer node={child as INode} depth={depth + 1} />
+        </div>
+      );
+    });
+    columnContents = childrenByColumn.map((columnChildren, colIndex) => (
+      <ColumnDropZone key={colIndex} layoutId={node.id} columnIndex={colIndex}>
+        {columnChildren}
+      </ColumnDropZone>
+    ));
+  }
+
+  // Interleave column content + dividers
+  const interleaved: React.ReactNode[] = [];
+  columnContents.forEach((colContent, i) => {
+    interleaved.push(
+      <div
+        key={`col-${i}`}
+        className="min-w-0 overflow-hidden"
+        style={{ width: `${columnWidths[i] ?? 100 / columnCount}%`, flexShrink: 0 }}
+      >
+        {colContent}
+      </div>
     );
+    if (i < columnContents.length - 1) {
+      interleaved.push(
+        <ColumnResizeDivider
+          key={`divider-${i}`}
+          layoutId={node.id}
+          dividerIndex={i}
+          columnWidths={columnWidths}
+          containerRef={containerRef}
+        />
+      );
+    }
   });
 
   return (
     <div
+      ref={containerRef}
       onClick={(e) => {
         e.stopPropagation();
         setSelectedNode(node.id);
       }}
       className={cn(
-        'relative',
-        gridClasses,
+        'flex flex-row w-full',
         isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
-        'transition-all duration-200'
+        'transition-shadow duration-200'
       )}
     >
-      {childrenByColumn.map((columnChildren, colIndex) => (
-        <ColumnDropZone 
-          key={colIndex} 
-          layoutId={node.id} 
-          columnIndex={colIndex}
-        >
-          {columnChildren}
-        </ColumnDropZone>
-      ))}
+      {interleaved}
     </div>
   );
-}
-
-/**
- * Get CSS grid classes for layout variants
- */
-function getGridClasses(variant: LayoutVariant, gap: number = 4): string {
-  const gapClass = `gap-${gap}`;
-
-  switch (variant) {
-    case LayoutVariant.TWO_COLUMN:
-      return cn('grid grid-cols-1 md:grid-cols-2', gapClass);
-
-    case LayoutVariant.THREE_COLUMN:
-      return cn('grid grid-cols-1 md:grid-cols-3', gapClass);
-
-    case LayoutVariant.SIDEBAR_LEFT:
-      return cn('grid grid-cols-1 md:grid-cols-[1fr_2fr]', gapClass);
-
-    case LayoutVariant.SIDEBAR_RIGHT:
-      return cn('grid grid-cols-1 md:grid-cols-[2fr_1fr]', gapClass);
-
-    default:
-      return cn('flex flex-col', gapClass);
-  }
 }
 
 // ============================================================================

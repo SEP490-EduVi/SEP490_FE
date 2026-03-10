@@ -24,6 +24,8 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import { ColoredListItem } from './extensions/coloredListItem';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, ITextContent } from '@/types';
@@ -64,6 +66,8 @@ export function TextBlock({
       }),
       TextStyle,
       Color,
+      FontFamily,
+      ColoredListItem,
     ],
     content: content.html,
     editorProps: {
@@ -98,6 +102,8 @@ export function TextBlock({
       }, 500); // Wait 500ms after user stops typing
     },
     onFocus: () => {
+      setShowToolbar(true);
+      setEditingNodeId(id);
       onSelect?.();
     },
     onSelectionUpdate: ({ editor }) => {

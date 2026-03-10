@@ -136,6 +136,33 @@ export function createNodeActions(
       setDocumentWithHistory(newDoc);
     },
 
+    updateLayoutColumnWidths: (layoutId: string, columnWidths: number[]) => {
+      const { document } = get();
+      if (!document) return;
+
+      const newDoc = {
+        ...document,
+        cards: document.cards.map((card) => ({
+          ...card,
+          children: updateNodeInTree<ILayout | IBlock>(
+            card.children,
+            layoutId,
+            (node) => {
+              if (node.type === 'LAYOUT') {
+                return { ...node, columnWidths } as ILayout;
+              }
+              return node;
+            }
+          ),
+        })),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Use set (not setDocumentWithHistory) to avoid polluting the undo stack
+      // while dragging — the final state is committed on mouseup
+      set({ document: newDoc });
+    },
+
     // ======================================================================
     // DELETE ACTIONS
     // ======================================================================

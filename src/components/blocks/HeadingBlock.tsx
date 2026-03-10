@@ -23,6 +23,8 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import { ColoredListItem } from './extensions/coloredListItem';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, IHeadingContent } from '@/types';
@@ -72,6 +74,8 @@ export function HeadingBlock({
       }),
       TextStyle,
       Color,
+      FontFamily,
+      ColoredListItem,
     ],
     content: content.html,
     editorProps: {
@@ -102,6 +106,8 @@ export function HeadingBlock({
       }, 500);
     },
     onFocus: () => {
+      setShowToolbar(true);
+      setEditingNodeId(id);
       onSelect?.();
     },
     onSelectionUpdate: ({ editor }) => {
