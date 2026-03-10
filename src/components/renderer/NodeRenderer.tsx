@@ -686,7 +686,6 @@ function CardRenderer({ node }: { node: ICard }) {
       className={cn(
         'w-full h-[600px]',
         'flex flex-col',
-        'pl-5',
         'overflow-hidden',
         // Card styling
         'bg-white rounded-2xl shadow-stage',
@@ -704,6 +703,8 @@ function CardRenderer({ node }: { node: ICard }) {
         backgroundPosition: 'center',
       }}
     >
+      {/* Padded content area — keeps blocks away from slide edges */}
+      <div className="flex flex-col flex-1 px-4 pt-2 pb-4 overflow-y-auto gap-1">
       {/* Wrap children in SortableContext for drag and drop */}
       <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
         {/* Render children (layouts and blocks) */}
@@ -731,6 +732,7 @@ function CardRenderer({ node }: { node: ICard }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

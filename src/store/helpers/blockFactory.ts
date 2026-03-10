@@ -22,27 +22,23 @@ export function createBlockByType(blockType: BlockType): IBlock {
   
   switch (blockType) {
     case BlockType.TEXT:
-      return createTextBlock(id, '<p>Start typing...</p>');
+      return createTextBlock(id, '<p>Điền nội dung tại đây...</p>');
     case BlockType.HEADING:
-      return createHeadingBlock(id, 'New Heading', 2);
+      return createHeadingBlock(id, 'Tiêu đề', 2);
     case BlockType.IMAGE:
-      return createImageBlock(
-        id,
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-        'Placeholder image'
-      );
+      return createImageBlock(id, '', 'Hình ảnh');
     case BlockType.VIDEO:
       return {
         id,
         type: NodeType.BLOCK,
         content: {
           type: BlockType.VIDEO,
-          src: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          provider: 'youtube',
+          src: '',
+          provider: 'direct' as const,
         },
         children: [],
       };
     default:
-      return createTextBlock(id, '<p>New block</p>');
+      return createTextBlock(id, '<p>Điền nội dung tại đây...</p>');
   }
 }

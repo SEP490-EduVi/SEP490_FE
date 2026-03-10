@@ -3,9 +3,9 @@
 /**
  * Sidebar Component
  * =================
- * 
- * Left sidebar showing list of slides (Card Nodes).
- * Supports drag-and-drop reordering of slides.
+ *
+ * Thanh bên trái hiển thị danh sách trang trình bày.
+ * Hỗ trợ kéo-thả để sắp xếp lại thứ tự trang.
  */
 
 import React from 'react';
@@ -27,8 +27,96 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { ICard } from '@/types';
-import { Plus, GripVertical, Trash2, FileText } from 'lucide-react';
+import { ICard, ILayout, IBlock, NodeType } from '@/types';
+import { Plus, GripVertical, Trash2, FileText, Image as ImageIcon, Video, HelpCircle } from 'lucide-react';
+
+// ============================================================================
+// SLIDE THUMBNAIL PREVIEW
+// ============================================================================
+
+/**
+ * Renders a miniature visual preview of a slide card.
+ * Shows background color, simulated content lines, and block-type indicators.
+ */
+function SlideThumbnailPreview({ card, isActive }: { card: ICard; isActive: boolean }) {
+  // Count block types recursively
+  const countBlockTypes = (children: (ILayout | IBlock)[]) => {
+    let hasImage = false;
+    let hasVideo = false;
+    let hasInteractive = false;
+    let textLineCount = 0;
+
+    const traverse = (nodes: (ILayout | IBlock)[]) => {
+      for (const node of nodes) {
+        if (node.type === NodeType.BLOCK) {
+          const block = node as IBlock;
+          const ct = block.content?.type;
+          if (ct === 'IMAGE') hasImage = true;
+          else if (ct === 'VIDEO') hasVideo = true;
+          else if (ct === 'QUIZ' || ct === 'FLASHCARD' || ct === 'FILL_BLANK') hasInteractive = true;
+          else if (ct === 'TEXT' || ct === 'HEADING') textLineCount++;
+        }
+        if (node.type === NodeType.LAYOUT) {
+          traverse((node as ILayout).children as (ILayout | IBlock)[]);
+        }
+      }
+    };
+
+    traverse(children);
+    return { hasImage, hasVideo, hasInteractive, textLineCount };
+  };
+
+  const { hasImage, hasVideo, hasInteractive, textLineCount } =
+    countBlockTypes(card.children as (ILayout | IBlock)[]);
+
+  const hasAnyContent = card.children.length > 0;
+
+  return (
+    <div
+      className={cn(
+        'flex-shrink-0 w-20 h-[54px] rounded overflow-hidden border-2 relative',
+        isActive ? 'border-primary-500' : 'border-gray-200'
+      )}
+      style={{
+        backgroundColor: card.backgroundColor || (isActive ? '#e0f2fe' : '#f1f5f9'),
+        backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {hasAnyContent ? (
+        <div className="absolute inset-0 p-1.5 flex flex-col gap-1">
+          {/* Simulated text content lines */}
+          {textLineCount > 0 && (
+            <>
+              <div
+                className={cn('h-1.5 rounded-sm w-4/5', isActive ? 'bg-primary-400' : 'bg-gray-400')}
+              />
+              <div
+                className={cn('h-1 rounded-sm w-full', isActive ? 'bg-primary-300' : 'bg-gray-300')}
+              />
+              {textLineCount > 1 && (
+                <div
+                  className={cn('h-1 rounded-sm w-3/4', isActive ? 'bg-primary-200' : 'bg-gray-200')}
+                />
+              )}
+            </>
+          )}
+          {/* Block type icon indicators */}
+          <div className="flex gap-1 mt-auto">
+            {hasImage && <ImageIcon className="w-3 h-3 text-blue-400 opacity-80" />}
+            {hasVideo && <Video className="w-3 h-3 text-red-400 opacity-80" />}
+            {hasInteractive && <HelpCircle className="w-3 h-3 text-green-500 opacity-80" />}
+          </div>
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <FileText className="w-5 h-5 text-gray-300" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ============================================================================
 // SORTABLE SLIDE ITEM
@@ -62,58 +150,47 @@ function SlideItem({ card, index, isActive, onClick, onDelete }: SlideItemProps)
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group relative flex items-center gap-2 p-2 rounded-lg cursor-pointer',
+        'relative flex items-center gap-2 p-2 rounded-lg cursor-pointer',
         'transition-all duration-150',
         isActive
-          ? 'bg-primary-100 border-2 border-primary-500'
-          : 'bg-white border-2 border-transparent hover:border-gray-200',
+          ? 'bg-primary-50 border-2 border-primary-500'
+          : 'bg-white border-2 border-transparent hover:border-gray-300 hover:bg-gray-50',
         isDragging && 'opacity-50 shadow-lg'
       )}
       onClick={onClick}
     >
-      {/* Drag handle */}
+      {/* Drag handle — always visible so teachers know it's draggable */}
       <button
         {...attributes}
         {...listeners}
-        className="p-1 rounded hover:bg-gray-200 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        className="p-1 rounded hover:bg-gray-200 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
         onClick={(e) => e.stopPropagation()}
+        title="Kéo để sắp xếp"
       >
-        <GripVertical className="w-4 h-4 text-gray-400" />
+        <GripVertical className="w-4 h-4" />
       </button>
 
-      {/* Slide thumbnail */}
-      <div
-        className={cn(
-          'flex-shrink-0 w-16 h-12 rounded',
-          'flex items-center justify-center',
-          'text-xs font-medium',
-          isActive ? 'bg-primary-200 text-primary-700' : 'bg-gray-100 text-gray-500'
-        )}
-        style={{
-          backgroundColor: card.backgroundColor || undefined,
-        }}
-      >
-        <FileText className="w-5 h-5 opacity-50" />
-      </div>
+      {/* Slide thumbnail — real content preview */}
+      <SlideThumbnailPreview card={card} isActive={isActive} />
 
       {/* Slide info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">
+        <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
           {card.title}
         </p>
-        <p className="text-xs text-gray-500">
-          Slide {index + 1}
+        <p className="text-xs text-gray-500 mt-0.5">
+          Trang {index + 1}
         </p>
       </div>
 
-      {/* Delete button */}
+      {/* Delete button — always visible (muted colour, not hidden) */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onDelete();
         }}
-        className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Delete slide"
+        className="p-1 rounded hover:bg-red-100 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+        title="Xóa trang"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -168,9 +245,10 @@ export function Sidebar() {
     <aside className="w-64 bg-surface-secondary border-r border-border flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-          Slides
+        <h2 className="text-base font-bold text-gray-800">
+          Trang trình bày
         </h2>
+        <p className="text-xs text-gray-400 mt-0.5">{document.cards.length} trang</p>
       </div>
 
       {/* Slides list */}
@@ -204,14 +282,14 @@ export function Sidebar() {
           onClick={() => addCard()}
           className={cn(
             'w-full flex items-center justify-center gap-2',
-            'px-4 py-2 rounded-lg',
-            'bg-primary-500 hover:bg-primary-600 text-white',
-            'font-medium text-sm',
-            'transition-colors duration-150'
+            'px-4 py-2.5 rounded-lg',
+            'bg-primary-600 hover:bg-primary-700 text-white',
+            'font-semibold text-sm',
+            'transition-colors duration-150 shadow-sm'
           )}
         >
           <Plus className="w-4 h-4" />
-          Add Slide
+          Thêm trang mới
         </button>
       </div>
     </aside>

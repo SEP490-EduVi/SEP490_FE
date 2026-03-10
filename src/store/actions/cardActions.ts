@@ -78,15 +78,15 @@ export function createCardActions(
             variant: LayoutVariant.TWO_COLUMN,
             gap: 6,
             children: [
-              createImageBlock(`block-${uuidv4()}`, 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&h=300&fit=crop', 'Slide image'),
+              createImageBlock(`block-${uuidv4()}`, 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&h=300&fit=crop', 'Hình ảnh'),
               {
                 id: `layout-${uuidv4()}`,
                 type: NodeType.LAYOUT,
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createHeadingBlock(`block-${uuidv4()}`, 'Slide Title', 2),
-                  createTextBlock(`block-${uuidv4()}`, '<p>Add your description here...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề', 2),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Điền nội dung tại đây...</p>'),
                 ],
               },
             ],
@@ -109,11 +109,11 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createHeadingBlock(`block-${uuidv4()}`, 'Slide Title', 2),
-                  createTextBlock(`block-${uuidv4()}`, '<p>Add your description here...</p>'),
+                  createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề', 2),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Điền nội dung tại đây...</p>'),
                 ],
               },
-              createImageBlock(`block-${uuidv4()}`, 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&h=300&fit=crop', 'Slide image'),
+              createImageBlock(`block-${uuidv4()}`, 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&h=300&fit=crop', 'Hình ảnh'),
             ],
           } as ILayout,
         ];
@@ -122,7 +122,7 @@ export function createCardActions(
       else if (templateType === 'two-columns') {
         const layoutId = `layout-${uuidv4()}`;
         cardChildren = [
-          createHeadingBlock(`block-${uuidv4()}`, 'Slide Title', 2),
+          createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề', 2),
           {
             id: layoutId,
             type: NodeType.LAYOUT,
@@ -135,7 +135,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column 1 content...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 1...</p>'),
                 ],
               },
               {
@@ -144,7 +144,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column 2 content...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 2...</p>'),
                 ],
               },
             ],
@@ -155,7 +155,7 @@ export function createCardActions(
       else if (templateType === 'two-columns-alt') {
         const layoutId = `layout-${uuidv4()}`;
         cardChildren = [
-          createHeadingBlock(`block-${uuidv4()}`, 'Slide Title', 2),
+          createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề', 2),
           {
             id: layoutId,
             type: NodeType.LAYOUT,
@@ -168,7 +168,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column A content...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 1...</p>'),
                 ],
               },
               {
@@ -177,7 +177,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column B content...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 2...</p>'),
                 ],
               },
             ],
@@ -188,7 +188,7 @@ export function createCardActions(
       else if (templateType === 'three-columns') {
         const layoutId = `layout-${uuidv4()}`;
         cardChildren = [
-          createHeadingBlock(`block-${uuidv4()}`, 'Slide Title', 2),
+          createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề', 2),
           {
             id: layoutId,
             type: NodeType.LAYOUT,
@@ -201,7 +201,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column 1...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 1...</p>'),
                 ],
               },
               {
@@ -210,7 +210,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column 2...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 2...</p>'),
                 ],
               },
               {
@@ -219,7 +219,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Column 3...</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Cột 3...</p>'),
                 ],
               },
             ],
@@ -230,7 +230,7 @@ export function createCardActions(
       else if (templateType === 'three-columns-alt') {
         const layoutId = `layout-${uuidv4()}`;
         cardChildren = [
-          createHeadingBlock(`block-${uuidv4()}`, 'Slide Title', 2),
+          createHeadingBlock(`block-${uuidv4()}`, 'Tiêu đề', 2),
           {
             id: layoutId,
             type: NodeType.LAYOUT,
@@ -243,7 +243,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Point A</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 1</p>'),
                 ],
               },
               {
@@ -252,7 +252,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Point B</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 2</p>'),
                 ],
               },
               {
@@ -261,7 +261,7 @@ export function createCardActions(
                 variant: LayoutVariant.SINGLE,
                 gap: 4,
                 children: [
-                  createTextBlock(`block-${uuidv4()}`, '<p>Point C</p>'),
+                  createTextBlock(`block-${uuidv4()}`, '<p>Nội dung 3</p>'),
                 ],
               },
             ],

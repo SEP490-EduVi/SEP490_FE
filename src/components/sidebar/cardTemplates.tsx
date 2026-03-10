@@ -36,7 +36,7 @@ export const basicCardTemplates: CardTemplateItem[] = [
   {
     id: 'template-001',
     type: 'image-text-left',
-    label: 'Image and text',
+    label: 'Hình ảnh và văn bản',
     preview: (
       <div className="w-full h-full flex gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="w-1/3 bg-gray-200 rounded flex items-center justify-center">
@@ -53,7 +53,7 @@ export const basicCardTemplates: CardTemplateItem[] = [
   {
     id: 'template-002',
     type: 'text-image-right',
-    label: 'Text and image',
+    label: 'Văn bản và hình ảnh',
     preview: (
       <div className="w-full h-full flex gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="flex-1 flex flex-col gap-1">
@@ -70,7 +70,7 @@ export const basicCardTemplates: CardTemplateItem[] = [
   {
     id: 'template-003',
     type: 'two-columns',
-    label: 'Two columns',
+    label: 'Bố cục hai cột (Nội dung)',
     preview: (
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
@@ -90,7 +90,7 @@ export const basicCardTemplates: CardTemplateItem[] = [
   {
     id: 'template-004',
     type: 'two-columns-alt',
-    label: 'Two column text',
+    label: 'Bố cục hai cột (Chữ)',
     preview: (
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
@@ -112,7 +112,7 @@ export const basicCardTemplates: CardTemplateItem[] = [
   {
     id: 'template-005',
     type: 'three-columns',
-    label: 'Three columns',
+    label: 'Bố cục ba cột (Nội dung)',
     preview: (
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
@@ -136,7 +136,7 @@ export const basicCardTemplates: CardTemplateItem[] = [
   {
     id: 'template-006',
     type: 'three-columns-alt',
-    label: 'Three column text',
+    label: 'Bố cục ba cột (Chữ)',
     preview: (
       <div className="w-full h-full flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded">
         <div className="h-5 bg-gray-300 rounded w-2/3 mx-auto" />
@@ -170,7 +170,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-title',
     type: 'title-card',
-    label: 'Title Card',
+    label: 'Thẻ tiêu đề',
     preview: (
       <div className="w-full h-32 flex flex-col justify-between p-3 bg-indigo-600 rounded">
         <div className="flex items-center gap-1">
@@ -193,7 +193,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-bullet',
     type: 'bullet-card',
-    label: 'Bullet List',
+    label: 'Thẻ danh sách gạch đầu dòng',
     preview: (
       <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-white border border-gray-200 rounded">
         <div className="flex items-center gap-1.5">
@@ -222,7 +222,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-section',
     type: 'section-divider',
-    label: 'Section Divider',
+    label: 'Thẻ chuyển tiếp',
     preview: (
       <div className="w-full h-32 flex flex-col justify-center items-center gap-2 p-3 bg-slate-800 rounded">
         <div className="h-1 w-8 bg-indigo-400 rounded-full" />
@@ -235,7 +235,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-quiz',
     type: 'quiz-card',
-    label: 'Quiz',
+    label: 'Thẻ câu hỏi',
     preview: (
       <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-amber-50 border border-amber-200 rounded">
         <div className="flex items-center gap-1.5">
@@ -264,7 +264,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-flashcard',
     type: 'flashcard-card',
-    label: 'Flashcard',
+    label: 'Thẻ ghi nhớ',
     preview: (
       <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-violet-50 border border-violet-200 rounded">
         <div className="flex items-center gap-1.5">
@@ -286,7 +286,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-fillblank',
     type: 'fill-blank-card',
-    label: 'Fill in Blank',
+    label: 'Thẻ điền từ',
     preview: (
       <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-emerald-50 border border-emerald-200 rounded">
         <div className="flex items-center gap-1.5">
@@ -314,7 +314,7 @@ export const freeformCardTemplates: CardTemplateItem[] = [
   {
     id: 'freeform-summary',
     type: 'summary-card',
-    label: 'Summary',
+    label: 'Thẻ tóm tắt',
     preview: (
       <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-sky-50 border border-sky-200 rounded">
         <div className="flex items-center gap-1.5">

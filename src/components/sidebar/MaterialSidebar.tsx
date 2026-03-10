@@ -73,10 +73,10 @@ function getIconByName(name: string): React.ReactNode {
 // ============================================================================
 
 const categoryConfig: Record<MaterialCategory, { label: string; icon: keyof typeof LucideIcons }> = {
-  [MaterialCategory.MEDIA]: { label: 'Media', icon: 'Film' },
-  [MaterialCategory.INTERACTIVE]: { label: 'Interactive', icon: 'MousePointer2' },
-  [MaterialCategory.DATA]: { label: 'Data & Charts', icon: 'BarChart3' },
-  [MaterialCategory.EMBED]: { label: 'Embeds', icon: 'Code' },
+  [MaterialCategory.MEDIA]: { label: 'Phương tiện', icon: 'Film' },
+  [MaterialCategory.INTERACTIVE]: { label: 'Tương tác', icon: 'MousePointer2' },
+  [MaterialCategory.DATA]: { label: 'Dữ liệu & Biểu đồ', icon: 'BarChart3' },
+  [MaterialCategory.EMBED]: { label: 'Nhúng ngoài', icon: 'Code' },
 };
 
 // ============================================================================
@@ -106,15 +106,15 @@ function DraggableMaterialItem({ material }: MaterialItemProps) {
       className={cn(
         'group flex items-center gap-3 p-2 rounded-lg cursor-grab',
         'bg-white border border-gray-200',
-        'hover:border-indigo-300 hover:bg-indigo-50/50',
+        'hover:border-primary-300 hover:bg-primary-50/50',
         'transition-all duration-150',
-        isDragging && 'opacity-50 shadow-lg ring-2 ring-indigo-400'
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-primary-400'
       )}
       {...listeners}
       {...attributes}
     >
       {/* Drag Handle */}
-      <div className="flex-shrink-0 text-gray-400 group-hover:text-indigo-400">
+      <div className="flex-shrink-0 text-gray-400 group-hover:text-primary-500">
         <GripVertical className="w-4 h-4" />
       </div>
 
@@ -122,8 +122,8 @@ function DraggableMaterialItem({ material }: MaterialItemProps) {
       <div
         className={cn(
           'flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center',
-          'bg-gradient-to-br from-indigo-100 to-purple-100',
-          'text-indigo-600'
+          'bg-primary-50',
+          'text-primary-600'
         )}
       >
         {getIconByName(material.icon)}
@@ -167,7 +167,7 @@ function CategorySection({ category, materials, isExpanded, onToggle }: Category
           <ChevronRight className="w-4 h-4 text-gray-400" />
         )}
         {CategoryIcon && <CategoryIcon className="w-4 h-4 text-gray-600" />}
-        <span className="flex-1 text-sm font-medium text-gray-700">
+        <span className="flex-1 text-base font-semibold text-gray-800">
           {config.label}
         </span>
         <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
@@ -288,8 +288,8 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Material Library
+        <h2 className="text-lg font-bold text-gray-900 mb-3">
+          Thư viện tài nguyên
         </h2>
 
         {/* Search */}
@@ -297,13 +297,13 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search materials..."
+            placeholder="Tìm kiếm tài nguyên..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={cn(
               'w-full pl-9 pr-3 py-2 text-sm',
               'border border-gray-200 rounded-lg',
-              'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
               'placeholder:text-gray-400'
             )}
           />
@@ -315,7 +315,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+            <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
           </div>
         )}
 
@@ -325,9 +325,9 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             <p className="text-sm text-red-500">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-indigo-600 hover:underline"
+              className="mt-2 text-sm text-primary-600 hover:underline"
             >
-              Retry
+              Thử lại
             </button>
           </div>
         )}
@@ -337,7 +337,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
           <div className="p-4 text-center">
             <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
             <p className="text-sm text-gray-500">
-              {searchQuery ? 'No materials found' : 'No materials available'}
+              {searchQuery ? 'Không tìm thấy tài nguyên' : 'Chưa có tài nguyên nào'}
             </p>
           </div>
         )}
@@ -367,9 +367,9 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
       <QuickLayoutSection />
 
       {/* Footer Hint */}
-      <div className="p-3 bg-indigo-50 border-t border-indigo-100">
-        <p className="text-xs text-indigo-600 text-center">
-          <span className="font-medium">Tip:</span> Drop widgets into layout columns
+      <div className="p-3 bg-primary-50 border-t border-primary-100">
+        <p className="text-xs text-primary-700 text-center">
+          <span className="font-semibold">Mẹo:</span> Kéo tài nguyên vào các cột bố cục
         </p>
       </div>
     </aside>
@@ -397,12 +397,12 @@ function QuickLayoutSection() {
           onClick={() => setIsModalOpen(true)}
           className={cn(
             'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
-            'font-medium text-sm transition-all duration-150',
-            'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 shadow-md hover:shadow-lg'
+            'font-semibold text-sm transition-all duration-150',
+            'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow-md'
           )}
         >
           <Sparkles className="w-4 h-4" />
-          Quick Layouts
+          Bố cục nhanh
         </button>
       </div>
 
@@ -410,7 +410,7 @@ function QuickLayoutSection() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Card template"
+        title="Chọn bố cục trang"
         size="xl"
         bodyClassName="p-0"
         className="max-w-4xl"
@@ -423,22 +423,22 @@ function QuickLayoutSection() {
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
                 activeTab === 'basic'
-                  ? 'bg-white text-indigo-600 border border-b-white border-gray-200 -mb-px'
+                  ? 'bg-white text-primary-600 border border-b-white border-gray-200 -mb-px'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
-              Basic
+              Cơ bản
             </button>
             <button
               onClick={() => setActiveTab('freeform')}
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
                 activeTab === 'freeform'
-                  ? 'bg-white text-indigo-600 border border-b-white border-gray-200 -mb-px'
+                  ? 'bg-white text-primary-600 border border-b-white border-gray-200 -mb-px'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
-              Freeform
+              Tùy chỉnh
             </button>
           </div>
 
@@ -446,7 +446,7 @@ function QuickLayoutSection() {
           {activeTab === 'basic' && (
             <div className="px-6 py-4">
               <p className="text-xs text-gray-500 mb-4">
-                Layout-based templates with column structures
+                Các mẫu bố cục cột sẵn có
               </p>
               <div className="grid grid-cols-3 gap-4">
                 {basicCardTemplates.map((template) => (
@@ -463,7 +463,7 @@ function QuickLayoutSection() {
                       className={cn(
                         'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
                         'border-2 transition-all duration-150',
-                        'border-gray-200 hover:border-indigo-400 hover:shadow-md'
+                        'border-gray-200 hover:border-primary-400 hover:shadow-md'
                       )}
                     >
                       {template.preview}
@@ -481,7 +481,7 @@ function QuickLayoutSection() {
           {activeTab === 'freeform' && (
             <div className="px-6 py-4">
               <p className="text-xs text-gray-500 mb-4">
-                Special-purpose cards without fixed layout structure
+                Các mẫu trang đặc biệt không theo cấu trúc cột cố định
               </p>
               <div className="grid grid-cols-3 gap-4">
                 {freeformCardTemplates.map((template) => (
@@ -498,7 +498,7 @@ function QuickLayoutSection() {
                       className={cn(
                         'w-full h-32 rounded-lg overflow-hidden',
                         'border-2 transition-all duration-150',
-                        'border-gray-200 hover:border-indigo-400 hover:shadow-md'
+                        'border-gray-200 hover:border-primary-400 hover:shadow-md'
                       )}
                     >
                       {template.preview}

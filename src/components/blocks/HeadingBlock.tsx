@@ -81,7 +81,7 @@ export function HeadingBlock({
           'focus:outline-none',
           'min-h-[1.5em]',
           headingStyles[content.level],
-          'prose-headings:font-semibold prose-headings:text-gray-900',
+          'prose-headings:font-semibold prose-headings:text-gray-900 prose-headings:mt-0 prose-headings:mb-1',
           'prose-strong:font-semibold',
           'prose-em:italic'
         ),
