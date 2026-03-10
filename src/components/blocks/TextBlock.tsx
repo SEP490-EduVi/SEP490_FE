@@ -159,8 +159,6 @@ export function TextBlock({
         className={cn(
           'w-full',
           'rounded-lg',
-          'bg-white',
-          'hover:bg-gray-50/50',
           'transition-colors duration-150',
           isSelected && !showToolbar && 'ring-2 ring-primary-500 ring-offset-2'
         )}

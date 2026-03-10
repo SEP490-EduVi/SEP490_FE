@@ -136,6 +136,24 @@ export function createNodeActions(
       setDocumentWithHistory(newDoc);
     },
 
+    setCardBackground: (cardId: string | null, color: string) => {
+      const { document } = get();
+      if (!document) return;
+
+      // cardId === null means apply to ALL cards
+      const newDoc = {
+        ...document,
+        cards: document.cards.map((card) =>
+          cardId === null || card.id === cardId
+            ? { ...card, backgroundColor: color || undefined }
+            : card
+        ),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setDocumentWithHistory(newDoc);
+    },
+
     updateLayoutColumnWidths: (layoutId: string, columnWidths: number[]) => {
       const { document } = get();
       if (!document) return;

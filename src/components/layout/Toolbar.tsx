@@ -9,7 +9,8 @@
  *  Row 2 (insert bar): Quick-insert buttons for teachers (Tiêu đề, Văn bản, …)
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, LayoutVariant } from '@/types';
@@ -31,6 +32,7 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
+  ChevronDown,
 } from 'lucide-react';
 
 // ============================================================================
@@ -72,8 +74,81 @@ function InsertDivider() {
 }
 
 // ============================================================================
-// TOOLBAR
+// BACKGROUND COLOR PICKER
 // ============================================================================
+
+const SLIDE_BG_COLORS = [
+  { label: 'Trắng', value: '#ffffff' },
+  { label: 'Xám nhạt', value: '#f8fafc' },
+  { label: 'Vàng nhạt', value: '#fefce8' },
+  { label: 'Xanh nhạt', value: '#eff6ff' },
+  { label: 'Hồng nhạt', value: '#fff1f2' },
+  { label: 'Xanh lá', value: '#f0fdf4' },
+  { label: 'Tím nhạt', value: '#faf5ff' },
+  { label: 'Cam nhạt', value: '#fff7ed' },
+  { label: 'Đen', value: '#0f172a' },
+  { label: 'Xám đậm', value: '#1e293b' },
+  { label: 'Xanh đậm', value: '#1e3a5f' },
+  { label: 'Đỏ đậm', value: '#7f1d1d' },
+];
+
+function BgColorPicker({
+  currentColor,
+  onApplyCurrent,
+  onApplyAll,
+}: {
+  currentColor: string;
+  onApplyCurrent: (color: string) => void;
+  onApplyAll: (color: string) => void;
+}) {
+  const [selected, setSelected] = useState(currentColor || '#ffffff');
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Màu nền slide</p>
+      <div className="grid grid-cols-6 gap-1.5">
+        {SLIDE_BG_COLORS.map((c) => (
+          <button
+            key={c.value}
+            title={c.label}
+            onClick={() => setSelected(c.value)}
+            className={cn(
+              'w-7 h-7 rounded border-2 transition-all hover:scale-110',
+              selected === c.value
+                ? 'border-rose-500 ring-2 ring-rose-200'
+                : 'border-gray-200'
+            )}
+            style={{ backgroundColor: c.value }}
+          />
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-gray-500 flex-shrink-0">Tuỳ chỉnh:</label>
+        <input
+          type="color"
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+          className="w-7 h-7 rounded border border-gray-200 cursor-pointer p-0 flex-shrink-0"
+        />
+        <span className="text-xs text-gray-400 font-mono truncate">{selected}</span>
+      </div>
+      <div className="flex gap-2 pt-1 border-t border-gray-100">
+        <button
+          onClick={() => onApplyCurrent(selected)}
+          className="flex-1 py-1.5 rounded-lg bg-rose-500 text-white text-xs font-semibold hover:bg-rose-600 transition-colors"
+        >
+          Slide này
+        </button>
+        <button
+          onClick={() => onApplyAll(selected)}
+          className="flex-1 py-1.5 rounded-lg bg-slate-700 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+        >
+          Tất cả
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function Toolbar() {
   const activeCardId = useDocumentStore((state) => state.activeCardId);
@@ -86,10 +161,28 @@ export function Toolbar() {
   const canRedo = useDocumentStore((state) => state.canRedo());
   const onlineUsers = useDocumentStore((state) => state.onlineUsers);
   const setCardContentAlignment = useDocumentStore((state) => state.setCardContentAlignment);
+  const setCardBackground = useDocumentStore((state) => state.setCardBackground);
 
   const activeCard = document?.cards.find((c) => c.id === activeCardId);
   const currentAlignment = activeCard?.contentAlignment ?? 'center';
+  const currentBgColor = activeCard?.backgroundColor ?? '';
   const hasActiveCard = !!activeCardId;
+
+  const [showBgPicker, setShowBgPicker] = useState(false);
+  const bgPickerRef = useRef<HTMLDivElement>(null);
+  const bgButtonRef = useRef<HTMLButtonElement>(null);
+  const [bgPickerPos, setBgPickerPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bgPickerRef.current && !bgPickerRef.current.contains(e.target as Node) &&
+          bgButtonRef.current && !bgButtonRef.current.contains(e.target as Node)) {
+        setShowBgPicker(false);
+      }
+    };
+    if (showBgPicker) window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showBgPicker]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -316,6 +409,60 @@ export function Toolbar() {
             <AlignEndVertical className="w-3.5 h-3.5" />
             <span>Cuối</span>
           </button>
+        </div>
+
+        <InsertDivider />
+
+        {/* Background color */}
+        <div className="relative flex-shrink-0">
+          <button
+            ref={bgButtonRef}
+            onClick={() => {
+              if (!showBgPicker && bgButtonRef.current) {
+                const rect = bgButtonRef.current.getBoundingClientRect();
+                setBgPickerPos({ top: rect.bottom + 4, left: rect.left });
+              }
+              setShowBgPicker((v) => !v);
+            }}
+            disabled={!hasActiveCard}
+            title="Màu nền slide"
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
+              !hasActiveCard
+                ? 'text-gray-300 cursor-not-allowed'
+                : showBgPicker
+                ? 'bg-gray-100 text-slate-700'
+                : 'text-slate-600 hover:bg-gray-100 hover:text-rose-500'
+            )}
+          >
+            <span
+              className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
+              style={{ backgroundColor: currentBgColor || '#ffffff' }}
+            />
+            <span>Màu nền</span>
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {showBgPicker && typeof window !== 'undefined' && createPortal(
+            <div
+              ref={bgPickerRef}
+              className="fixed z-[9999] bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-56"
+              style={{ top: bgPickerPos.top, left: bgPickerPos.left }}
+            >
+              <BgColorPicker
+                currentColor={currentBgColor}
+                onApplyCurrent={(color) => {
+                  if (activeCardId) setCardBackground(activeCardId, color);
+                  setShowBgPicker(false);
+                }}
+                onApplyAll={(color) => {
+                  setCardBackground(null, color);
+                  setShowBgPicker(false);
+                }}
+              />
+            </div>,
+            globalThis.document.body
+          )}
         </div>
 
         <InsertDivider />

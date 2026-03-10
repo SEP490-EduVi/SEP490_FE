@@ -168,8 +168,6 @@ export function HeadingBlock({
         className={cn(
           'w-full',
           'rounded-lg',
-          'bg-white',
-          'hover:bg-gray-50/50',
           'transition-colors duration-150'
         )}
       />
