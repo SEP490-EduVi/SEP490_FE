@@ -5,33 +5,31 @@ import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Plus,
   FileText,
   Package,
   Upload,
   Trash2,
-  Edit3,
-  MoreVertical,
-  Calendar,
-  Clock,
   CheckCircle,
   AlertCircle,
   Loader2,
   Eye,
   Sparkles,
-  Download,
   File,
   Image as ImageIcon,
   FileVideo,
-  X,
   ChevronRight,
-  BookOpen,
   Layers,
-  BarChart3,
-  Pencil,
 } from 'lucide-react';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+import { useProject } from '@/hooks/useProjectApi';
+import { useProducts, useDeleteProduct } from '@/hooks/useProductApi';
+import ProductsTab from '@/components/projects/ProductsTab';
+import EvaluationModal from '@/components/projects/EvaluationModal';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import * as productService from '@/services/productServices';
+import type { IDocument } from '@/types/nodes';
+
+// ── Local types (documents don't have an API yet) ──────────────────────────
 
 interface InputDocument {
   id: string;
@@ -42,84 +40,7 @@ interface InputDocument {
   status: 'uploaded' | 'processing' | 'analyzed';
 }
 
-interface Product {
-  productCode: string;
-  name: string;
-  status: 'new' | 'evaluating' | 'evaluated' | 'generating' | 'completed' | 'failed';
-  slidesCount: number;
-  createdAt: string;
-  updatedAt: string;
-  hasEvaluation: boolean;
-  hasSlide: boolean;
-  hasEditedSlide: boolean;
-}
-
 type TabKey = 'documents' | 'products';
-
-// ── Mock Data ──────────────────────────────────────────────────────────────
-
-const MOCK_PROJECT = {
-  projectCode: 'PRJ-001',
-  name: 'Toán Đại số lớp 10',
-  description: 'Bài giảng về phương trình bậc hai, hệ phương trình và bất phương trình. Dành cho học sinh THPT theo chương trình giáo dục mới.',
-  subject: 'Toán học',
-  grade: 'Lớp 10',
-  createdAt: '2026-03-01',
-  updatedAt: '2026-03-10',
-  status: 'active' as const,
-};
-
-const MOCK_DOCUMENTS: InputDocument[] = [
-  {
-    id: 'DOC-001',
-    fileName: 'Chuong_3_Phuong_trinh_bac_hai.pdf',
-    fileType: 'pdf',
-    fileSize: '2.4 MB',
-    uploadedAt: '2026-03-01',
-    status: 'analyzed',
-  },
-  {
-    id: 'DOC-002',
-    fileName: 'Bai_tap_he_phuong_trinh.docx',
-    fileType: 'docx',
-    fileSize: '1.1 MB',
-    uploadedAt: '2026-03-03',
-    status: 'analyzed',
-  },
-  {
-    id: 'DOC-003',
-    fileName: 'Bat_phuong_trinh_bac_nhat.pptx',
-    fileType: 'pptx',
-    fileSize: '5.7 MB',
-    uploadedAt: '2026-03-08',
-    status: 'uploaded',
-  },
-];
-
-const MOCK_PRODUCTS: Product[] = [
-  {
-    productCode: 'PROD-001',
-    name: 'Slide: Phương trình bậc hai',
-    status: 'completed',
-    slidesCount: 15,
-    createdAt: '2026-03-02',
-    updatedAt: '2026-03-09',
-    hasEvaluation: true,
-    hasSlide: true,
-    hasEditedSlide: true,
-  },
-  {
-    productCode: 'PROD-002',
-    name: 'Slide: Hệ phương trình bậc nhất',
-    status: 'evaluated',
-    slidesCount: 0,
-    createdAt: '2026-03-05',
-    updatedAt: '2026-03-08',
-    hasEvaluation: true,
-    hasSlide: false,
-    hasEditedSlide: false,
-  },
-];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -131,27 +52,29 @@ const FILE_TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string 
   video: { icon: FileVideo, color: 'text-purple-500 bg-purple-50' },
 };
 
-const STATUS_CONFIG: Record<Product['status'], { label: string; color: string; icon: React.ElementType }> = {
-  new:        { label: 'Mới tạo',      color: 'bg-gray-100 text-gray-600',    icon: Clock },
-  evaluating: { label: 'Đang đánh giá', color: 'bg-blue-50 text-blue-600',    icon: Loader2 },
-  evaluated:  { label: 'Đã đánh giá',  color: 'bg-cyan-50 text-cyan-600',     icon: BarChart3 },
-  generating: { label: 'Đang tạo slide', color: 'bg-amber-50 text-amber-600', icon: Loader2 },
-  completed:  { label: 'Hoàn thành',   color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle },
-  failed:     { label: 'Thất bại',     color: 'bg-red-50 text-red-600',       icon: AlertCircle },
-};
-
 const DOC_STATUS_CONFIG: Record<InputDocument['status'], { label: string; color: string }> = {
   uploaded:   { label: 'Đã tải lên',  color: 'bg-gray-100 text-gray-600' },
   processing: { label: 'Đang xử lý',  color: 'bg-amber-50 text-amber-600' },
   analyzed:   { label: 'Đã phân tích', color: 'bg-emerald-50 text-emerald-600' },
 };
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function getFileType(name: string): InputDocument['fileType'] {
+  const ext = name.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (ext === 'docx' || ext === 'doc') return 'docx';
+  if (ext === 'pptx' || ext === 'ppt') return 'pptx';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext ?? '')) return 'image';
+  if (['mp4', 'mov', 'avi', 'webm'].includes(ext ?? '')) return 'video';
+  return 'pdf';
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -162,27 +85,34 @@ export default function ProjectDetailPage() {
   const projectCode = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [project] = useState(MOCK_PROJECT);
-  const [documents, setDocuments] = useState<InputDocument[]>(MOCK_DOCUMENTS);
-  const [products] = useState<Product[]>(MOCK_PRODUCTS);
+  // ── API hooks ──────────────────────────────────────────────────────────
+  const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
+  const { data: products = [], isLoading: isProductsLoading } = useProducts();
+  const deleteProduct = useDeleteProduct();
+  const setDocument = useDocumentStore((state) => state.setDocument);
+
+  // ── Local state ────────────────────────────────────────────────────────────
+  const [documents, setDocuments] = useState<InputDocument[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>('documents');
   const [showUploadArea, setShowUploadArea] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [evalProductCode, setEvalProductCode] = useState<string | null>(null);
+  const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
+  const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    addMockDocuments(files);
+    addLocalDocuments(Array.from(e.dataTransfer.files));
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      addMockDocuments(Array.from(e.target.files));
+      addLocalDocuments(Array.from(e.target.files));
     }
   };
 
-  const addMockDocuments = (files: File[]) => {
+  const addLocalDocuments = (files: File[]) => {
     const newDocs: InputDocument[] = files.map((file) => ({
       id: `DOC-${String(Date.now()).slice(-4)}`,
       fileName: file.name,
@@ -195,24 +125,67 @@ export default function ProjectDetailPage() {
     setShowUploadArea(false);
   };
 
-  const getFileType = (name: string): InputDocument['fileType'] => {
-    const ext = name.split('.').pop()?.toLowerCase();
-    if (ext === 'pdf') return 'pdf';
-    if (ext === 'docx' || ext === 'doc') return 'docx';
-    if (ext === 'pptx' || ext === 'ppt') return 'pptx';
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext ?? '')) return 'image';
-    if (['mp4', 'mov', 'avi', 'webm'].includes(ext ?? '')) return 'video';
-    return 'pdf';
-  };
-
   const handleDeleteDocument = (docId: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  };
+
+  const handleDeleteProduct = (productCode: string) => {
+    deleteProduct.mutate(productCode);
+  };
+
+  const handleViewEvaluation = (productCode: string) => {
+    const product = products.find((p) => p.productCode === productCode);
+    setEvalProductCode(productCode);
+    setEvalProductName(product?.productName);
+  };
+
+  const handleViewSlide = async (productCode: string) => {
+    try {
+      setViewSlideLoading(productCode);
+      const detail = await productService.getProductByCode(productCode);
+      if (detail.slideDocument) {
+        setDocument(detail.slideDocument as unknown as IDocument);
+        router.push('/editor');
+      }
+    } finally {
+      setViewSlideLoading(null);
+    }
   };
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType; count: number }[] = [
     { key: 'documents', label: 'Tài liệu đầu vào', icon: FileText, count: documents.length },
     { key: 'products', label: 'Sản phẩm AI', icon: Package, count: products.length },
   ];
+
+  // ── Loading state ───────────────────────────────────────────────────────
+  if (isProjectLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+        <p className="text-sm text-gray-500">Đang tải dự án...</p>
+      </div>
+    );
+  }
+
+  // ── Error / Not found state ────────────────────────────────────────────
+  if (isProjectError || !project) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+          <AlertCircle className="w-8 h-8 text-red-400" />
+        </div>
+        <h2 className="text-lg font-semibold text-gray-700 mb-1">Không tìm thấy dự án</h2>
+        <p className="text-sm text-gray-500 mb-6">Dự án không tồn tại hoặc đã bị xóa.</p>
+        <button
+          onClick={() => router.push('/projects')}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Quay về danh sách
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -228,7 +201,7 @@ export default function ProjectDetailPage() {
               Dự án
             </button>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-gray-900 font-medium">{project.name}</span>
+            <span className="text-gray-900 font-medium">{project.projectName}</span>
           </div>
 
           <div className="flex items-start justify-between">
@@ -241,34 +214,31 @@ export default function ProjectDetailPage() {
               </button>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700">
-                    {project.subject}
+                  <h1 className="text-2xl font-bold text-gray-900">{project.projectName}</h1>
+                  <span className="text-xs text-gray-400 font-mono">{project.projectCode}</span>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium ${
+                    project.status === 0
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {project.status === 0 ? 'Hoạt động' : 'Lưu trữ'}
                   </span>
-                  <span className="text-xs text-gray-400">{project.grade}</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-1 max-w-2xl">{project.description}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors">
-                <Edit3 className="w-4 h-4" />
-                Chỉnh sửa
-              </button>
-            </div>
+
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* ── Quick Stats ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Tài liệu', value: documents.length, icon: FileText, color: 'text-blue-600 bg-blue-50' },
             { label: 'Sản phẩm', value: products.length, icon: Package, color: 'text-purple-600 bg-purple-50' },
-            { label: 'Hoàn thành', value: products.filter((p) => p.status === 'completed').length, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
-            { label: 'Ngày tạo', value: formatDate(project.createdAt), icon: Calendar, color: 'text-amber-600 bg-amber-50' },
+            { label: 'Hoàn thành', value: products.filter((p) => p.statusName === 'SLIDES_GENERATED').length, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
           ].map((stat) => {
             const Icon = stat.icon;
             return (
@@ -344,16 +314,40 @@ export default function ProjectDetailPage() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <ProductsTab products={products} />
+              <ProductsTab
+                products={products}
+                isLoading={isProductsLoading}
+                onDeleteProduct={handleDeleteProduct}
+                onViewSlide={handleViewSlide}
+                onViewEvaluation={handleViewEvaluation}
+              />
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+
+      {/* ── Evaluation Modal ── */}
+      <EvaluationModal
+        open={!!evalProductCode}
+        productCode={evalProductCode}
+        productName={evalProductName}
+        onClose={() => { setEvalProductCode(null); setEvalProductName(undefined); }}
+      />
+
+      {/* ── View Slide Loading Overlay ── */}
+      {viewSlideLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+            <p className="text-sm font-medium text-gray-700">Đang mở slide...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Documents Tab ──────────────────────────────────────────────────────────
+// ── Documents Tab (local only – no API yet) ────────────────────────────────
 
 function DocumentsTab({
   documents,
@@ -519,137 +513,6 @@ function DocumentsTab({
   );
 }
 
-// ── Products Tab ───────────────────────────────────────────────────────────
-
-function ProductsTab({ products }: { products: Product[] }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-gray-500">
-          Các sản phẩm slide được AI tạo ra từ tài liệu bài giảng.
-        </p>
-      </div>
-
-      {products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <Package className="w-8 h-8 text-gray-300" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có sản phẩm nào</h3>
-          <p className="text-sm text-gray-500">Hãy tải tài liệu lên và phân tích để tạo sản phẩm.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {products.map((product, idx) => {
-            const statusConfig = STATUS_CONFIG[product.status];
-            const StatusIcon = statusConfig.icon;
-            const isSpinning = product.status === 'evaluating' || product.status === 'generating';
-
-            return (
-              <motion.div
-                key={product.productCode}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-                className="group bg-white border border-gray-100 hover:border-blue-200 hover:shadow-lg rounded-2xl p-5 transition-all"
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                    <Layers className="w-6 h-6 text-white" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-base font-semibold text-gray-900">{product.name}</h3>
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${statusConfig.color}`}>
-                        <StatusIcon className={`w-3 h-3 ${isSpinning ? 'animate-spin' : ''}`} />
-                        {statusConfig.label}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs text-gray-400 mb-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Tạo lúc {formatDate(product.createdAt)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Cập nhật {formatDate(product.updatedAt)}
-                      </span>
-                      {product.slidesCount > 0 && (
-                        <span>{product.slidesCount} slide</span>
-                      )}
-                    </div>
-
-                    {/* Progress steps */}
-                    <div className="flex items-center gap-2">
-                      <StepBadge
-                        done={product.hasEvaluation}
-                        active={product.status === 'evaluating'}
-                        label="Đánh giá"
-                        icon={BarChart3}
-                      />
-                      <div className="w-6 h-px bg-gray-200" />
-                      <StepBadge
-                        done={product.hasSlide}
-                        active={product.status === 'generating'}
-                        label="Tạo slide"
-                        icon={Layers}
-                      />
-                      <div className="w-6 h-px bg-gray-200" />
-                      <StepBadge
-                        done={product.hasEditedSlide}
-                        active={false}
-                        label="Chỉnh sửa"
-                        icon={Pencil}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {product.hasEvaluation && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors">
-                        <BarChart3 className="w-3.5 h-3.5" />
-                        Xem đánh giá
-                      </button>
-                    )}
-                    {product.hasSlide && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors">
-                        <Eye className="w-3.5 h-3.5" />
-                        Xem slide
-                      </button>
-                    )}
-                    {product.status === 'evaluated' && !product.hasSlide && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Tạo slide
-                      </button>
-                    )}
-                    {product.hasSlide && !product.hasEditedSlide && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors">
-                        <Pencil className="w-3.5 h-3.5" />
-                        Chỉnh sửa
-                      </button>
-                    )}
-                    {product.hasEditedSlide && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors">
-                        <Download className="w-3.5 h-3.5" />
-                        Xuất file
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Step Badge ─────────────────────────────────────────────────────────────
 

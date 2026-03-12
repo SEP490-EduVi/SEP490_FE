@@ -740,13 +740,6 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
  * Acts as the main container for a slide's content.
  */
 function CardRenderer({ node }: { node: ICard }) {
-  // Map contentAlignment to Tailwind justify class
-  const alignmentClass = {
-    top: 'justify-start',
-    center: 'justify-center',
-    bottom: 'justify-end',
-  }[node.contentAlignment ?? 'center'];
-
   // Make the card a droppable zone for materials
   const { isOver, setNodeRef } = useDroppable({
     id: `card-${node.id}`,
@@ -756,16 +749,19 @@ function CardRenderer({ node }: { node: ICard }) {
       accepts: ['MATERIAL'],
     },
   });
-  
+
   // Get child IDs for SortableContext
   const childIds = node.children.map(child => child.id);
-  
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'w-full h-[600px]',
+        // Width fills container; height shrinks to content but never exceeds 600px
+        'w-full max-h-[600px]',
+        // Normal block flow — no fixed height, no flex-stretch
         'flex flex-col',
+        // Hide overflow when content hits the max-height
         'overflow-hidden',
         // Card styling
         'bg-white rounded-2xl shadow-stage',
@@ -783,8 +779,8 @@ function CardRenderer({ node }: { node: ICard }) {
         backgroundPosition: 'center',
       }}
     >
-      {/* Padded content area — vertically aligned based on card.contentAlignment */}
-      <div className={cn('flex flex-col flex-1 px-6 py-6 gap-3', alignmentClass)}>
+      {/* Content always starts from the top */}
+      <div className="flex flex-col px-6 py-6 gap-3">
         {/* Wrap children in SortableContext for drag and drop */}
         <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
           {node.children.map((child) => (

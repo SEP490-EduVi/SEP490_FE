@@ -27,9 +27,6 @@ import {
   HelpCircle,
   CreditCard,
   PenLine,
-  AlignStartVertical,
-  AlignCenterVertical,
-  AlignEndVertical,
   ChevronDown,
 } from 'lucide-react';
 
@@ -357,57 +354,6 @@ export function Toolbar() {
           onClick={() => handleAddBlock(BlockType.VIDEO)}
           disabled={!hasActiveCard}
         />
-
-        <InsertDivider />
-
-        {/* Content alignment buttons */}
-        <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
-          <button
-            onClick={() => activeCardId && setCardContentAlignment(activeCardId, 'top')}
-            disabled={!hasActiveCard}
-            title="Nội dung đầu trang"
-            className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
-              !hasActiveCard && 'opacity-40 cursor-not-allowed',
-              hasActiveCard && currentAlignment === 'top'
-                ? 'bg-white text-rose-600 shadow-sm'
-                : 'text-slate-500 hover:text-rose-500'
-            )}
-          >
-            <AlignStartVertical className="w-3.5 h-3.5" />
-            <span>Đầu</span>
-          </button>
-          <button
-            onClick={() => activeCardId && setCardContentAlignment(activeCardId, 'center')}
-            disabled={!hasActiveCard}
-            title="Nội dung giữa trang"
-            className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
-              !hasActiveCard && 'opacity-40 cursor-not-allowed',
-              hasActiveCard && currentAlignment === 'center'
-                ? 'bg-white text-rose-600 shadow-sm'
-                : 'text-slate-500 hover:text-rose-500'
-            )}
-          >
-            <AlignCenterVertical className="w-3.5 h-3.5" />
-            <span>Giữa</span>
-          </button>
-          <button
-            onClick={() => activeCardId && setCardContentAlignment(activeCardId, 'bottom')}
-            disabled={!hasActiveCard}
-            title="Nội dung cuối trang"
-            className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
-              !hasActiveCard && 'opacity-40 cursor-not-allowed',
-              hasActiveCard && currentAlignment === 'bottom'
-                ? 'bg-white text-rose-600 shadow-sm'
-                : 'text-slate-500 hover:text-rose-500'
-            )}
-          >
-            <AlignEndVertical className="w-3.5 h-3.5" />
-            <span>Cuối</span>
-          </button>
-        </div>
 
         <InsertDivider />
 

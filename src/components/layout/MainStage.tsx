@@ -86,12 +86,12 @@ export function MainStage() {
     <main
       className={cn(
         'flex-1 bg-surface-tertiary',
-        'mt-5'
+        'flex flex-col items-center justify-center py-8'
       )}
       onClick={handleStageClick}
     >
       {/* Stage container - centers the card */}
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full max-w-4xl px-6">
         {/* Sortable context for reordering blocks within the card */}
         <SortableContext
           items={activeCard.children.map((n) => n.id)}
