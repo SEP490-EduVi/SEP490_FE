@@ -78,7 +78,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Prompt Editor Option */}
             <div
-              onClick={() => router.push('/prompt-editor')}
+              onClick={() => router.push('/projects')}
               className="group cursor-pointer bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-transparent hover:border-blue-500"
             >
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">

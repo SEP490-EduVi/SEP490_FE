@@ -28,7 +28,7 @@
  * - PRESENT: Full-screen presentation with slide navigation
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -50,6 +50,7 @@ import { MaterialSidebar } from '@/components/sidebar/MaterialSidebar';
 import { PresentationLayer } from '@/components/presentation';
 import { IMaterial } from '@/types';
 import { Package } from 'lucide-react';
+import { usePipelineHub, PipelineProgress } from '@/hooks/usePipelineHub';
 
 /**
  * Custom collision detection
@@ -103,6 +104,27 @@ export default function EditorPage() {
   const reorderNodesInLayout = useDocumentStore((state) => state.reorderNodesInLayout);
 
   const [activeDragItem, setActiveDragItem] = React.useState<IMaterial | null>(null);
+
+  // Pipeline progress state
+  const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  // Đọc token từ localStorage sau khi mount (tránh SSR hydration error)
+  useEffect(() => {
+    setAccessToken(localStorage.getItem('accessToken'));
+  }, []);
+
+  usePipelineHub({
+    accessToken,
+    onProgress: (event) => {
+      console.log('[Pipeline]', event.step, event.progress + '%', event.detail);
+      setPipelineProgress(event);
+      // Khi hoàn thành → xóa banner sau 3 giây
+      if (event.status === 'completed' || event.status === 'failed') {
+        setTimeout(() => setPipelineProgress(null), 3000);
+      }
+    },
+  });
 
   // Load document on mount
   useEffect(() => {
@@ -237,6 +259,48 @@ export default function EditorPage() {
 
       {/* Presentation Mode Overlay */}
       <PresentationLayer />
+
+      {/* Pipeline Progress Banner */}
+      {pipelineProgress && (
+        <div className="fixed bottom-6 right-6 z-50 w-80 bg-white border border-slate-200 rounded-xl shadow-xl p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-800">
+              {pipelineProgress.status === 'completed' && '✅ Hoàn thành!'}
+              {pipelineProgress.status === 'failed' && '❌ Có lỗi xảy ra'}
+              {(pipelineProgress.status === 'queued' || pipelineProgress.status === 'processing') && '⚙️ Đang xử lý...'}
+            </p>
+            <button
+              onClick={() => setPipelineProgress(null)}
+              className="text-slate-400 hover:text-slate-600 text-xs"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full bg-slate-100 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                pipelineProgress.status === 'failed' ? 'bg-red-500' : 'bg-indigo-500'
+              }`}
+              style={{ width: `${pipelineProgress.progress}%` }}
+            />
+          </div>
+
+          {/* Detail text */}
+          {pipelineProgress.detail && (
+            <p className="text-xs text-slate-500">{pipelineProgress.detail}</p>
+          )}
+          {pipelineProgress.status === 'failed' && pipelineProgress.error && (
+            <p className="text-xs text-red-500">{pipelineProgress.error}</p>
+          )}
+          {pipelineProgress.status === 'completed' && (
+            <p className="text-xs text-slate-400">
+              Tải dữ liệu đầy đủ từ server để render slide.
+            </p>
+          )}
+        </div>
+      )}
     </>
   );
 }

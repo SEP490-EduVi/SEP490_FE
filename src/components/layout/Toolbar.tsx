@@ -27,8 +27,6 @@ import {
   HelpCircle,
   CreditCard,
   PenLine,
-  Columns2,
-  Columns3,
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,

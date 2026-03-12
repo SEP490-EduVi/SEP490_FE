@@ -13,3 +13,15 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
 }
+
+export interface PipelineProgress {
+  taskId: string;
+  userId: string;
+  productId: number;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  step: string;
+  progress: number;
+  detail: string | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+}
