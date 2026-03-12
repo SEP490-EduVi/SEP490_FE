@@ -12,8 +12,8 @@
  * - PresentationLayer: Full-screen overlay for presentation mode
  * 
  * Data Flow:
- * 1. On mount, fetch document from Mock API (/api/project)
- * 2. Store document in Zustand store
+ * 1. Projects page fetches slide document via GET /api/Product/{productCode}/slide
+ * 2. Calls setDocument() in Zustand store before navigating to /editor
  * 3. Components read from store and render accordingly
  * 4. User edits trigger store updates
  * 5. Store updates propagate to all subscribed components

@@ -142,11 +142,9 @@ export default function ProjectDetailPage() {
   const handleViewSlide = async (productCode: string) => {
     try {
       setViewSlideLoading(productCode);
-      const detail = await productService.getProductByCode(productCode);
-      if (detail.slideDocument) {
-        setDocument(detail.slideDocument as unknown as IDocument);
-        router.push('/editor');
-      }
+      const result = await productService.getProductSlide(productCode);
+      setDocument(result.slideDocument);
+      router.push('/editor');
     } finally {
       setViewSlideLoading(null);
     }

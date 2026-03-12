@@ -3,6 +3,7 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type { ApiResponse, ProductDto, ProductDetailDto, ProductEvaluationResponse } from '@/types/api';
+import type { IDocument } from '@/types';
 
 // ─── GET all products ──────────────────────────────────────────────────────
 export async function getAllProducts(): Promise<ProductDto[]> {
@@ -34,4 +35,12 @@ export async function deleteProduct(productCode: string): Promise<ApiResponse<st
     API_ENDPOINTS.PRODUCT.DELETE(productCode),
   );
   return data;
+}
+
+// ─── GET product slide document ────────────────────────────────────────────
+export async function getProductSlide(productCode: string): Promise<{ slideDocument: IDocument; slideGeneratedAt: string }> {
+  const { data } = await api.get<ApiResponse<{ slideDocument: IDocument; slideGeneratedAt: string }>>(
+    API_ENDPOINTS.PRODUCT.GET_SLIDE(productCode),
+  );
+  return data.result;
 }

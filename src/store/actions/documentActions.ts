@@ -9,6 +9,8 @@ import { IDocument, INode } from '@/types';
 import { deepClone, findNode } from '../helpers/treeUtils';
 import type { StoreGet, StoreSet, SetDocumentWithHistory } from '../types';
 
+const SESSION_KEY = 'eduvi_slide_document';
+
 export function createDocumentActions(
   set: StoreSet,
   get: StoreGet,
@@ -20,6 +22,33 @@ export function createDocumentActions(
     // ======================================================================
 
     loadDocument: async () => {
+      // If a document was already set (e.g. via setDocument before navigating to editor), skip loading
+      const { document: existing } = get();
+      if (existing) {
+        set({ error: null }); // clear any stale error from a previous failed load
+        return;
+      }
+
+      // Restore from sessionStorage on reload (avoids re-fetching after F5)
+      try {
+        const cached = sessionStorage.getItem(SESSION_KEY);
+        if (cached) {
+          const doc: IDocument = JSON.parse(cached);
+          set({
+            document: doc,
+            activeCardId: doc.activeCardId || doc.cards[0]?.id || null,
+            history: [deepClone(doc)],
+            historyIndex: 0,
+            isLoading: false,
+            error: null,
+          });
+          return;
+        }
+      } catch {
+        // Corrupted cache — fall through to API
+        sessionStorage.removeItem(SESSION_KEY);
+      }
+
       set({ isLoading: true, error: null });
       
       try {
@@ -49,12 +78,20 @@ export function createDocumentActions(
 
     setDocument: (doc: IDocument) => {
       const newHistory = [deepClone(doc)];
-      
+
+      // Persist so the editor survives a page reload
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(doc));
+      } catch {
+        // sessionStorage unavailable (e.g. private browsing quota) — ignore
+      }
+
       set({
         document: doc,
         activeCardId: doc.activeCardId || doc.cards[0]?.id || null,
         history: newHistory,
         historyIndex: 0,
+        error: null,
       });
     },
 
