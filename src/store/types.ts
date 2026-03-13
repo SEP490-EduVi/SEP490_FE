@@ -34,6 +34,8 @@ export interface DocumentState {
   selectedNodeId: string | null;
   isLoading: boolean;
   error: string | null;
+  currentProductCode: string | null;
+  isSaving: boolean;
   
   // History for undo/redo
   history: IDocument[];
@@ -51,7 +53,8 @@ export interface DocumentState {
 
   // Document Actions
   loadDocument: () => Promise<void>;
-  setDocument: (doc: IDocument) => void;
+  setDocument: (doc: IDocument, productCode?: string) => void;
+  saveSlide: () => Promise<void>;
   
   // Undo/Redo Actions
   undo: () => void;

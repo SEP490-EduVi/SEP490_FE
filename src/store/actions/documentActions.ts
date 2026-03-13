@@ -8,8 +8,10 @@
 import { IDocument, INode } from '@/types';
 import { deepClone, findNode } from '../helpers/treeUtils';
 import type { StoreGet, StoreSet, SetDocumentWithHistory } from '../types';
+import { saveEditedSlide } from '@/services/pipelineServices';
 
 const SESSION_KEY = 'eduvi_slide_document';
+const PRODUCT_CODE_KEY = 'eduvi_product_code';
 
 export function createDocumentActions(
   set: StoreSet,
@@ -34,6 +36,7 @@ export function createDocumentActions(
         const cached = sessionStorage.getItem(SESSION_KEY);
         if (cached) {
           const doc: IDocument = JSON.parse(cached);
+          const productCode = sessionStorage.getItem(PRODUCT_CODE_KEY) || null;
           set({
             document: doc,
             activeCardId: doc.activeCardId || doc.cards[0]?.id || null,
@@ -41,6 +44,7 @@ export function createDocumentActions(
             historyIndex: 0,
             isLoading: false,
             error: null,
+            currentProductCode: productCode,
           });
           return;
         }
@@ -76,12 +80,15 @@ export function createDocumentActions(
       }
     },
 
-    setDocument: (doc: IDocument) => {
+    setDocument: (doc: IDocument, productCode?: string) => {
       const newHistory = [deepClone(doc)];
 
       // Persist so the editor survives a page reload
       try {
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(doc));
+        if (productCode !== undefined) {
+          sessionStorage.setItem(PRODUCT_CODE_KEY, productCode);
+        }
       } catch {
         // sessionStorage unavailable (e.g. private browsing quota) — ignore
       }
@@ -92,7 +99,19 @@ export function createDocumentActions(
         history: newHistory,
         historyIndex: 0,
         error: null,
+        ...(productCode !== undefined ? { currentProductCode: productCode } : {}),
       });
+    },
+
+    saveSlide: async () => {
+      const { document, currentProductCode } = get();
+      if (!document || !currentProductCode) return;
+      set({ isSaving: true });
+      try {
+        await saveEditedSlide(currentProductCode, JSON.stringify(document));
+      } finally {
+        set({ isSaving: false });
+      }
     },
 
     // ======================================================================

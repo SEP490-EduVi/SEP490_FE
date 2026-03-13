@@ -28,6 +28,8 @@ import {
   CreditCard,
   PenLine,
   ChevronDown,
+  Save,
+  Loader2,
 } from 'lucide-react';
 
 // ============================================================================
@@ -157,6 +159,9 @@ export function Toolbar() {
   const onlineUsers = useDocumentStore((state) => state.onlineUsers);
   const setCardContentAlignment = useDocumentStore((state) => state.setCardContentAlignment);
   const setCardBackground = useDocumentStore((state) => state.setCardBackground);
+  const currentProductCode = useDocumentStore((state) => state.currentProductCode);
+  const isSaving = useDocumentStore((state) => state.isSaving);
+  const saveSlide = useDocumentStore((state) => state.saveSlide);
 
   const activeCard = document?.cards.find((c) => c.id === activeCardId);
   const currentAlignment = activeCard?.contentAlignment ?? 'center';
@@ -188,6 +193,9 @@ export function Toolbar() {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         useDocumentStore.getState().redo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        useDocumentStore.getState().saveSlide();
       }
     };
 
@@ -304,6 +312,22 @@ export function Toolbar() {
           >
             <Play className="w-4 h-4" />
             Thuyết trình
+          </button>
+
+          <button
+            onClick={saveSlide}
+            disabled={!document || !currentProductCode || isSaving}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg',
+              'bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors',
+              'disabled:opacity-40 disabled:cursor-not-allowed'
+            )}
+            title="Lưu (Ctrl+S)"
+          >
+            {isSaving
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Save className="w-4 h-4" />}
+            Lưu
           </button>
 
           <button

@@ -63,3 +63,13 @@ export async function generateSlides(
 ): Promise<void> {
   await api.post(API_ENDPOINTS.PIPELINE.GENERATE_SLIDES, input);
 }
+
+// ─── PUT save edited slide ─────────────────────────────────────────────────
+export async function saveEditedSlide(
+  productCode: string,
+  slideDocument: string,
+): Promise<void> {
+  await api.put(API_ENDPOINTS.PIPELINE.SAVE_EDITED_SLIDE(productCode), {
+    slideDocument,
+  });
+}

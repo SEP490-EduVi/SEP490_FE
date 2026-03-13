@@ -44,3 +44,11 @@ export async function getProductSlide(productCode: string): Promise<{ slideDocum
   );
   return data.result;
 }
+
+// ─── GET product edited slide document ────────────────────────────────────
+export async function getProductEditedSlide(productCode: string): Promise<{ slideEditedDocument: IDocument; slideEditedAt: string }> {
+  const { data } = await api.get<ApiResponse<{ slideEditedDocument: IDocument; slideEditedAt: string }>>(
+    API_ENDPOINTS.PRODUCT.GET_EDITED_SLIDE(productCode),
+  );
+  return data.result;
+}

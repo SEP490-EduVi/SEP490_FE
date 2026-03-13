@@ -90,6 +90,8 @@ export const useDocumentStore = create<DocumentState>()(
         selectedNodeId: null,
         isLoading: false,
         error: null,
+        currentProductCode: null,
+        isSaving: false,
 
         // History
         history: [],
