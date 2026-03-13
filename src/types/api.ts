@@ -98,3 +98,36 @@ export const PRODUCT_STATUS_MAP: Record<number, string> = {
   5: 'SLIDES_GENERATED',
   6: 'SLIDES_FAILED',
 };
+
+// ─── Pipeline: Input Documents ─────────────────────────────────────────────
+export interface InputDocumentDto {
+  documentCode: string;
+  title: string;
+  filePath: string;
+  subjectCode: string;
+  subjectName: string;
+  gradeCode: string;
+  gradeName: string;
+  lessonCode: string;
+  lessonName: string;
+  uploadDate: string;
+}
+
+export interface UploadInputDocumentInput {
+  File: File;
+  Title: string;
+  SubjectCode: string;
+  GradeCode: string;
+  LessonCode?: string;
+}
+
+export interface LessonAnalysisInput {
+  documentCode: string;
+  projectCode: string;
+  productName: string;
+}
+
+export interface GenerateSlidesInput {
+  productCode: string;
+  slideRange: 'short' | 'medium' | 'long';
+}

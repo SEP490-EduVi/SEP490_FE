@@ -69,6 +69,7 @@ interface ProductsTabProps {
   onDeleteProduct?: (productCode: string) => void;
   onViewSlide?: (productCode: string) => void;
   onViewEvaluation?: (productCode: string) => void;
+  onGenerateSlides?: (productCode: string) => void;
 }
 
 export default function ProductsTab({
@@ -77,6 +78,7 @@ export default function ProductsTab({
   onDeleteProduct,
   onViewSlide,
   onViewEvaluation,
+  onGenerateSlides,
 }: ProductsTabProps) {
   // Tracks which product is in "confirm delete" mode
   const [confirmDeleteCode, setConfirmDeleteCode] = useState<string | null>(null);
@@ -220,7 +222,10 @@ export default function ProductsTab({
                       </button>
                     )}
                     {product.statusName === 'EVALUATED' && !product.hasSlide && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all">
+                      <button
+                        onClick={() => onGenerateSlides?.(product.productCode)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all"
+                      >
                         <Sparkles className="w-3.5 h-3.5" />
                         Tạo slide
                       </button>

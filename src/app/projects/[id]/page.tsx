@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,22 +23,17 @@ import {
 
 import { useProject } from '@/hooks/useProjectApi';
 import { useProducts, useDeleteProduct } from '@/hooks/useProductApi';
+import { useInputDocuments, useUploadInputDocument, useLessonAnalysis, useGenerateSlides } from '@/hooks/usePipelineApi';
+import { usePipelineHub } from '@/hooks/usePipelineHub';
 import ProductsTab from '@/components/projects/ProductsTab';
 import EvaluationModal from '@/components/projects/EvaluationModal';
+import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import * as productService from '@/services/productServices';
 import type { IDocument } from '@/types/nodes';
+import type { PipelineProgress, InputDocumentDto } from '@/types/api';
 
-// ── Local types (documents don't have an API yet) ──────────────────────────
-
-interface InputDocument {
-  id: string;
-  fileName: string;
-  fileType: 'pdf' | 'docx' | 'pptx' | 'image' | 'video';
-  fileSize: string;
-  uploadedAt: string;
-  status: 'uploaded' | 'processing' | 'analyzed';
-}
+// ── Local types ────────────────────────────────────────────────────────────
 
 type TabKey = 'documents' | 'products';
 
@@ -52,12 +47,6 @@ const FILE_TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string 
   video: { icon: FileVideo, color: 'text-purple-500 bg-purple-50' },
 };
 
-const DOC_STATUS_CONFIG: Record<InputDocument['status'], { label: string; color: string }> = {
-  uploaded:   { label: 'Đã tải lên',  color: 'bg-gray-100 text-gray-600' },
-  processing: { label: 'Đang xử lý',  color: 'bg-amber-50 text-amber-600' },
-  analyzed:   { label: 'Đã phân tích', color: 'bg-emerald-50 text-emerald-600' },
-};
-
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -67,14 +56,14 @@ function formatDate(dateStr: string | null) {
   });
 }
 
-function getFileType(name: string): InputDocument['fileType'] {
-  const ext = name.split('.').pop()?.toLowerCase();
+function getFileTypeFromPath(filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase();
   if (ext === 'pdf') return 'pdf';
   if (ext === 'docx' || ext === 'doc') return 'docx';
   if (ext === 'pptx' || ext === 'ppt') return 'pptx';
   if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext ?? '')) return 'image';
   if (['mp4', 'mov', 'avi', 'webm'].includes(ext ?? '')) return 'video';
-  return 'pdf';
+  return 'docx';
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -87,46 +76,133 @@ export default function ProjectDetailPage() {
 
   // ── API hooks ──────────────────────────────────────────────────────────
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
-  const { data: products = [], isLoading: isProductsLoading } = useProducts();
+  const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useProducts();
+  const { data: inputDocuments = [], isLoading: isDocsLoading } = useInputDocuments();
   const deleteProduct = useDeleteProduct();
+  const uploadDoc = useUploadInputDocument();
+  const lessonAnalysis = useLessonAnalysis();
+  const generateSlides = useGenerateSlides();
   const setDocument = useDocumentStore((state) => state.setDocument);
 
+  // ── SignalR pipeline progress ──────────────────────────────────────────
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
+  const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides'>('evaluation');
+  const [showPipelineModal, setShowPipelineModal] = useState(false);
+
+  useEffect(() => {
+    setAccessToken(localStorage.getItem('accessToken'));
+  }, []);
+
+  const handlePipelineProgress = useCallback((event: PipelineProgress) => {
+    setPipelineProgress(event);
+    if (event.status === 'completed' || event.status === 'failed') {
+      // Refresh products list when pipeline finishes
+      refetchProducts();
+    }
+  }, [refetchProducts]);
+
+  usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
+
   // ── Local state ────────────────────────────────────────────────────────────
-  const [documents, setDocuments] = useState<InputDocument[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>('documents');
   const [showUploadArea, setShowUploadArea] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [evalProductCode, setEvalProductCode] = useState<string | null>(null);
   const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
+  // Upload form state
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadSubjectCode, setUploadSubjectCode] = useState('');
+  const [uploadGradeCode, setUploadGradeCode] = useState('');
+  const [uploadLessonCode, setUploadLessonCode] = useState('');
+  // Analysis form state
+  const [analysisDocCode, setAnalysisDocCode] = useState<string | null>(null);
+  const [analysisProductName, setAnalysisProductName] = useState('');
+  const [showAnalysisForm, setShowAnalysisForm] = useState(false);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadFile(file);
+      if (!uploadTitle) setUploadTitle(file.name.replace(/\.[^.]+$/, ''));
+    }
+  };
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    addLocalDocuments(Array.from(e.dataTransfer.files));
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      addLocalDocuments(Array.from(e.target.files));
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      setUploadFile(file);
+      if (!uploadTitle) setUploadTitle(file.name.replace(/\.[^.]+$/, ''));
     }
   };
 
-  const addLocalDocuments = (files: File[]) => {
-    const newDocs: InputDocument[] = files.map((file) => ({
-      id: `DOC-${String(Date.now()).slice(-4)}`,
-      fileName: file.name,
-      fileType: getFileType(file.name),
-      fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      uploadedAt: new Date().toISOString().slice(0, 10),
-      status: 'uploaded' as const,
-    }));
-    setDocuments((prev) => [...newDocs, ...prev]);
-    setShowUploadArea(false);
+  const handleUpload = () => {
+    if (!uploadFile || !uploadTitle || !uploadSubjectCode || !uploadGradeCode) return;
+    uploadDoc.mutate(
+      {
+        File: uploadFile,
+        Title: uploadTitle,
+        SubjectCode: uploadSubjectCode,
+        GradeCode: uploadGradeCode,
+        LessonCode: uploadLessonCode || undefined,
+      },
+      {
+        onSuccess: () => {
+          setUploadFile(null);
+          setUploadTitle('');
+          setUploadSubjectCode('');
+          setUploadGradeCode('');
+          setUploadLessonCode('');
+          setShowUploadArea(false);
+        },
+      },
+    );
   };
 
-  const handleDeleteDocument = (docId: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  const handleStartAnalysis = (docCode: string) => {
+    setAnalysisDocCode(docCode);
+    setShowAnalysisForm(true);
+  };
+
+  const handleConfirmAnalysis = () => {
+    if (!analysisDocCode || !analysisProductName) return;
+    lessonAnalysis.mutate(
+      {
+        documentCode: analysisDocCode,
+        projectCode,
+        productName: analysisProductName,
+      },
+      {
+        onSuccess: () => {
+          setPipelineType('evaluation');
+          setShowPipelineModal(true);
+          setShowAnalysisForm(false);
+          setAnalysisDocCode(null);
+          setAnalysisProductName('');
+        },
+      },
+    );
+  };
+
+  const handleGenerateSlides = (productCode: string) => {
+    generateSlides.mutate(
+      { productCode, slideRange: 'short' },
+      {
+        onSuccess: () => {
+          setPipelineType('slides');
+          setShowPipelineModal(true);
+        },
+      },
+    );
+  };
+
+  const handleClosePipelineModal = () => {
+    setShowPipelineModal(false);
+    setPipelineProgress(null);
   };
 
   const handleDeleteProduct = (productCode: string) => {
@@ -151,7 +227,7 @@ export default function ProjectDetailPage() {
   };
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType; count: number }[] = [
-    { key: 'documents', label: 'Tài liệu đầu vào', icon: FileText, count: documents.length },
+    { key: 'documents', label: 'Tài liệu đầu vào', icon: FileText, count: inputDocuments.length },
     { key: 'products', label: 'Sản phẩm AI', icon: Package, count: products.length },
   ];
 
@@ -234,7 +310,7 @@ export default function ProjectDetailPage() {
         {/* ── Quick Stats ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           {[
-            { label: 'Tài liệu', value: documents.length, icon: FileText, color: 'text-blue-600 bg-blue-50' },
+            { label: 'Tài liệu', value: inputDocuments.length, icon: FileText, color: 'text-blue-600 bg-blue-50' },
             { label: 'Sản phẩm', value: products.length, icon: Package, color: 'text-purple-600 bg-purple-50' },
             { label: 'Hoàn thành', value: products.filter((p) => p.statusName === 'SLIDES_GENERATED').length, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
           ].map((stat) => {
@@ -291,17 +367,29 @@ export default function ProjectDetailPage() {
               transition={{ duration: 0.2 }}
             >
               <DocumentsTab
-                documents={documents}
+                documents={inputDocuments}
+                isLoading={isDocsLoading}
                 showUploadArea={showUploadArea}
                 dragOver={dragOver}
                 fileInputRef={fileInputRef}
+                uploadFile={uploadFile}
+                uploadTitle={uploadTitle}
+                uploadSubjectCode={uploadSubjectCode}
+                uploadGradeCode={uploadGradeCode}
+                uploadLessonCode={uploadLessonCode}
+                isUploading={uploadDoc.isPending}
                 onToggleUpload={() => setShowUploadArea(!showUploadArea)}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleFileDrop}
                 onFileSelect={handleFileSelect}
-                onDelete={handleDeleteDocument}
+                onUpload={handleUpload}
+                onTitleChange={setUploadTitle}
+                onSubjectCodeChange={setUploadSubjectCode}
+                onGradeCodeChange={setUploadGradeCode}
+                onLessonCodeChange={setUploadLessonCode}
                 onClickUpload={() => fileInputRef.current?.click()}
+                onAnalyze={handleStartAnalysis}
               />
             </motion.div>
           ) : (
@@ -318,6 +406,7 @@ export default function ProjectDetailPage() {
                 onDeleteProduct={handleDeleteProduct}
                 onViewSlide={handleViewSlide}
                 onViewEvaluation={handleViewEvaluation}
+                onGenerateSlides={handleGenerateSlides}
               />
             </motion.div>
           )}
@@ -341,36 +430,120 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── Pipeline Progress Modal ── */}
+      <PipelineProgressModal
+        open={showPipelineModal}
+        progress={pipelineProgress}
+        pipelineType={pipelineType}
+        onClose={handleClosePipelineModal}
+      />
+
+      {/* ── Analysis Form Modal ── */}
+      <AnimatePresence>
+        {showAnalysisForm && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Phân tích bài giảng</h3>
+              <p className="text-sm text-gray-500 mb-4">Đặt tên cho sản phẩm AI sẽ được tạo từ tài liệu này.</p>
+
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm</label>
+              <input
+                type="text"
+                value={analysisProductName}
+                onChange={(e) => setAnalysisProductName(e.target.value)}
+                placeholder="VD: Bài giảng Địa lí Bài 1"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 mb-4"
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { setShowAnalysisForm(false); setAnalysisDocCode(null); setAnalysisProductName(''); }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmAnalysis}
+                  disabled={!analysisProductName || lessonAnalysis.isPending}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:shadow-lg disabled:opacity-50 transition-all"
+                >
+                  {lessonAnalysis.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  Bắt đầu phân tích
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ── Documents Tab (local only – no API yet) ────────────────────────────────
+// ── Documents Tab (connected to Pipeline API) ─────────────────────────────
 
 function DocumentsTab({
   documents,
+  isLoading,
   showUploadArea,
   dragOver,
   fileInputRef,
+  uploadFile,
+  uploadTitle,
+  uploadSubjectCode,
+  uploadGradeCode,
+  uploadLessonCode,
+  isUploading,
   onToggleUpload,
   onDragOver,
   onDragLeave,
   onDrop,
   onFileSelect,
-  onDelete,
+  onUpload,
+  onTitleChange,
+  onSubjectCodeChange,
+  onGradeCodeChange,
+  onLessonCodeChange,
   onClickUpload,
+  onAnalyze,
 }: {
-  documents: InputDocument[];
+  documents: InputDocumentDto[];
+  isLoading: boolean;
   showUploadArea: boolean;
   dragOver: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
+  uploadFile: File | null;
+  uploadTitle: string;
+  uploadSubjectCode: string;
+  uploadGradeCode: string;
+  uploadLessonCode: string;
+  isUploading: boolean;
   onToggleUpload: () => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent) => void;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onDelete: (id: string) => void;
+  onUpload: () => void;
+  onTitleChange: (v: string) => void;
+  onSubjectCodeChange: (v: string) => void;
+  onGradeCodeChange: (v: string) => void;
+  onLessonCodeChange: (v: string) => void;
   onClickUpload: () => void;
+  onAnalyze: (documentCode: string) => void;
 }) {
   return (
     <div>
@@ -392,13 +565,12 @@ function DocumentsTab({
       <input
         ref={fileInputRef}
         type="file"
-        multiple
-        accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4"
+        accept=".pdf,.doc,.docx,.ppt,.pptx"
         onChange={onFileSelect}
         className="hidden"
       />
 
-      {/* Upload Drop Zone */}
+      {/* Upload Drop Zone + Form */}
       <AnimatePresence>
         {showUploadArea && (
           <motion.div
@@ -407,12 +579,13 @@ function DocumentsTab({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden mb-5"
           >
+            {/* Drop zone */}
             <div
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
               onClick={onClickUpload}
-              className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all mb-4 ${
                 dragOver
                   ? 'border-blue-400 bg-blue-50'
                   : 'border-gray-200 bg-gray-50/50 hover:border-blue-300 hover:bg-blue-50/30'
@@ -424,20 +597,98 @@ function DocumentsTab({
                 }`}>
                   <Upload className={`w-6 h-6 ${dragOver ? 'text-blue-500' : 'text-gray-400'}`} />
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  {dragOver ? 'Thả file vào đây!' : 'Kéo & thả file vào đây'}
-                </p>
-                <p className="text-xs text-gray-400">
-                  Hỗ trợ PDF, Word, PowerPoint, Hình ảnh, Video
-                </p>
+                {uploadFile ? (
+                  <p className="text-sm font-medium text-blue-600">{uploadFile.name}</p>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      {dragOver ? 'Thả file vào đây!' : 'Kéo & thả file vào đây'}
+                    </p>
+                    <p className="text-xs text-gray-400">Hỗ trợ PDF, Word, PowerPoint</p>
+                  </>
+                )}
               </div>
             </div>
+
+            {/* Upload form fields */}
+            {uploadFile && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white border border-gray-100 rounded-2xl p-5 space-y-3"
+              >
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tiêu đề tài liệu *</label>
+                  <input
+                    type="text"
+                    value={uploadTitle}
+                    onChange={(e) => onTitleChange(e.target.value)}
+                    placeholder="VD: Giáo Án Địa Lí Bài 1"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã môn học *</label>
+                    <input
+                      type="text"
+                      value={uploadSubjectCode}
+                      onChange={(e) => onSubjectCodeChange(e.target.value)}
+                      placeholder="VD: dia_li"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã lớp *</label>
+                    <input
+                      type="text"
+                      value={uploadGradeCode}
+                      onChange={(e) => onGradeCodeChange(e.target.value)}
+                      placeholder="VD: lop_10"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã bài học</label>
+                    <input
+                      type="text"
+                      value={uploadLessonCode}
+                      onChange={(e) => onLessonCodeChange(e.target.value)}
+                      placeholder="VD: bai_1"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <button
+                    onClick={onUpload}
+                    disabled={isUploading || !uploadTitle || !uploadSubjectCode || !uploadGradeCode}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {isUploading ? 'Đang tải...' : 'Tải lên'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          <span className="ml-2 text-sm text-gray-500">Đang tải tài liệu...</span>
+        </div>
+      )}
+
       {/* Document List */}
-      {documents.length === 0 ? (
+      {!isLoading && documents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
             <FileText className="w-8 h-8 text-gray-300" />
@@ -445,15 +696,15 @@ function DocumentsTab({
           <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có tài liệu nào</h3>
           <p className="text-sm text-gray-500 mb-4">Hãy tải lên tài liệu bài giảng để bắt đầu!</p>
         </div>
-      ) : (
+      ) : !isLoading && (
         <div className="space-y-3">
           {documents.map((doc, idx) => {
-            const ftConfig = FILE_TYPE_CONFIG[doc.fileType] ?? FILE_TYPE_CONFIG.pdf;
+            const fileType = getFileTypeFromPath(doc.filePath);
+            const ftConfig = FILE_TYPE_CONFIG[fileType] ?? FILE_TYPE_CONFIG.docx;
             const Icon = ftConfig.icon;
-            const docStatus = DOC_STATUS_CONFIG[doc.status];
             return (
               <motion.div
-                key={doc.id}
+                key={doc.documentCode}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
@@ -466,30 +717,36 @@ function DocumentsTab({
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{doc.fileName}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400">{doc.fileSize}</span>
+                    <span className="text-xs text-gray-400">{doc.subjectName}</span>
                     <span className="text-xs text-gray-300">•</span>
-                    <span className="text-xs text-gray-400">{formatDate(doc.uploadedAt)}</span>
+                    <span className="text-xs text-gray-400">{doc.gradeName}</span>
+                    {doc.lessonName && (
+                      <>
+                        <span className="text-xs text-gray-300">•</span>
+                        <span className="text-xs text-gray-400">{doc.lessonName}</span>
+                      </>
+                    )}
+                    <span className="text-xs text-gray-300">•</span>
+                    <span className="text-xs text-gray-400">{formatDate(doc.uploadDate)}</span>
                   </div>
                 </div>
 
-                {/* Status */}
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${docStatus.color}`}>
-                  {docStatus.label}
+                {/* Status badge */}
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">
+                  Đã tải lên
                 </span>
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Xem">
-                    <Eye className="w-4 h-4" />
-                  </button>
                   <button
-                    onClick={() => onDelete(doc.id)}
-                    className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                    title="Xóa"
+                    onClick={() => onAnalyze(doc.documentCode)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all"
+                    title="Phân tích với AI"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Phân tích
                   </button>
                 </div>
               </motion.div>
@@ -497,52 +754,6 @@ function DocumentsTab({
           })}
         </div>
       )}
-
-      {/* Action: Analyze */}
-      {documents.length > 0 && (
-        <div className="mt-6 flex items-center justify-center">
-          <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-600/25 active:scale-[0.98] transition-all">
-            <Sparkles className="w-4 h-4" />
-            Phân tích tài liệu với AI
-          </button>
-        </div>
-      )}
     </div>
-  );
-}
-
-
-// ── Step Badge ─────────────────────────────────────────────────────────────
-
-function StepBadge({
-  done,
-  active,
-  label,
-  icon: Icon,
-}: {
-  done: boolean;
-  active: boolean;
-  label: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
-        done
-          ? 'bg-emerald-50 text-emerald-600'
-          : active
-          ? 'bg-blue-50 text-blue-600'
-          : 'bg-gray-50 text-gray-400'
-      }`}
-    >
-      {done ? (
-        <CheckCircle className="w-3 h-3" />
-      ) : active ? (
-        <Loader2 className="w-3 h-3 animate-spin" />
-      ) : (
-        <Icon className="w-3 h-3" />
-      )}
-      {label}
-    </span>
   );
 }
