@@ -106,9 +106,16 @@ export function createDocumentActions(
     saveSlide: async () => {
       const { document, currentProductCode } = get();
       if (!document || !currentProductCode) return;
-      set({ isSaving: true });
+      set({ isSaving: true, error: null });
       try {
         await saveEditedSlide(currentProductCode, JSON.stringify(document));
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === 'object' && 'message' in err
+            ? String((err as { message: unknown }).message)
+            : 'Lưu slide thất bại, vui lòng thử lại.';
+        console.error('[saveSlide]', err);
+        set({ error: msg });
       } finally {
         set({ isSaving: false });
       }

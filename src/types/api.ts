@@ -104,6 +104,7 @@ export interface InputDocumentDto {
   documentCode: string;
   title: string;
   filePath: string;
+  projectCode: string;
   subjectCode: string;
   subjectName: string;
   gradeCode: string;
@@ -116,9 +117,10 @@ export interface InputDocumentDto {
 export interface UploadInputDocumentInput {
   File: File;
   Title: string;
+  ProjectCode: string;
   SubjectCode: string;
   GradeCode: string;
-  LessonCode?: string;
+  LessonCode: string;
 }
 
 export interface LessonAnalysisInput {

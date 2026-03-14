@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
-import { useProducts } from '@/hooks/useProductApi';
+
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import type { PipelineProgress } from '@/types/api';
 import ProjectCard from '@/components/projects/ProjectCard';
@@ -54,7 +54,6 @@ export default function ProjectsPage() {
 
   // ── API hooks ────────────────────────────────────────────────────────────
   const { data: projects = [], isLoading, isError, error } = useProjects();
-  const { data: products = [] } = useProducts();
   const createProject = useCreateProject();
   const deleteProject = useDeleteProject();
   const updateProject = useUpdateProject();
@@ -157,7 +156,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* ── Stats ── */}
-        <ProjectStatsBar projects={projects} products={products} />
+        <ProjectStatsBar projects={projects} />
 
         {/* ── Loading ── */}
         {isLoading && (

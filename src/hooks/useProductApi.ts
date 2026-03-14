@@ -5,11 +5,12 @@ import * as productService from '@/services/productServices';
 
 const QUERY_KEY = 'products';
 
-// ─── GET all products ──────────────────────────────────────────────────────
-export function useProducts() {
+// ─── GET products by project ───────────────────────────────────────────────
+export function useProductsByProject(projectCode?: string) {
   return useQuery({
-    queryKey: [QUERY_KEY],
-    queryFn: productService.getAllProducts,
+    queryKey: [QUERY_KEY, 'project', projectCode],
+    queryFn: () => productService.getProductsByProject(projectCode!),
+    enabled: !!projectCode,
   });
 }
 

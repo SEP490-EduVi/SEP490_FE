@@ -3,44 +3,9 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type {
-  ApiResponse,
-  InputDocumentDto,
   LessonAnalysisInput,
   GenerateSlidesInput,
 } from '@/types/api';
-
-// ─── GET input documents ───────────────────────────────────────────────────
-export async function getInputDocuments(): Promise<InputDocumentDto[]> {
-  const { data } = await api.get<ApiResponse<InputDocumentDto[]>>(
-    API_ENDPOINTS.PIPELINE.GET_INPUT_DOCUMENTS,
-  );
-  return data.result;
-}
-
-// ─── POST upload input document ────────────────────────────────────────────
-export async function uploadInputDocument(input: {
-  File: File;
-  Title: string;
-  SubjectCode: string;
-  GradeCode: string;
-  LessonCode?: string;
-}): Promise<InputDocumentDto> {
-  const formData = new FormData();
-  formData.append('File', input.File);
-  formData.append('Title', input.Title);
-  formData.append('SubjectCode', input.SubjectCode);
-  formData.append('GradeCode', input.GradeCode);
-  if (input.LessonCode) {
-    formData.append('LessonCode', input.LessonCode);
-  }
-
-  const { data } = await api.post<ApiResponse<InputDocumentDto>>(
-    API_ENDPOINTS.PIPELINE.UPLOAD_INPUT_DOCUMENT,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
-  );
-  return data.result;
-}
 
 // ─── POST lesson analysis (triggers evaluation pipeline via RabbitMQ) ──────
 export async function startLessonAnalysis(
@@ -69,7 +34,9 @@ export async function saveEditedSlide(
   productCode: string,
   slideDocument: string,
 ): Promise<void> {
-  await api.put(API_ENDPOINTS.PIPELINE.SAVE_EDITED_SLIDE(productCode), {
-    slideDocument,
-  });
+  await api.put(
+    API_ENDPOINTS.PIPELINE.SAVE_EDITED_SLIDE(productCode),
+    { slideDocument },
+    { timeout: 60_000 }, // large payload may take longer
+  );
 }

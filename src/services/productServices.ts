@@ -5,10 +5,10 @@ import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type { ApiResponse, ProductDto, ProductDetailDto, ProductEvaluationResponse } from '@/types/api';
 import type { IDocument } from '@/types';
 
-// ─── GET all products ──────────────────────────────────────────────────────
-export async function getAllProducts(): Promise<ProductDto[]> {
+// ─── GET products by project ───────────────────────────────────────────────
+export async function getProductsByProject(projectCode: string): Promise<ProductDto[]> {
   const { data } = await api.get<ApiResponse<ProductDto[]>>(
-    API_ENDPOINTS.PRODUCT.GET_ALL,
+    API_ENDPOINTS.PRODUCT.GET_BY_PROJECT(projectCode),
   );
   return data.result;
 }

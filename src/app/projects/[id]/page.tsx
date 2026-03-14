@@ -22,8 +22,9 @@ import {
 } from 'lucide-react';
 
 import { useProject } from '@/hooks/useProjectApi';
-import { useProducts, useDeleteProduct } from '@/hooks/useProductApi';
-import { useInputDocuments, useUploadInputDocument, useLessonAnalysis, useGenerateSlides } from '@/hooks/usePipelineApi';
+import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
+import { useLessonAnalysis, useGenerateSlides } from '@/hooks/usePipelineApi';
+import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import ProductsTab from '@/components/projects/ProductsTab';
 import EvaluationModal from '@/components/projects/EvaluationModal';
@@ -76,9 +77,10 @@ export default function ProjectDetailPage() {
 
   // ── API hooks ──────────────────────────────────────────────────────────
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
-  const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useProducts();
-  const { data: inputDocuments = [], isLoading: isDocsLoading } = useInputDocuments();
+  const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useProductsByProject(projectCode);
+  const { data: inputDocuments = [], isLoading: isDocsLoading } = useInputDocumentsByProject(projectCode);
   const deleteProduct = useDeleteProduct();
+  const deleteDoc = useDeleteInputDocument();
   const uploadDoc = useUploadInputDocument();
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
@@ -141,14 +143,15 @@ export default function ProjectDetailPage() {
   };
 
   const handleUpload = () => {
-    if (!uploadFile || !uploadTitle || !uploadSubjectCode || !uploadGradeCode) return;
+    if (!uploadFile || !uploadTitle || !uploadSubjectCode || !uploadGradeCode || !uploadLessonCode) return;
     uploadDoc.mutate(
       {
         File: uploadFile,
         Title: uploadTitle,
+        ProjectCode: projectCode,
         SubjectCode: uploadSubjectCode,
         GradeCode: uploadGradeCode,
-        LessonCode: uploadLessonCode || undefined,
+        LessonCode: uploadLessonCode,
       },
       {
         onSuccess: () => {
@@ -198,6 +201,10 @@ export default function ProjectDetailPage() {
         },
       },
     );
+  };
+
+  const handleDeleteDocument = (documentCode: string) => {
+    deleteDoc.mutate(documentCode);
   };
 
   const handleClosePipelineModal = () => {
@@ -398,6 +405,7 @@ export default function ProjectDetailPage() {
                 onLessonCodeChange={setUploadLessonCode}
                 onClickUpload={() => fileInputRef.current?.click()}
                 onAnalyze={handleStartAnalysis}
+                onDeleteDocument={handleDeleteDocument}
               />
             </motion.div>
           ) : (
@@ -528,6 +536,7 @@ function DocumentsTab({
   onLessonCodeChange,
   onClickUpload,
   onAnalyze,
+  onDeleteDocument,
 }: {
   documents: InputDocumentDto[];
   isLoading: boolean;
@@ -552,7 +561,9 @@ function DocumentsTab({
   onLessonCodeChange: (v: string) => void;
   onClickUpload: () => void;
   onAnalyze: (documentCode: string) => void;
+  onDeleteDocument: (documentCode: string) => void;
 }) {
+  const [deletingDocCode, setDeletingDocCode] = useState<string | null>(null);
   return (
     <div>
       {/* Upload Controls */}
@@ -657,7 +668,7 @@ function DocumentsTab({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã bài học</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã bài học *</label>
                     <input
                       type="text"
                       value={uploadLessonCode}
@@ -670,7 +681,7 @@ function DocumentsTab({
                 <div className="flex justify-end pt-1">
                   <button
                     onClick={onUpload}
-                    disabled={isUploading || !uploadTitle || !uploadSubjectCode || !uploadGradeCode}
+                    disabled={isUploading || !uploadTitle || !uploadSubjectCode || !uploadGradeCode || !uploadLessonCode}
                     className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
                   >
                     {isUploading ? (
@@ -748,6 +759,31 @@ function DocumentsTab({
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {deletingDocCode === doc.documentCode ? (
+                    <>
+                      <span className="text-xs text-gray-500 mr-1">Xóa?</span>
+                      <button
+                        onClick={() => { onDeleteDocument(doc.documentCode); setDeletingDocCode(null); }}
+                        className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                      >
+                        Xác nhận
+                      </button>
+                      <button
+                        onClick={() => setDeletingDocCode(null)}
+                        className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        Hủy
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeletingDocCode(doc.documentCode); }}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                      title="Xóa tài liệu"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <button
                     onClick={() => onAnalyze(doc.documentCode)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all"

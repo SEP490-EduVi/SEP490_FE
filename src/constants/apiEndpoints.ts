@@ -4,7 +4,8 @@
 const buildAuthEndpoint     = (path: string) => `/api/Auth${path}`;
 const buildPipelineEndpoint = (path: string) => `/api/Pipeline${path}`;
 const buildProjectEndpoint  = (path: string) => `/api/Project${path}`;
-const buildProductEndpoint  = (path: string) => `/api/Product${path}`;
+const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
+const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -21,10 +22,6 @@ export const API_ENDPOINTS = {
 
   // Pipeline (AI generation)
   PIPELINE: {
-    // POST /api/Pipeline/input-documents — Upload file bài giảng → lưu vào GCS → lưu metadata vào DB
-    UPLOAD_INPUT_DOCUMENT:  buildPipelineEndpoint("/input-documents"),
-    // GET  /api/Pipeline/input-documents — Lấy danh sách InputDocuments của Teacher hiện tại
-    GET_INPUT_DOCUMENTS:    buildPipelineEndpoint("/input-documents"),
     // POST /api/Pipeline/lesson-analysis — Tạo Product (NEW) → gửi RabbitMQ
     LESSON_ANALYSIS:        buildPipelineEndpoint("/lesson-analysis"),
     // POST /api/Pipeline/generate-slides — Trigger tạo slide từ Product đã evaluate
@@ -55,6 +52,8 @@ export const API_ENDPOINTS = {
   PRODUCT: {
     // GET    /api/Product — Lấy danh sách tất cả Products (không bao gồm đã xóa)
     GET_ALL:    buildProductEndpoint(""),
+    // GET    /api/Product/project/{projectCode} — Lấy danh sách Products theo project
+    GET_BY_PROJECT: (projectCode: string) => buildProductEndpoint(`/project/${projectCode}`),
     // GET    /api/Product/{productCode} — Lấy chi tiết đầy đủ của một Product
     GET_BY_ID:  (productCode: string) => buildProductEndpoint(`/${productCode}`),
     // DELETE /api/Product/{productCode} — Xóa mềm Product
@@ -65,6 +64,16 @@ export const API_ENDPOINTS = {
     GET_SLIDE:  (productCode: string) => buildProductEndpoint(`/${productCode}/slide`),
     // GET    /api/Product/{productCode}/slide/edited — Lấy slide Teacher đã chỉnh sửa lần cuối
     GET_EDITED_SLIDE: (productCode: string) => buildProductEndpoint(`/${productCode}/slide/edited`),
+  },
+
+  // InputDocument
+  INPUT_DOCUMENT: {
+    // POST /api/InputDocument — Upload tài liệu đầu vào
+    UPLOAD:         buildInputDocumentEndpoint(""),
+    // GET  /api/InputDocument/project/{projectCode} — Lấy danh sách tài liệu theo project
+    GET_BY_PROJECT: (projectCode: string) => buildInputDocumentEndpoint(`/project/${projectCode}`),
+    // DELETE /api/InputDocument/{documentCode} — Xóa tài liệu
+    DELETE:         (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
   },
 
 } as const;
