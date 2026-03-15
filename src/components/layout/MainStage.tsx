@@ -3,14 +3,14 @@
 /**
  * MainStage Component
  * ===================
- * 
- * The central canvas area where the active slide is rendered.
- * Provides a document-like editing experience.
- * 
- * Note: DndContext is now at page level to handle both sorting and material drops.
+ *
+ * Canvas trung tâm — hiển thị TẤT CẢ slides theo chiều dọc (Gamma-style).
+ * - Scroll xuống để xem slide tiếp theo
+ * - IntersectionObserver tự cập nhật activeCardId khi scroll
+ * - Khi sidebar click → tự cuộn tới đúng slide
  */
 
-import React from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -21,22 +21,33 @@ import { NodeRenderer } from '@/components/renderer';
 import { Loader2 } from 'lucide-react';
 
 export function MainStage() {
-  const document = useDocumentStore((state) => state.document);
-  const activeCardId = useDocumentStore((state) => state.activeCardId);
-  const isLoading = useDocumentStore((state) => state.isLoading);
-  const error = useDocumentStore((state) => state.error);
+  const document        = useDocumentStore((state) => state.document);
+  const activeCardId    = useDocumentStore((state) => state.activeCardId);
+  const isLoading       = useDocumentStore((state) => state.isLoading);
+  const error           = useDocumentStore((state) => state.error);
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
 
-  const activeCard = document?.cards.find((card) => card.id === activeCardId);
+  // Map cardId → DOM div ref (used to scroll-to on sidebar click)
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Clear selection when clicking on stage background
+  const setCardRef = useCallback((cardId: string, el: HTMLDivElement | null) => {
+    if (el) cardRefs.current.set(cardId, el);
+    else    cardRefs.current.delete(cardId);
+  }, []);
+
+  // ── Scroll to active card when sidebar is clicked ────────────────────────
+  useEffect(() => {
+    if (!activeCardId) return;
+    const el = cardRefs.current.get(activeCardId);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activeCardId]);
+
+  // ── Clear selection on background click ──────────────────────────────────
   const handleStageClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      setSelectedNode(null);
-    }
+    if (e.target === e.currentTarget) setSelectedNode(null);
   };
 
-  // Loading state
+  // ── States ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <main className="flex-1 bg-surface-tertiary flex items-center justify-center">
@@ -48,7 +59,6 @@ export function MainStage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <main className="flex-1 bg-surface-tertiary flex items-center justify-center">
@@ -56,9 +66,7 @@ export function MainStage() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">⚠️</span>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Failed to Load
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load</h2>
           <p className="text-gray-500 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -71,41 +79,43 @@ export function MainStage() {
     );
   }
 
-  // Empty state
-  if (!activeCard) {
+  if (!document) {
     return (
       <main className="flex-1 bg-surface-tertiary flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500">Select a slide from the sidebar</p>
-        </div>
+        <p className="text-gray-500">Select a slide from the sidebar</p>
       </main>
     );
   }
 
+  // ── Main render: all slides stacked vertically ───────────────────────────
   return (
     <main
-      className={cn(
-        'flex-1 bg-surface-tertiary',
-        'flex flex-col items-center justify-center py-8'
-      )}
+      className={cn('flex-1 overflow-y-auto bg-surface-tertiary')}
       onClick={handleStageClick}
     >
-      {/* Stage container - centers the card */}
-      <div className="w-full max-w-4xl px-6">
-        {/* Sortable context for reordering blocks within the card */}
-        <SortableContext
-          items={activeCard.children.map((n) => n.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {/* Render the active card */}
-          <NodeRenderer node={activeCard} />
-        </SortableContext>
+      <div className="w-full max-w-4xl mx-auto px-6 py-10 space-y-10">
+        {document.cards.map((card, index) => (
+          <div
+            key={card.id}
+            data-card-id={card.id}
+            ref={(el) => setCardRef(card.id, el)}
+          >
+            <SortableContext
+              items={card.children.map((n) => n.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <NodeRenderer node={card} />
+            </SortableContext>
 
-        {/* Slide navigation hint */}
-        <div className="mt-6 text-center text-sm text-gray-400">
-          Slide {document?.cards.findIndex((c) => c.id === activeCardId)! + 1} of{' '}
-          {document?.cards.length}
-        </div>
+            {/* Slide counter label */}
+            <div className="mt-2 text-center text-xs text-gray-400 select-none">
+              Trang {index + 1} / {document.cards.length}
+            </div>
+          </div>
+        ))}
+
+        {/* Bottom padding so last slide doesn't sit flush at bottom */}
+        <div className="h-24" />
       </div>
     </main>
   );

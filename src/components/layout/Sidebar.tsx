@@ -210,6 +210,8 @@ export function Sidebar() {
   const deleteNode = useDocumentStore((state) => state.deleteNode);
   const reorderCards = useDocumentStore((state) => state.reorderCards);
 
+  const slideListRef = React.useRef<HTMLDivElement>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -252,7 +254,7 @@ export function Sidebar() {
       </div>
 
       {/* Slides list */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div ref={slideListRef} className="flex-1 overflow-y-auto p-3 space-y-2">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -263,14 +265,15 @@ export function Sidebar() {
             strategy={verticalListSortingStrategy}
           >
             {document.cards.map((card, index) => (
-              <SlideItem
-                key={card.id}
-                card={card}
-                index={index}
-                isActive={card.id === activeCardId}
-                onClick={() => setActiveCard(card.id)}
-                onDelete={() => deleteNode(card.id)}
-              />
+              <div key={card.id} data-sidebar-card={card.id}>
+                <SlideItem
+                  card={card}
+                  index={index}
+                  isActive={card.id === activeCardId}
+                  onClick={() => setActiveCard(card.id)}
+                  onDelete={() => deleteNode(card.id)}
+                />
+              </div>
             ))}
           </SortableContext>
         </DndContext>
