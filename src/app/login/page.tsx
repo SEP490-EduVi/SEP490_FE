@@ -83,7 +83,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="text-xs text-indigo-500 hover:underline"
-                onClick={() => {/* TODO: navigate to /forgot-password */}}
+                onClick={() => router.push('/forgot-password')}
               >
                 Quên mật khẩu?
               </button>
