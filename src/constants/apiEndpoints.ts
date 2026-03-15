@@ -11,13 +11,18 @@ const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN:           buildAuthEndpoint("/login"),
-    REGISTER:        buildAuthEndpoint("/register"),
-    LOGIN_GOOGLE:    buildAuthEndpoint("/login-google"),
-    REFRESH_TOKEN:   buildAuthEndpoint("/refresh"),
-    FORGOT_PASSWORD: buildAuthEndpoint("/forgot-password"),
-    RESET_PASSWORD:  buildAuthEndpoint("/reset-password"),
-    VERIFY:          buildAuthEndpoint("/verify"),
+    LOGIN:            buildAuthEndpoint("/login"),
+    GOOGLE_LOGIN:     buildAuthEndpoint("/google-login"),
+    REGISTER:         buildAuthEndpoint("/register"),
+    VERIFY_OTP:       buildAuthEndpoint("/verify-otp"),
+    RESEND_OTP:       buildAuthEndpoint("/resend-otp"),
+    LOGOUT:           buildAuthEndpoint("/logout"),
+    ME:               buildAuthEndpoint("/me"),
+    FORGOT_PASSWORD:  buildAuthEndpoint("/forgot-password"),
+    RESEND_RESET_OTP: buildAuthEndpoint("/resend-reset-otp"),
+    RESET_PASSWORD:   buildAuthEndpoint("/reset-password"),
+    VERIFY_SESSION:   buildAuthEndpoint("/verify-session"),
+    CHANGE_PASSWORD:  buildAuthEndpoint("/change-password"),
   },
 
   // Pipeline (AI generation)
