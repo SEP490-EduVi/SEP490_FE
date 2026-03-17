@@ -235,7 +235,7 @@ export default function ProjectDetailPage() {
         slideDoc = result.slideDocument;
       }
       setDocument(slideDoc, productCode);
-      router.push('/editor');
+      router.push('/teacher/editor');
     } finally {
       setViewSlideLoading(null);
     }
@@ -266,7 +266,7 @@ export default function ProjectDetailPage() {
         <h2 className="text-lg font-semibold text-gray-700 mb-1">Không tìm thấy dự án</h2>
         <p className="text-sm text-gray-500 mb-6">Dự án không tồn tại hoặc đã bị xóa.</p>
         <button
-          onClick={() => router.push('/projects')}
+          onClick={() => router.push('/teacher')}
           className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -284,7 +284,7 @@ export default function ProjectDetailPage() {
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <button
-              onClick={() => router.push('/projects')}
+              onClick={() => router.push('/teacher')}
               className="hover:text-blue-600 transition-colors"
             >
               Dự án
@@ -296,7 +296,7 @@ export default function ProjectDetailPage() {
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
               <button
-                onClick={() => router.push('/projects')}
+                onClick={() => router.push('/teacher')}
                 className="mt-1 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -315,8 +315,6 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
             </div>
-
-
           </div>
         </div>
       </header>
@@ -747,30 +745,28 @@ function DocumentsTab({
                         <span className="text-xs text-gray-400">{doc.lessonName}</span>
                       </>
                     )}
-                    <span className="text-xs text-gray-300">•</span>
-                    <span className="text-xs text-gray-400">{formatDate(doc.uploadDate)}</span>
                   </div>
                 </div>
 
-                {/* Status badge */}
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">
-                  Đã tải lên
+                {/* Date */}
+                <span className="text-xs text-gray-400 hidden sm:block">
+                  {formatDate(doc.uploadDate)}
                 </span>
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {deletingDocCode === doc.documentCode ? (
                     <>
-                      <span className="text-xs text-gray-500 mr-1">Xóa?</span>
+                      <span className="text-xs text-red-500 font-medium">Xóa?</span>
                       <button
-                        onClick={() => { onDeleteDocument(doc.documentCode); setDeletingDocCode(null); }}
-                        className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                        onClick={(e) => { e.stopPropagation(); onDeleteDocument(doc.documentCode); setDeletingDocCode(null); }}
+                        className="px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
                       >
                         Xác nhận
                       </button>
                       <button
-                        onClick={() => setDeletingDocCode(null)}
-                        className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setDeletingDocCode(null); }}
+                        className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                       >
                         Hủy
                       </button>

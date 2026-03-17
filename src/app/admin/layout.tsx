@@ -22,6 +22,7 @@ import {
   LogOut,
   Shield,
 } from 'lucide-react';
+import { AuthGuard } from '@/components/auth';
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Bảng điều khiển', icon: LayoutDashboard },
@@ -43,6 +44,7 @@ export default function AdminLayout({
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
 
   return (
+    <AuthGuard>
     <div className="flex h-screen bg-gray-50">
       {/* ── Sidebar ── */}
       <aside
@@ -124,5 +126,6 @@ export default function AdminLayout({
       {/* ── Main content ── */}
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
+    </AuthGuard>
   );
 }

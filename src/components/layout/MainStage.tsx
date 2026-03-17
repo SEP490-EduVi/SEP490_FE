@@ -106,11 +106,6 @@ export function MainStage() {
             >
               <NodeRenderer node={card} />
             </SortableContext>
-
-            {/* Slide counter label */}
-            <div className="mt-2 text-center text-xs text-gray-400 select-none">
-              Trang {index + 1} / {document.cards.length}
-            </div>
           </div>
         ))}
 

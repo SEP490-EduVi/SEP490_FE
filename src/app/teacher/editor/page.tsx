@@ -13,7 +13,7 @@
  * 
  * Data Flow:
  * 1. Projects page fetches slide document via GET /api/Product/{productCode}/slide
- * 2. Calls setDocument() in Zustand store before navigating to /editor
+ * 2. Calls setDocument() in Zustand store before navigating to /teacher/editor
  * 3. Components read from store and render accordingly
  * 4. User edits trigger store updates
  * 5. Store updates propagate to all subscribed components

@@ -8,7 +8,8 @@
 import { IDocument, INode } from '@/types';
 import { deepClone, findNode } from '../helpers/treeUtils';
 import type { StoreGet, StoreSet, SetDocumentWithHistory } from '../types';
-import { saveEditedSlide } from '@/services/pipelineServices';
+import { saveEditedSlideUrl } from '@/services/pipelineServices';
+import { uploadSlideToGcs } from '@/services/gcsServices';
 
 const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
@@ -95,7 +96,7 @@ export function createDocumentActions(
 
       set({
         document: doc,
-        activeCardId: doc.activeCardId || doc.cards[0]?.id || null,
+        activeCardId: doc.activeCardId || doc.cards?.[0]?.id || null,
         history: newHistory,
         historyIndex: 0,
         error: null,
@@ -108,7 +109,59 @@ export function createDocumentActions(
       if (!document || !currentProductCode) return;
       set({ isSaving: true, error: null });
       try {
-        await saveEditedSlide(currentProductCode, JSON.stringify(document));
+        // Capture rendered HTML for each card from the live DOM.
+        // BE (Playwright) uses this HTML directly to render slide screenshots.
+        const cardsWithHtml = await Promise.all(document.cards.map(async (card) => {
+          const el = window.document.querySelector<HTMLElement>(`[data-card-id="${card.id}"]`);
+          if (!el) return card;
+
+          // Clone so we can strip editor-only chrome without mutating the live DOM
+          const clone = el.cloneNode(true) as HTMLElement;
+
+          // Remove editor-only elements: drag handles, floating toolbars, action buttons
+          clone.querySelectorAll(
+            '[data-editor-only], [data-drag-handle], [data-toolbar], .editor-ui'
+          ).forEach((n) => n.remove());
+
+          // Inline all external stylesheets so the HTML is self-contained.
+          // Using absolute href (http://localhost:3000/...) would break when
+          // BE (Playwright) renders the slide on a different server/environment.
+          const styleSheetTexts = await Promise.all(
+            Array.from(
+              window.document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')
+            ).map(async (link) => {
+              try {
+                const res = await fetch(link.href);
+                return res.ok ? await res.text() : '';
+              } catch {
+                return '';
+              }
+            })
+          );
+
+          const inlineStyles = Array.from(
+            window.document.querySelectorAll('style')
+          ).map((s) => s.textContent ?? '').join('\n');
+
+          const allCss = [...styleSheetTexts, inlineStyles].join('\n');
+
+          const fullHtml =
+            `<html><head>` +
+            `<style>${allCss}</style>` +
+            `</head><body style="margin:0;background:transparent">` +
+            clone.outerHTML +
+            `</body></html>`;
+
+          return { ...card, renderedHtml: fullHtml };
+        }));
+
+        const docWithHtml = { ...document, cards: cardsWithHtml };
+
+        // 1. Upload slide JSON to GCS via Next.js server (no CORS, key stays server-side)
+        const gcsObjectUrl = await uploadSlideToGcs(currentProductCode, docWithHtml);
+
+        // 2. Notify BE with the GCS URL so it can reference/download the file
+        await saveEditedSlideUrl(currentProductCode, gcsObjectUrl);
       } catch (err: unknown) {
         const msg =
           err && typeof err === 'object' && 'message' in err

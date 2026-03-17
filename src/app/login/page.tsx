@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoginService } from '@/services/authServices';
 import { LoginInput } from '@/types/auth';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function LoginPage() {
   const [form, setForm] = useState<LoginInput>({ username: '', password: '' });
@@ -14,6 +15,7 @@ export default function LoginPage() {
 
   const router = useRouter();
   const { mutate: login, isPending } = useLoginService();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -31,8 +33,17 @@ export default function LoginPage() {
       onSuccess: (res) => {
         if (res.code === 200) {
           localStorage.setItem('accessToken', res.result.accessToken);
-          localStorage.setItem('user', JSON.stringify(res.result.user));
-          router.push('/');
+          setUser(res.result.user);
+
+          // Redirect theo role
+          const roleName = res.result.user.role?.roleName?.toLowerCase();
+          if (roleName === 'admin') {
+            router.push('/admin');
+          } else if (roleName === 'teacher') {
+            router.push('/teacher');
+          } else {
+            router.push('/');
+          }
         } else {
           setErrorMsg(res.message ?? 'Đăng nhập thất bại.');
         }

@@ -40,12 +40,6 @@ export default function HomePage() {
           </div>
           <nav className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/admin')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Admin
-            </button>
-            <button
               onClick={() => router.push('/login')}
               className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
             >

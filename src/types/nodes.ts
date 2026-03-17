@@ -117,6 +117,8 @@ export interface ICard extends IBaseNode {
   backgroundColor?: string;
   backgroundImage?: string;
   contentAlignment?: 'top' | 'center' | 'bottom';
+  /** Pre-rendered HTML snapshot of this slide (injected by FE before saving). BE uses this for Playwright rendering. */
+  renderedHtml?: string;
 }
 
 // ============================================================================
