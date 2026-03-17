@@ -15,6 +15,8 @@ import { storage } from '@/lib/gcsClient';
 
 const bucketName = process.env.GCS_BUCKET_NAME ?? 'eduvi_folders';
 const folder = process.env.GCS_FOLDER_EDITED_SLIDES ?? 'edited_slides';
+
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { productCode, data } = body as { productCode?: string; data?: unknown };
