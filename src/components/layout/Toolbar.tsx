@@ -56,8 +56,8 @@ function InsertButton({ icon, label, onClick, disabled, accent }: InsertButtonPr
         disabled
           ? 'text-gray-300 cursor-not-allowed'
           : accent
-          ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
-          : 'text-slate-600 hover:bg-gray-100 hover:text-rose-500'
+          ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+          : 'text-slate-600 hover:bg-gray-100 hover:text-blue-500'
       )}
     >
       <span className="flex-shrink-0">{icon}</span>
@@ -112,7 +112,7 @@ function BgColorPicker({
             className={cn(
               'w-7 h-7 rounded border-2 transition-all hover:scale-110',
               selected === c.value
-                ? 'border-rose-500 ring-2 ring-rose-200'
+                ? 'border-blue-500 ring-2 ring-blue-200'
                 : 'border-gray-200'
             )}
             style={{ backgroundColor: c.value }}
@@ -132,7 +132,7 @@ function BgColorPicker({
       <div className="flex gap-2 pt-1 border-t border-gray-100">
         <button
           onClick={() => onApplyCurrent(selected)}
-          className="flex-1 py-1.5 rounded-lg bg-rose-500 text-white text-xs font-semibold hover:bg-rose-600 transition-colors"
+          className="flex-1 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
         >
           Slide này
         </button>
@@ -222,7 +222,7 @@ export function Toolbar() {
   return (
     <div className="flex flex-col shadow-md">
       {/* ── Row 1: Main navigation bar ────────────────────────────────────── */}
-      <header className="h-14 bg-gradient-to-r from-rose-500 via-pink-500 to-violet-500 px-4 flex items-center justify-between">
+      <header className="h-14 bg-gradient-to-r from-[#0d3349] via-[#1a5276] to-[#2980b9] px-4 flex items-center justify-between">
         {/* Left: menu + title + undo/redo */}
         <div className="flex items-center gap-3">
           <button
@@ -337,7 +337,7 @@ export function Toolbar() {
             disabled={!document}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-white text-rose-600 hover:bg-rose-50 font-semibold text-sm transition-colors shadow-sm',
+              'bg-white text-blue-700 hover:bg-blue-50 font-semibold text-sm transition-colors shadow-sm',
               'disabled:opacity-40 disabled:cursor-not-allowed'
             )}
             title="Chia sẻ"
@@ -400,7 +400,7 @@ export function Toolbar() {
                 ? 'text-gray-300 cursor-not-allowed'
                 : showBgPicker
                 ? 'bg-gray-100 text-slate-700'
-                : 'text-slate-600 hover:bg-gray-100 hover:text-rose-500'
+                : 'text-slate-600 hover:bg-gray-100 hover:text-blue-500'
             )}
           >
             <span

@@ -493,7 +493,7 @@ function ColumnDropZone({
       ref={setNodeRef}
       className={cn(
         'min-h-[120px] rounded-lg transition-all duration-200 w-full h-full',
-        isOver && 'bg-rose-50 ring-2 ring-rose-400 ring-inset',
+        isOver && 'bg-blue-50 ring-2 ring-blue-400 ring-inset',
         children.length === 0 && !isOver && 'border-2 border-dashed border-gray-200'
       )}
     >
@@ -505,7 +505,7 @@ function ColumnDropZone({
         <div
           className={cn(
             'flex items-center justify-center h-full min-h-[120px]',
-            isOver ? 'text-rose-600' : 'text-gray-400'
+            isOver ? 'text-blue-600' : 'text-gray-400'
           )}
         >
           <div className="text-center p-4">
@@ -588,7 +588,7 @@ function ColumnResizeDivider({
       className="flex-shrink-0 w-3 cursor-col-resize flex items-center justify-center group select-none z-10"
       onMouseDown={handleMouseDown}
     >
-      <div className="w-0.5 h-8 bg-gray-200 group-hover:bg-rose-400 transition-colors duration-150 rounded-full" />
+      <div className="w-0.5 h-8 bg-gray-200 group-hover:bg-blue-400 transition-colors duration-150 rounded-full" />
     </div>
   );
 }
@@ -768,7 +768,7 @@ function CardRenderer({ node }: { node: ICard }) {
         // Smooth transitions for layout shifts
         'transition-all duration-300 ease-out',
         // Drop indicator
-        isOver && 'ring-4 ring-rose-400 ring-inset'
+        isOver && 'ring-4 ring-blue-400 ring-inset'
       )}
       style={{
         backgroundColor: node.backgroundColor || undefined,
@@ -797,7 +797,7 @@ function CardRenderer({ node }: { node: ICard }) {
           <div className="flex items-center justify-center text-gray-400">
             <div className="text-center">
               <p className="mb-2">Slide đang trống. Thêm nội dung từ thanh công cụ bên trên.</p>
-              {isOver && <p className="text-rose-500 font-semibold">Thả tài nguyên vào đây</p>}
+              {isOver && <p className="text-blue-500 font-semibold">Thả tài nguyên vào đây</p>}
             </div>
           </div>
         )}

@@ -27,94 +27,182 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { ICard, ILayout, IBlock, NodeType } from '@/types';
-import { Plus, GripVertical, Trash2, FileText, Image as ImageIcon, Video, HelpCircle } from 'lucide-react';
+import {
+  ICard, ILayout, IBlock, NodeType,
+  ITextContent, IHeadingContent, IImageContent, IVideoContent,
+  IQuizContent, IFlashcardContent, IFillBlankContent,
+  BlockType, LayoutVariant,
+} from '@/types';
+import { Plus, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================================================
-// SLIDE THUMBNAIL PREVIEW
+// THUMBNAIL RENDERER — read-only, no dnd-kit, CSS-scaled to fit
 // ============================================================================
 
-/**
- * Renders a miniature visual preview of a slide card.
- * Shows background color, simulated content lines, and block-type indicators.
- */
+const SLIDE_W = 700;
+const SLIDE_H = 540;
+const THUMB_W = 180;
+const THUMB_H = 90;
+const SCALE = THUMB_W / SLIDE_W; // ~0.167
+
+/** Recursively render a layout/block node without any interactive hooks */
+function ThumbnailNode({ node }: { node: ILayout | IBlock }) {
+  if (node.type === NodeType.LAYOUT) {
+    const layout = node as ILayout;
+    const isMultiCol =
+      layout.variant === LayoutVariant.TWO_COLUMN ||
+      layout.variant === LayoutVariant.THREE_COLUMN ||
+      layout.variant === LayoutVariant.SIDEBAR_LEFT ||
+      layout.variant === LayoutVariant.SIDEBAR_RIGHT;
+
+    const widths = layout.columnWidths;
+    const children = layout.children as (ILayout | IBlock)[];
+
+    if (isMultiCol) {
+      return (
+        <div style={{ display: 'flex', gap: 16, width: '100%' }}>
+          {children.map((child, i) => (
+            <div
+              key={child.id}
+              style={{ flex: widths ? `0 0 ${widths[i]}%` : 1, minWidth: 0, overflow: 'hidden' }}
+            >
+              <ThumbnailNode node={child} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {children.map((child) => (
+          <ThumbnailNode key={child.id} node={child} />
+        ))}
+      </div>
+    );
+  }
+
+  // BLOCK
+  const block = node as IBlock;
+  const content = block.content;
+  if (!content) return null;
+
+  if (content.type === BlockType.HEADING) {
+    const c = content as IHeadingContent;
+    const sizes: Record<number, number> = { 1: 36, 2: 30, 3: 24, 4: 20, 5: 18, 6: 16 };
+    return (
+      <div
+        style={{ fontSize: sizes[c.level] ?? 28, fontWeight: 700, lineHeight: 1.2, color: '#1e293b', overflow: 'hidden' }}
+        dangerouslySetInnerHTML={{ __html: c.html }}
+      />
+    );
+  }
+
+  if (content.type === BlockType.TEXT) {
+    const c = content as ITextContent;
+    return (
+      <div
+        style={{ fontSize: 14, lineHeight: 1.6, color: '#334155', overflow: 'hidden' }}
+        dangerouslySetInnerHTML={{ __html: c.html }}
+      />
+    );
+  }
+
+  if (content.type === BlockType.IMAGE) {
+    const c = content as IImageContent;
+    return c.src ? (
+      <img
+        src={c.src}
+        alt={c.alt}
+        style={{ width: '100%', height: 'auto', objectFit: 'cover', borderRadius: 8, display: 'block' }}
+      />
+    ) : (
+      <div style={{ width: '100%', height: 120, background: '#e2e8f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>Hình ảnh</span>
+      </div>
+    );
+  }
+
+  if (content.type === BlockType.VIDEO) {
+    return (
+      <div style={{ width: '100%', aspectRatio: '16/9', background: '#0f172a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ color: '#60a5fa', fontSize: 12 }}>▶ Video</span>
+      </div>
+    );
+  }
+
+  if (content.type === BlockType.QUIZ) {
+    const c = content as IQuizContent;
+    return (
+      <div style={{ background: '#eff6ff', borderRadius: 8, padding: 12, border: '1px solid #bfdbfe' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1d4ed8', marginBottom: 6 }}>{c.title || 'Câu hỏi'}</div>
+        {c.questions.slice(0, 2).map((q, i) => (
+          <div key={i} style={{ fontSize: 12, color: '#334155', marginBottom: 4 }}>• {q.question}</div>
+        ))}
+      </div>
+    );
+  }
+
+  if (content.type === BlockType.FLASHCARD) {
+    const c = content as IFlashcardContent;
+    return (
+      <div style={{ background: '#f0fdf4', borderRadius: 8, padding: 12, border: '1px solid #bbf7d0', display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1, fontSize: 12, color: '#166534' }} dangerouslySetInnerHTML={{ __html: c.front }} />
+        <div style={{ width: 1, background: '#86efac' }} />
+        <div style={{ flex: 1, fontSize: 12, color: '#15803d' }} dangerouslySetInnerHTML={{ __html: c.back }} />
+      </div>
+    );
+  }
+
+  if (content.type === BlockType.FILL_BLANK) {
+    const c = content as IFillBlankContent;
+    return (
+      <div style={{ background: '#fef9c3', borderRadius: 8, padding: 12, border: '1px solid #fde047', fontSize: 12, color: '#713f12' }}>
+        {c.sentence}
+      </div>
+    );
+  }
+
+  return null;
+}
+
 function SlideThumbnailPreview({ card, isActive }: { card: ICard; isActive: boolean }) {
-  // Count block types recursively
-  const countBlockTypes = (children: (ILayout | IBlock)[]) => {
-    let hasImage = false;
-    let hasVideo = false;
-    let hasInteractive = false;
-    let textLineCount = 0;
-
-    const traverse = (nodes: (ILayout | IBlock)[]) => {
-      for (const node of nodes) {
-        if (node.type === NodeType.BLOCK) {
-          const block = node as IBlock;
-          const ct = block.content?.type;
-          if (ct === 'IMAGE') hasImage = true;
-          else if (ct === 'VIDEO') hasVideo = true;
-          else if (ct === 'QUIZ' || ct === 'FLASHCARD' || ct === 'FILL_BLANK') hasInteractive = true;
-          else if (ct === 'TEXT' || ct === 'HEADING') textLineCount++;
-        }
-        if (node.type === NodeType.LAYOUT) {
-          traverse((node as ILayout).children as (ILayout | IBlock)[]);
-        }
-      }
-    };
-
-    traverse(children);
-    return { hasImage, hasVideo, hasInteractive, textLineCount };
-  };
-
-  const { hasImage, hasVideo, hasInteractive, textLineCount } =
-    countBlockTypes(card.children as (ILayout | IBlock)[]);
-
-  const hasAnyContent = card.children.length > 0;
-
   return (
     <div
       className={cn(
-        'flex-shrink-0 w-20 h-[54px] rounded overflow-hidden border-2 relative',
-        isActive ? 'border-primary-500' : 'border-gray-200'
+        'flex-shrink-0 rounded overflow-hidden border-2 relative',
+        isActive ? 'border-blue-500' : 'border-gray-200'
       )}
-      style={{
-        backgroundColor: card.backgroundColor || (isActive ? '#ffe4e6' : '#f5f5f5'),
-        backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+      style={{ width: THUMB_W, height: THUMB_H }}
     >
-      {hasAnyContent ? (
-        <div className="absolute inset-0 p-1.5 flex flex-col gap-1">
-          {/* Simulated text content lines */}
-          {textLineCount > 0 && (
-            <>
-              <div
-                className={cn('h-1.5 rounded-sm w-4/5', isActive ? 'bg-primary-400' : 'bg-gray-400')}
-              />
-              <div
-                className={cn('h-1 rounded-sm w-full', isActive ? 'bg-primary-300' : 'bg-gray-300')}
-              />
-              {textLineCount > 1 && (
-                <div
-                  className={cn('h-1 rounded-sm w-3/4', isActive ? 'bg-primary-200' : 'bg-gray-200')}
-                />
-              )}
-            </>
-          )}
-          {/* Block type icon indicators */}
-          <div className="flex gap-1 mt-auto">
-            {hasImage && <ImageIcon className="w-3 h-3 text-blue-400 opacity-80" />}
-            {hasVideo && <Video className="w-3 h-3 text-red-400 opacity-80" />}
-            {hasInteractive && <HelpCircle className="w-3 h-3 text-green-500 opacity-80" />}
-          </div>
-        </div>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <FileText className="w-5 h-5 text-gray-300" />
-        </div>
-      )}
+      {/* Full-size slide rendered at SLIDE_W × SLIDE_H then scaled down */}
+      <div
+        style={{
+          width: SLIDE_W,
+          height: SLIDE_H,
+          transform: `scale(${SCALE})`,
+          transformOrigin: 'top left',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+          backgroundColor: card.backgroundColor || '#ffffff',
+          backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: 40,
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          overflow: 'hidden',
+        }}
+      >
+        {(card.children as (ILayout | IBlock)[]).map((child) => (
+          <ThumbnailNode key={child.id} node={child} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -151,49 +239,30 @@ function SlideItem({ card, index, isActive, onClick, onDelete }: SlideItemProps)
       ref={setNodeRef}
       style={style}
       className={cn(
-        'relative flex items-center gap-2 p-2 rounded-lg cursor-pointer',
+        'relative flex items-center gap-1 p-2 rounded-lg cursor-pointer group',
         'transition-all duration-150',
         isActive
-          ? 'bg-primary-50 border-2 border-primary-500'
+          ? 'bg-blue-50 border-2 border-blue-500'
           : 'bg-white border-2 border-transparent hover:border-gray-300 hover:bg-gray-50',
         isDragging && 'opacity-50 shadow-lg'
       )}
       onClick={onClick}
+      {...attributes}
+      {...listeners}
     >
-      {/* Drag handle — always visible so teachers know it's draggable */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="p-1 rounded hover:bg-gray-200 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
-        onClick={(e) => e.stopPropagation()}
-        title="Kéo để sắp xếp"
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
-
       {/* Slide thumbnail — real content preview */}
       <SlideThumbnailPreview card={card} isActive={isActive} />
 
-      {/* Slide info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
-          {card.title}
-        </p>
-        <p className="text-xs text-gray-500 mt-0.5">
-          Trang {index + 1}
-        </p>
-      </div>
-
-      {/* Delete button — always visible (muted colour, not hidden) */}
+      {/* Delete button — shown on hover */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onDelete();
         }}
-        className="p-1 rounded hover:bg-red-100 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+        className="absolute top-1 right-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
         title="Xóa trang"
       >
-        <Trash2 className="w-4 h-4" />
+        <Trash2 className="w-5 h-5" />
       </button>
     </div>
   );
@@ -310,7 +379,7 @@ export function Sidebar() {
             'font-semibold text-sm transition-all duration-150',
             isGenerating
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-rose-500 to-violet-500 text-white hover:from-rose-600 hover:to-violet-600 shadow-sm hover:shadow-md'
+              : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-700 hover:to-cyan-600 shadow-sm hover:shadow-md'
           )}
         >
           <Plus className="w-4 h-4" />

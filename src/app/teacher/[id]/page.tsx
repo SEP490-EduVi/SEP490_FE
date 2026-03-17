@@ -1,74 +1,27 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  FileText,
-  Package,
-  Upload,
-  Trash2,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  Eye,
-  Sparkles,
-  File,
-  Image as ImageIcon,
-  FileVideo,
-  ChevronRight,
-  Layers,
-} from 'lucide-react';
+import { ArrowLeft, FileText, Package, CheckCircle, AlertCircle, Loader2, Sparkles, ChevronRight } from 'lucide-react';
 
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
-import { useLessonAnalysis, useGenerateSlides } from '@/hooks/usePipelineApi';
+import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject } from '@/hooks/usePipelineApi';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
-import { useSubjects, useGrades, useLessons } from '@/hooks/useMetadataApi';
+import DocumentsTab from '@/components/projects/DocumentsTab';
 import ProductsTab from '@/components/projects/ProductsTab';
 import EvaluationModal from '@/components/projects/EvaluationModal';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import * as productService from '@/services/productServices';
-import type { IDocument } from '@/types/nodes';
-import type { PipelineProgress, InputDocumentDto } from '@/types/api';
-
-// ── Local types ────────────────────────────────────────────────────────────
+import { getEditedSlideGcsUrl } from '@/services/productServices';
+import type { PipelineProgress } from '@/types/api';
 
 type TabKey = 'documents' | 'products';
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const FILE_TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string }> = {
-  pdf:   { icon: FileText,  color: 'text-red-500 bg-red-50' },
-  docx:  { icon: File,      color: 'text-blue-500 bg-blue-50' },
-  pptx:  { icon: Layers,    color: 'text-orange-500 bg-orange-50' },
-  image: { icon: ImageIcon, color: 'text-emerald-500 bg-emerald-50' },
-  video: { icon: FileVideo, color: 'text-purple-500 bg-purple-50' },
-};
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-function getFileTypeFromPath(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase();
-  if (ext === 'pdf') return 'pdf';
-  if (ext === 'docx' || ext === 'doc') return 'docx';
-  if (ext === 'pptx' || ext === 'ppt') return 'pptx';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext ?? '')) return 'image';
-  if (['mp4', 'mov', 'avi', 'webm'].includes(ext ?? '')) return 'video';
-  return 'docx';
-}
-
-// ── Component ──────────────────────────────────────────────────────────────
+// ─ Component ─
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -76,7 +29,7 @@ export default function ProjectDetailPage() {
   const projectCode = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── API hooks ──────────────────────────────────────────────────────────
+  // ─ API hooks ─
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
   const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useProductsByProject(projectCode);
   const { data: inputDocuments = [], isLoading: isDocsLoading } = useInputDocumentsByProject(projectCode);
@@ -85,10 +38,12 @@ export default function ProjectDetailPage() {
   const uploadDoc = useUploadInputDocument();
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
+  const generateVideo = useGenerateVideo();
+  const { data: latestVideo = null } = useLatestVideoByProject(projectCode);
   const setDocument = useDocumentStore((state) => state.setDocument);
   const startGeneration = useDocumentStore((state) => state.startGeneration);
 
-  // ── SignalR pipeline progress ──────────────────────────────────────────
+  // ─ SignalR pipeline progress ─
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides'>('evaluation');
@@ -108,13 +63,14 @@ export default function ProjectDetailPage() {
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
-  // ── Local state ────────────────────────────────────────────────────────────
+  // ─ Local state ─
   const [activeTab, setActiveTab] = useState<TabKey>('documents');
   const [showUploadArea, setShowUploadArea] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [evalProductCode, setEvalProductCode] = useState<string | null>(null);
   const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
+  const [videoLoadingCode, setVideoLoadingCode] = useState<string | null>(null);
   // Upload form state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -205,17 +161,26 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleDeleteDocument = (documentCode: string) => {
-    deleteDoc.mutate(documentCode);
-  };
-
   const handleClosePipelineModal = () => {
     setShowPipelineModal(false);
     setPipelineProgress(null);
   };
 
-  const handleDeleteProduct = (productCode: string) => {
-    deleteProduct.mutate(productCode);
+  const handleGenerateVideo = async (productCode: string) => {
+    try {
+      setVideoLoadingCode(productCode);
+      const url = await getEditedSlideGcsUrl(productCode);
+      if (!url) {
+      console.error('[generateVideo] Không tìm thấy URL slide đã chỉnh sửa');
+        return;
+      }
+      generateVideo.mutate(
+        { productCode, slideEditedDocumentUrl: url },
+        { onSettled: () => setVideoLoadingCode(null) },
+      );
+    } catch {
+      setVideoLoadingCode(null);
+    }
   };
 
   const handleViewEvaluation = (productCode: string) => {
@@ -248,7 +213,7 @@ export default function ProjectDetailPage() {
     { key: 'products', label: 'Sản phẩm AI', icon: Package, count: products.length },
   ];
 
-  // ── Loading state ───────────────────────────────────────────────────────
+  // ─ Loading state ─
   if (isProjectLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center">
@@ -258,7 +223,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  // ── Error / Not found state ────────────────────────────────────────────
+  // ─ Error / Not found state ─
   if (isProjectError || !project) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center text-center">
@@ -280,7 +245,7 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* ── Header ── */}
+      {/* ─ Header ─ */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           {/* Breadcrumb */}
@@ -322,7 +287,7 @@ export default function ProjectDetailPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* ── Quick Stats ── */}
+        {/* ─ Quick Stats ─ */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Tài liệu', value: inputDocuments.length, icon: FileText, color: 'text-blue-600 bg-blue-50' },
@@ -344,7 +309,7 @@ export default function ProjectDetailPage() {
           })}
         </div>
 
-        {/* ── Tabs ── */}
+        {/* ─ Tabs ─ */}
         <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -371,7 +336,7 @@ export default function ProjectDetailPage() {
           })}
         </div>
 
-        {/* ── Tab Content ── */}
+        {/* ─ Tab Content ─ */}
         <AnimatePresence mode="wait">
           {activeTab === 'documents' ? (
             <motion.div
@@ -405,7 +370,7 @@ export default function ProjectDetailPage() {
                 onLessonCodeChange={setUploadLessonCode}
                 onClickUpload={() => fileInputRef.current?.click()}
                 onAnalyze={handleStartAnalysis}
-                onDeleteDocument={handleDeleteDocument}
+                onDeleteDocument={(code) => deleteDoc.mutate(code)}
               />
             </motion.div>
           ) : (
@@ -419,17 +384,20 @@ export default function ProjectDetailPage() {
               <ProductsTab
                 products={products}
                 isLoading={isProductsLoading}
-                onDeleteProduct={handleDeleteProduct}
+                onDeleteProduct={(code) => deleteProduct.mutate(code)}
                 onViewSlide={handleViewSlide}
                 onViewEvaluation={handleViewEvaluation}
                 onGenerateSlides={handleGenerateSlides}
+                onGenerateVideo={handleGenerateVideo}
+                videoLoadingCode={videoLoadingCode}
+                latestVideo={latestVideo}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      {/* ── Evaluation Modal ── */}
+      {/* ─ Evaluation Modal ─ */}
       <EvaluationModal
         open={!!evalProductCode}
         productCode={evalProductCode}
@@ -437,7 +405,7 @@ export default function ProjectDetailPage() {
         onClose={() => { setEvalProductCode(null); setEvalProductName(undefined); }}
       />
 
-      {/* ── View Slide Loading Overlay ── */}
+      {/* ─ View Slide Loading Overlay ─ */}
       {viewSlideLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex items-center gap-3">
@@ -447,7 +415,7 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* ── Pipeline Progress Modal ── */}
+      {/* ─ Pipeline Progress Modal ─ */}
       <PipelineProgressModal
         open={showPipelineModal}
         progress={pipelineProgress}
@@ -455,7 +423,7 @@ export default function ProjectDetailPage() {
         onClose={handleClosePipelineModal}
       />
 
-      {/* ── Analysis Form Modal ── */}
+      {/* ─ Analysis Form Modal ─ */}
       <AnimatePresence>
         {showAnalysisForm && (
           <motion.div
@@ -510,314 +478,3 @@ export default function ProjectDetailPage() {
   );
 }
 
-// ── Documents Tab (connected to Pipeline API) ─────────────────────────────
-
-function DocumentsTab({
-  documents,
-  isLoading,
-  showUploadArea,
-  dragOver,
-  fileInputRef,
-  uploadFile,
-  uploadTitle,
-  uploadSubjectCode,
-  uploadGradeCode,
-  uploadLessonCode,
-  isUploading,
-  onToggleUpload,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onFileSelect,
-  onUpload,
-  onTitleChange,
-  onSubjectCodeChange,
-  onGradeCodeChange,
-  onLessonCodeChange,
-  onClickUpload,
-  onAnalyze,
-  onDeleteDocument,
-}: {
-  documents: InputDocumentDto[];
-  isLoading: boolean;
-  showUploadArea: boolean;
-  dragOver: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement>;
-  uploadFile: File | null;
-  uploadTitle: string;
-  uploadSubjectCode: string;
-  uploadGradeCode: string;
-  uploadLessonCode: string;
-  isUploading: boolean;
-  onToggleUpload: () => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: () => void;
-  onDrop: (e: React.DragEvent) => void;
-  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onUpload: () => void;
-  onTitleChange: (v: string) => void;
-  onSubjectCodeChange: (v: string) => void;
-  onGradeCodeChange: (v: string) => void;
-  onLessonCodeChange: (v: string) => void;
-  onClickUpload: () => void;
-  onAnalyze: (documentCode: string) => void;
-  onDeleteDocument: (documentCode: string) => void;
-}) {
-  const [deletingDocCode, setDeletingDocCode] = useState<string | null>(null);
-  return (
-    <div>
-      {/* Upload Controls */}
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-gray-500">
-          Tải lên tài liệu bài giảng để AI phân tích và tạo slide tự động.
-        </p>
-        <button
-          onClick={onToggleUpload}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-sm font-medium transition-colors shadow-sm"
-        >
-          <Upload className="w-4 h-4" />
-          Tải tài liệu
-        </button>
-      </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,.doc,.docx,.ppt,.pptx"
-        onChange={onFileSelect}
-        className="hidden"
-      />
-
-      {/* Upload Drop Zone + Form */}
-      <AnimatePresence>
-        {showUploadArea && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-5"
-          >
-            {/* Drop zone */}
-            <div
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-              onClick={onClickUpload}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all mb-4 ${
-                dragOver
-                  ? 'border-blue-400 bg-blue-50'
-                  : 'border-gray-200 bg-gray-50/50 hover:border-blue-300 hover:bg-blue-50/30'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 ${
-                  dragOver ? 'bg-blue-100' : 'bg-gray-100'
-                }`}>
-                  <Upload className={`w-6 h-6 ${dragOver ? 'text-blue-500' : 'text-gray-400'}`} />
-                </div>
-                {uploadFile ? (
-                  <p className="text-sm font-medium text-blue-600">{uploadFile.name}</p>
-                ) : (
-                  <>
-                    <p className="text-sm font-medium text-gray-700 mb-1">
-                      {dragOver ? 'Thả file vào đây!' : 'Kéo & thả file vào đây'}
-                    </p>
-                    <p className="text-xs text-gray-400">Hỗ trợ PDF, Word, PowerPoint</p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Upload form fields */}
-            {uploadFile && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-gray-100 rounded-2xl p-5 space-y-3"
-              >
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Tiêu đề tài liệu *</label>
-                  <input
-                    type="text"
-                    value={uploadTitle}
-                    onChange={(e) => onTitleChange(e.target.value)}
-                    placeholder="VD: Giáo Án Địa Lí Bài 1"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Môn học *</label>
-                    <SubjectSelect value={uploadSubjectCode} onChange={(code) => { onSubjectCodeChange(code); onLessonCodeChange(''); }} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Lớp *</label>
-                    <GradeSelect value={uploadGradeCode} onChange={onGradeCodeChange} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Bài học *</label>
-                    <LessonSelect subjectCode={uploadSubjectCode} value={uploadLessonCode} onChange={onLessonCodeChange} />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={onUpload}
-                    disabled={isUploading || !uploadTitle || !uploadSubjectCode || !uploadGradeCode || !uploadLessonCode}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    {isUploading ? 'Đang tải...' : 'Tải lên'}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-          <span className="ml-2 text-sm text-gray-500">Đang tải tài liệu...</span>
-        </div>
-      )}
-
-      {/* Document List */}
-      {!isLoading && documents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <FileText className="w-8 h-8 text-gray-300" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có tài liệu nào</h3>
-          <p className="text-sm text-gray-500 mb-4">Hãy tải lên tài liệu bài giảng để bắt đầu!</p>
-        </div>
-      ) : !isLoading && (
-        <div className="space-y-3">
-          {documents.map((doc, idx) => {
-            const fileType = getFileTypeFromPath(doc.filePath);
-            const ftConfig = FILE_TYPE_CONFIG[fileType] ?? FILE_TYPE_CONFIG.docx;
-            const Icon = ftConfig.icon;
-            return (
-              <motion.div
-                key={doc.documentCode}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="group flex items-center gap-4 bg-white border border-gray-100 hover:border-blue-200 hover:shadow-md rounded-xl px-5 py-4 transition-all"
-              >
-                {/* File icon */}
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ftConfig.color}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400">{doc.subjectName}</span>
-                    <span className="text-xs text-gray-300">•</span>
-                    <span className="text-xs text-gray-400">{doc.gradeName}</span>
-                    {doc.lessonName && (
-                      <>
-                        <span className="text-xs text-gray-300">•</span>
-                        <span className="text-xs text-gray-400">{doc.lessonName}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Date */}
-                <span className="text-xs text-gray-400 hidden sm:block">
-                  {formatDate(doc.uploadDate)}
-                </span>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {deletingDocCode === doc.documentCode ? (
-                    <>
-                      <span className="text-xs text-red-500 font-medium">Xóa?</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDeleteDocument(doc.documentCode); setDeletingDocCode(null); }}
-                        className="px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
-                      >
-                        Xác nhận
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeletingDocCode(null); }}
-                        className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                      >
-                        Hủy
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeletingDocCode(doc.documentCode); }}
-                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Xóa tài liệu"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => onAnalyze(doc.documentCode)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all"
-                    title="Phân tích với AI"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Phân tích
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Select sub-components ──────────────────────────────────────────────────
-
-const SELECT_CLS = 'w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white disabled:bg-gray-50 disabled:text-gray-400';
-
-function SubjectSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const { data: subjects = [], isLoading } = useSubjects();
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={isLoading} className={SELECT_CLS}>
-      <option value="">{isLoading ? 'Đang tải...' : '-- Chọn môn học --'}</option>
-      {subjects.map((s) => (
-        <option key={s.subjectCode} value={s.subjectCode}>{s.subjectName}</option>
-      ))}
-    </select>
-  );
-}
-
-function GradeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const { data: grades = [], isLoading } = useGrades();
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={isLoading} className={SELECT_CLS}>
-      <option value="">{isLoading ? 'Đang tải...' : '-- Chọn lớp --'}</option>
-      {grades.map((g) => (
-        <option key={g.gradeCode} value={g.gradeCode}>{g.gradeName}</option>
-      ))}
-    </select>
-  );
-}
-
-function LessonSelect({ subjectCode, value, onChange }: { subjectCode: string; value: string; onChange: (v: string) => void }) {
-  const { data: lessons = [], isLoading } = useLessons(subjectCode || undefined);
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={!subjectCode || isLoading} className={SELECT_CLS}>
-      <option value="">{!subjectCode ? 'Chọn môn trước' : isLoading ? 'Đang tải...' : '-- Chọn bài học --'}</option>
-      {lessons.map((l) => (
-        <option key={l.lessonCode} value={l.lessonCode}>{l.lessonName}</option>
-      ))}
-    </select>
-  );
-}

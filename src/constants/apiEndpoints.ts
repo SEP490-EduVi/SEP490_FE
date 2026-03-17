@@ -81,6 +81,14 @@ export const API_ENDPOINTS = {
     DELETE:         (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
   },
 
+  // Video generation
+  VIDEO: {
+    // POST /api/Video/generate — Tạo video từ slide đã chỉnh sửa
+    GENERATE: '/api/Video/generate',
+    // GET /api/Video/project/{projectCode}/latest
+    GET_LATEST_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}/latest`,
+  },
+
   // Metadata
   SUBJECT: {
     GET_ALL: '/api/Subject',
