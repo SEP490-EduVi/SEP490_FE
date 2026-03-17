@@ -26,7 +26,7 @@ import CreateProjectModal from '@/components/projects/CreateProjectModal';
 import EditProjectModal from '@/components/projects/EditProjectModal';
 import type { ProjectDto, UpdateProjectInput } from '@/types/api';
 
-export default function ProjectsPage() {
+export default function TeacherPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -212,11 +212,11 @@ export default function ProjectsPage() {
                   key={project.projectCode}
                   project={project}
                   index={idx}
-                  menuOpen={menuOpen === project.projectCode}
+                  menuOpen={menuOpen !== null && menuOpen === project.projectCode}
                   onMenuToggle={() =>
                     setMenuOpen(menuOpen === project.projectCode ? null : project.projectCode)
                   }
-                  onClick={() => router.push(`/projects/${project.projectCode}`)}
+                  onClick={() => router.push(`/teacher/${project.projectCode}`)}
                   onEdit={() => handleEdit(project)}
                   onDelete={() => handleDelete(project.projectCode)}
                 />
@@ -229,7 +229,7 @@ export default function ProjectsPage() {
         {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'list' && (
           <ProjectListTable
             projects={filteredProjects}
-            onClickProject={(code) => router.push(`/projects/${code}`)}
+            onClickProject={(code) => router.push(`/teacher/${code}`)}
             onDelete={handleDelete}
             isDeleting={deleteProject.isPending ? (deleteProject.variables as string) : null}
           />
