@@ -10,20 +10,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Storage } from '@google-cloud/storage';
-import path from 'path';
-
-// Resolve the service-account key located at src/private/gcp-key.json.
-// In production the path can be overridden via the GCS_KEY_FILE env var.
-const keyFilePath =
-  process.env.GCS_KEY_FILE ??
-  path.join(process.cwd(), 'src', 'private', 'gcp-key.json');
+import { storage } from '@/lib/gcsClient';
 
 const bucketName = process.env.GCS_BUCKET_NAME ?? 'eduvi_folders';
 const folder = process.env.GCS_FOLDER_EDITED_SLIDES ?? 'edited_slides';
-
-// Reuse the Storage client across requests (module-level singleton)
-const storage = new Storage({ keyFilename: keyFilePath });
 
 export async function POST(req: NextRequest) {
   try {

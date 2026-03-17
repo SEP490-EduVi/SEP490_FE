@@ -11,19 +11,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Storage } from '@google-cloud/storage';
-import path from 'path';
-
-const keyFilePath =
-  process.env.GCS_KEY_FILE ??
-  path.join(process.cwd(), 'src', 'private', 'gcp-key.json');
+import { storage } from '@/lib/gcsClient';
 
 const bucketName = process.env.GCS_BUCKET_NAME ?? 'eduvi_folders';
 const folder = process.env.GCS_FOLDER_EDITED_SLIDES ?? 'edited_slides';
-
-const storage = new Storage({ keyFilename: keyFilePath });
-
-export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { productCode, data } = body as { productCode?: string; data?: unknown };

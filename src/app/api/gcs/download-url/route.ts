@@ -10,14 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Storage } from '@google-cloud/storage';
-import path from 'path';
-
-const keyFilePath =
-  process.env.GCS_KEY_FILE ??
-  path.join(process.cwd(), 'src', 'private', 'gcp-key.json');
-
-const storage = new Storage({ keyFilename: keyFilePath });
+import { storage } from '@/lib/gcsClient';
 
 export async function POST(req: NextRequest) {
   try {
