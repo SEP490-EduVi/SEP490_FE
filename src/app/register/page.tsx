@@ -60,7 +60,6 @@ export default function RegisterPage() {
     const err = validate();
     if (err) { setErrorMsg(err); return; }
 
-    // eslint-disable-next-line no-unused-vars
     const { confirmPassword: _confirmPassword, ...payload } = form;
     register(
       { ...payload, phoneNumber: payload.phoneNumber || null },
