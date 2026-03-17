@@ -46,9 +46,31 @@ export async function getProductSlide(productCode: string): Promise<{ slideDocum
 }
 
 // ─── GET product edited slide document ────────────────────────────────────
-export async function getProductEditedSlide(productCode: string): Promise<{ slideEditedDocument: IDocument; slideEditedAt: string }> {
-  const { data } = await api.get<ApiResponse<{ slideEditedDocument: IDocument; slideEditedAt: string }>>(
+// BE now stores the slide as a GCS file and returns a gs:// URL.
+// We proxy-read via /api/gcs/read so the browser doesn't need GCS access.
+export async function getProductEditedSlide(
+  productCode: string,
+): Promise<{ slideEditedDocument: IDocument; slideEditedAt: string }> {
+  const { data } = await api.get<ApiResponse<{ slideEditedDocument: IDocument | string; slideEditedAt: string }>>(
     API_ENDPOINTS.PRODUCT.GET_EDITED_SLIDE(productCode),
   );
-  return data.result;
+
+  const result = data.result;
+  let slideEditedDocument = result.slideEditedDocument;
+
+  // If BE returned a gs:// URL instead of the document object, fetch from GCS
+  if (typeof slideEditedDocument === 'string' && slideEditedDocument.startsWith('gs://')) {
+    const res = await fetch(
+      `/api/gcs/read?objectUrl=${encodeURIComponent(slideEditedDocument)}`,
+    );
+    if (!res.ok) {
+      throw new Error(`Failed to load edited slide from GCS (${res.status})`);
+    }
+    slideEditedDocument = await res.json() as IDocument;
+  }
+
+  return {
+    slideEditedDocument: slideEditedDocument as IDocument,
+    slideEditedAt: result.slideEditedAt,
+  };
 }
