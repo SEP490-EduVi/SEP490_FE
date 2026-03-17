@@ -26,7 +26,11 @@ export function createDocumentActions(
 
     loadDocument: async () => {
       // If a document was already set (e.g. via setDocument before navigating to editor), skip loading
-      const { document: existing } = get();
+      const { document: existing, isGenerating } = get();
+
+      // During generation the overlay manages the document — don't interfere
+      if (isGenerating) return;
+
       if (existing) {
         set({ error: null }); // clear any stale error from a previous failed load
         return;

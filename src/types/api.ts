@@ -97,6 +97,7 @@ export const PRODUCT_STATUS_MAP: Record<number, string> = {
   4: 'GENERATING_SLIDES',
   5: 'SLIDES_GENERATED',
   6: 'SLIDES_FAILED',
+  7: 'VIDEO_GENERATED',
 };
 
 // ─── Pipeline: Input Documents ─────────────────────────────────────────────
@@ -114,6 +115,42 @@ export interface InputDocumentDto {
   uploadDate: string;
 }
 
+export interface GenerateVideoInput {
+  productCode: string;
+  slideEditedDocumentUrl: string;
+}
+
+// ─── Video ─────────────────────────────────────────────────────────────────
+export interface VideoInteraction {
+  type: string;
+  slide_index: number;
+  card_index: number;
+  start_time: number;
+  end_time: number;
+  pause_time: number;
+  payload: {
+    title: string;
+    question: string;
+    options: string[];
+  };
+}
+
+export interface VideoProductDto {
+  productCode: string;
+  productName: string;
+  productVideoCode: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  slideDocumentUrl: string | null;
+  videoUrl: string | null;
+  duration: number | null;
+  interactions: VideoInteraction[];
+  pausePoints: unknown;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
 export interface UploadInputDocumentInput {
   File: File;
   Title: string;
@@ -121,6 +158,25 @@ export interface UploadInputDocumentInput {
   SubjectCode: string;
   GradeCode: string;
   LessonCode: string;
+}
+
+// ─── Metadata ─────────────────────────────────────────────────────────────
+export interface SubjectDto {
+  subjectCode: string;
+  subjectName: string;
+  lessonCount: number;
+}
+
+export interface GradeDto {
+  gradeCode: string;
+  gradeName: string;
+}
+
+export interface LessonDto {
+  lessonCode: string;
+  lessonName: string;
+  subjectCode: string;
+  subjectName: string;
 }
 
 export interface LessonAnalysisInput {

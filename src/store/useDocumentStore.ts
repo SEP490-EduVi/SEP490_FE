@@ -39,6 +39,7 @@ import { createCardActions } from './actions/cardActions';
 import { createNodeActions } from './actions/nodeActions';
 import { createReorderActions } from './actions/reorderActions';
 import { createMaterialActions } from './actions/materialActions';
+import { createGenerationActions } from './actions/generationActions';
 
 // ============================================================================
 // STORE IMPLEMENTATION
@@ -113,6 +114,13 @@ export const useDocumentStore = create<DocumentState>()(
         // Editing node
         editingNodeId: null,
 
+        // Generation state
+        isGenerating: false,
+        generationStep: null,
+        generationProgress: 0,
+        generationProductCode: null,
+        revealedCardCount: 0,
+
         // ================================================================
         // ACTIONS  (composed from slices)
         // ================================================================
@@ -122,6 +130,7 @@ export const useDocumentStore = create<DocumentState>()(
         ...createNodeActions(set, get, setDocumentWithHistory),
         ...createReorderActions(set, get, setDocumentWithHistory),
         ...createMaterialActions(set, get, setDocumentWithHistory),
+        ...createGenerationActions(set, get),
       };
     }),
     { name: 'eduvi-document-store' },

@@ -45,6 +45,16 @@ export async function getProductSlide(productCode: string): Promise<{ slideDocum
   return data.result;
 }
 
+// ─── GET raw GCS URL of the edited slide (without fetching content) ─────────
+// Returns the gs:// URL the backend stored, or null if stored as inline JSON.
+export async function getEditedSlideGcsUrl(productCode: string): Promise<string | null> {
+  const { data } = await api.get<ApiResponse<{ slideEditedDocument: IDocument | string; slideEditedAt: string }>>(
+    API_ENDPOINTS.PRODUCT.GET_EDITED_SLIDE(productCode),
+  );
+  const ref = data.result.slideEditedDocument;
+  return typeof ref === 'string' ? ref : null;
+}
+
 // ─── GET product edited slide document ────────────────────────────────────
 // BE now stores the slide as a GCS file and returns a gs:// URL.
 // We proxy-read via /api/gcs/read so the browser doesn't need GCS access.
