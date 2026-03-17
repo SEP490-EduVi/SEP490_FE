@@ -51,6 +51,13 @@ export interface DocumentState {
   // Editing State (which node is currently being edited in Tiptap)
   editingNodeId: string | null;
 
+  // Slide Generation State (progressive reveal)
+  isGenerating: boolean;
+  generationStep: string | null;
+  generationProgress: number;
+  generationProductCode: string | null;
+  revealedCardCount: number;
+
   // Document Actions
   loadDocument: () => Promise<void>;
   setDocument: (doc: IDocument, productCode?: string) => void;
@@ -107,6 +114,14 @@ export interface DocumentState {
   createWidgetGroup: (cardId: string, variant: LayoutVariant, materials: IMaterial[]) => void;
   wrapBlocksInLayout: (cardId: string, blockIds: string[], variant: LayoutVariant) => void;
   
+  // Generation Actions
+  startGeneration: (productCode: string) => void;
+  setGenerationProgress: (step: string, progress: number) => void;
+  completeGeneration: (doc: IDocument) => void;
+  cancelGeneration: () => void;
+  revealNextCard: () => void;
+  finishReveal: () => void;
+
   // Utility
   getActiveCard: () => ICard | null;
   findNodeById: (nodeId: string) => INode | null;

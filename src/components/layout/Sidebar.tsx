@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { ICard, ILayout, IBlock, NodeType } from '@/types';
 import { Plus, GripVertical, Trash2, FileText, Image as ImageIcon, Video, HelpCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================================================
 // SLIDE THUMBNAIL PREVIEW
@@ -209,6 +210,8 @@ export function Sidebar() {
   const addCard = useDocumentStore((state) => state.addCard);
   const deleteNode = useDocumentStore((state) => state.deleteNode);
   const reorderCards = useDocumentStore((state) => state.reorderCards);
+  const isGenerating = useDocumentStore((state) => state.isGenerating);
+  const revealedCardCount = useDocumentStore((state) => state.revealedCardCount);
 
   const slideListRef = React.useRef<HTMLDivElement>(null);
 
@@ -243,6 +246,12 @@ export function Sidebar() {
     );
   }
 
+  // During generation, only show revealed cards
+  const visibleCards =
+    isGenerating && revealedCardCount < document.cards.length
+      ? document.cards.slice(0, revealedCardCount)
+      : document.cards;
+
   return (
     <aside className="w-64 bg-surface-secondary border-r border-border flex flex-col">
       {/* Header */}
@@ -250,7 +259,11 @@ export function Sidebar() {
         <h2 className="text-base font-bold text-gray-800">
           Trang trình bày
         </h2>
-        <p className="text-xs text-gray-400 mt-0.5">{document.cards.length} trang</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {isGenerating && revealedCardCount < document.cards.length
+            ? `${revealedCardCount} / ${document.cards.length} trang`
+            : `${document.cards.length} trang`}
+        </p>
       </div>
 
       {/* Slides list */}
@@ -261,20 +274,28 @@ export function Sidebar() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={document.cards.map((c) => c.id)}
+            items={visibleCards.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            {document.cards.map((card, index) => (
-              <div key={card.id} data-sidebar-card={card.id}>
-                <SlideItem
-                  card={card}
-                  index={index}
-                  isActive={card.id === activeCardId}
-                  onClick={() => setActiveCard(card.id)}
-                  onDelete={() => deleteNode(card.id)}
-                />
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {visibleCards.map((card, index) => (
+                <motion.div
+                  key={card.id}
+                  data-sidebar-card={card.id}
+                  initial={isGenerating ? { opacity: 0, x: -40, scale: 0.9 } : false}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                >
+                  <SlideItem
+                    card={card}
+                    index={index}
+                    isActive={card.id === activeCardId}
+                    onClick={() => setActiveCard(card.id)}
+                    onDelete={() => deleteNode(card.id)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </SortableContext>
         </DndContext>
       </div>
@@ -283,10 +304,13 @@ export function Sidebar() {
       <div className="p-3 border-t border-border">
         <button
           onClick={() => addCard()}
+          disabled={isGenerating}
           className={cn(
             'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
             'font-semibold text-sm transition-all duration-150',
-            'bg-gradient-to-r from-rose-500 to-violet-500 text-white hover:from-rose-600 hover:to-violet-600 shadow-sm hover:shadow-md'
+            isGenerating
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-rose-500 to-violet-500 text-white hover:from-rose-600 hover:to-violet-600 shadow-sm hover:shadow-md'
           )}
         >
           <Plus className="w-4 h-4" />

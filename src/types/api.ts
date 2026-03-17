@@ -123,6 +123,25 @@ export interface UploadInputDocumentInput {
   LessonCode: string;
 }
 
+// ─── Metadata ─────────────────────────────────────────────────────────────
+export interface SubjectDto {
+  subjectCode: string;
+  subjectName: string;
+  lessonCount: number;
+}
+
+export interface GradeDto {
+  gradeCode: string;
+  gradeName: string;
+}
+
+export interface LessonDto {
+  lessonCode: string;
+  lessonName: string;
+  subjectCode: string;
+  subjectName: string;
+}
+
 export interface LessonAnalysisInput {
   documentCode: string;
   projectCode: string;

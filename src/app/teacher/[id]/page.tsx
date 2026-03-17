@@ -26,6 +26,7 @@ import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
 import { useLessonAnalysis, useGenerateSlides } from '@/hooks/usePipelineApi';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
+import { useSubjects, useGrades, useLessons } from '@/hooks/useMetadataApi';
 import ProductsTab from '@/components/projects/ProductsTab';
 import EvaluationModal from '@/components/projects/EvaluationModal';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
@@ -85,6 +86,7 @@ export default function ProjectDetailPage() {
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
   const setDocument = useDocumentStore((state) => state.setDocument);
+  const startGeneration = useDocumentStore((state) => state.startGeneration);
 
   // ── SignalR pipeline progress ──────────────────────────────────────────
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -196,8 +198,8 @@ export default function ProjectDetailPage() {
       { productCode, slideRange: 'short' },
       {
         onSuccess: () => {
-          setPipelineType('slides');
-          setShowPipelineModal(true);
+          startGeneration(productCode);
+          router.push('/teacher/editor');
         },
       },
     );
@@ -646,34 +648,16 @@ function DocumentsTab({
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã môn học *</label>
-                    <input
-                      type="text"
-                      value={uploadSubjectCode}
-                      onChange={(e) => onSubjectCodeChange(e.target.value)}
-                      placeholder="VD: dia_li"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Môn học *</label>
+                    <SubjectSelect value={uploadSubjectCode} onChange={(code) => { onSubjectCodeChange(code); onLessonCodeChange(''); }} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã lớp *</label>
-                    <input
-                      type="text"
-                      value={uploadGradeCode}
-                      onChange={(e) => onGradeCodeChange(e.target.value)}
-                      placeholder="VD: lop_10"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Lớp *</label>
+                    <GradeSelect value={uploadGradeCode} onChange={onGradeCodeChange} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Mã bài học *</label>
-                    <input
-                      type="text"
-                      value={uploadLessonCode}
-                      onChange={(e) => onLessonCodeChange(e.target.value)}
-                      placeholder="VD: bai_1"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Bài học *</label>
+                    <LessonSelect subjectCode={uploadSubjectCode} value={uploadLessonCode} onChange={onLessonCodeChange} />
                   </div>
                 </div>
                 <div className="flex justify-end pt-1">
@@ -795,5 +779,45 @@ function DocumentsTab({
         </div>
       )}
     </div>
+  );
+}
+
+// ── Select sub-components ──────────────────────────────────────────────────
+
+const SELECT_CLS = 'w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white disabled:bg-gray-50 disabled:text-gray-400';
+
+function SubjectSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: subjects = [], isLoading } = useSubjects();
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={isLoading} className={SELECT_CLS}>
+      <option value="">{isLoading ? 'Đang tải...' : '-- Chọn môn học --'}</option>
+      {subjects.map((s) => (
+        <option key={s.subjectCode} value={s.subjectCode}>{s.subjectName}</option>
+      ))}
+    </select>
+  );
+}
+
+function GradeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: grades = [], isLoading } = useGrades();
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={isLoading} className={SELECT_CLS}>
+      <option value="">{isLoading ? 'Đang tải...' : '-- Chọn lớp --'}</option>
+      {grades.map((g) => (
+        <option key={g.gradeCode} value={g.gradeCode}>{g.gradeName}</option>
+      ))}
+    </select>
+  );
+}
+
+function LessonSelect({ subjectCode, value, onChange }: { subjectCode: string; value: string; onChange: (v: string) => void }) {
+  const { data: lessons = [], isLoading } = useLessons(subjectCode || undefined);
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={!subjectCode || isLoading} className={SELECT_CLS}>
+      <option value="">{!subjectCode ? 'Chọn môn trước' : isLoading ? 'Đang tải...' : '-- Chọn bài học --'}</option>
+      {lessons.map((l) => (
+        <option key={l.lessonCode} value={l.lessonCode}>{l.lessonName}</option>
+      ))}
+    </select>
   );
 }

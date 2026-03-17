@@ -81,6 +81,17 @@ export const API_ENDPOINTS = {
     DELETE:         (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
   },
 
+  // Metadata
+  SUBJECT: {
+    GET_ALL: '/api/Subject',
+  },
+  GRADE: {
+    GET_ALL: '/api/Grade',
+  },
+  LESSON: {
+    GET_BY_SUBJECT: (subjectCode: string) => `/api/Lesson?subjectCode=${subjectCode}`,
+  },
+
 } as const;
 
 

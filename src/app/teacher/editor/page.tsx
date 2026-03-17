@@ -48,6 +48,7 @@ import { useDocumentStore } from '@/store';
 import { Sidebar, Toolbar, MainStage } from '@/components/layout';
 import { MaterialSidebar } from '@/components/sidebar/MaterialSidebar';
 import { PresentationLayer } from '@/components/presentation';
+import SlideGenerationOverlay from '@/components/editor/SlideGenerationOverlay';
 import { IMaterial } from '@/types';
 import { Package } from 'lucide-react';
 
@@ -237,6 +238,9 @@ export default function EditorPage() {
 
       {/* Presentation Mode Overlay */}
       <PresentationLayer />
+
+      {/* Slide Generation Overlay (shown during AI generation) */}
+      <SlideGenerationOverlay />
 
     </>
   );
