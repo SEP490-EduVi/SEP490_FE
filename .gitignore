@@ -45,3 +45,8 @@ Thumbs.db
 
 
 node_modules
+
+# GCP Service Account Keys — NEVER commit to git
+src/private/
+*-key.json
+*-credentials.json
