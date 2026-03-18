@@ -45,7 +45,9 @@ export default function HomePage() {
             >
               Login
             </button>
-            <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <button 
+            onClick={() => router.push('/expert/certificate')}
+            className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
               Help
             </button>
             <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
@@ -98,7 +100,7 @@ export default function HomePage() {
 
             {/* Slide Editor Option */}
             <div
-              onClick={() => router.push('/editor')}
+              onClick={() => router.push('/Test')}
               className="group cursor-pointer bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-transparent hover:border-purple-500"
             >
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">

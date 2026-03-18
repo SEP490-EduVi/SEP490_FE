@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, FileText, Package, CheckCircle, AlertCircle, Loader2, Sparkles, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, Layers, Film, CheckCircle, AlertCircle, Loader2, Sparkles, ChevronRight } from 'lucide-react';
 
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
@@ -12,6 +12,7 @@ import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocum
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentsTab from '@/components/projects/DocumentsTab';
 import ProductsTab from '@/components/projects/ProductsTab';
+import VideosTab from '@/components/projects/VideosTab';
 import EvaluationModal from '@/components/projects/EvaluationModal';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -19,7 +20,7 @@ import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import type { PipelineProgress } from '@/types/api';
 
-type TabKey = 'documents' | 'products';
+type TabKey = 'documents' | 'slides' | 'videos';
 
 // ─ Component ─
 
@@ -210,7 +211,8 @@ export default function ProjectDetailPage() {
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType; count: number }[] = [
     { key: 'documents', label: 'Tài liệu đầu vào', icon: FileText, count: inputDocuments.length },
-    { key: 'products', label: 'Sản phẩm AI', icon: Package, count: products.length },
+    { key: 'slides', label: 'Slide', icon: Layers, count: products.length },
+    { key: 'videos', label: 'Video', icon: Film, count: latestVideo?.status === 'completed' ? 1 : 0 },
   ];
 
   // ─ Loading state ─
@@ -291,7 +293,7 @@ export default function ProjectDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Tài liệu', value: inputDocuments.length, icon: FileText, color: 'text-blue-600 bg-blue-50' },
-            { label: 'Sản phẩm', value: products.length, icon: Package, color: 'text-purple-600 bg-purple-50' },
+            { label: 'Slide', value: products.length, icon: Layers, color: 'text-purple-600 bg-purple-50' },
             { label: 'Hoàn thành', value: products.filter((p) => p.statusName === 'SLIDES_GENERATED').length, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
           ].map((stat) => {
             const Icon = stat.icon;
@@ -338,7 +340,7 @@ export default function ProjectDetailPage() {
 
         {/* ─ Tab Content ─ */}
         <AnimatePresence mode="wait">
-          {activeTab === 'documents' ? (
+          {activeTab === 'documents' && (
             <motion.div
               key="documents"
               initial={{ opacity: 0, y: 10 }}
@@ -373,9 +375,10 @@ export default function ProjectDetailPage() {
                 onDeleteDocument={(code) => deleteDoc.mutate(code)}
               />
             </motion.div>
-          ) : (
+          )}
+          {activeTab === 'slides' && (
             <motion.div
-              key="products"
+              key="slides"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -390,8 +393,18 @@ export default function ProjectDetailPage() {
                 onGenerateSlides={handleGenerateSlides}
                 onGenerateVideo={handleGenerateVideo}
                 videoLoadingCode={videoLoadingCode}
-                latestVideo={latestVideo}
               />
+            </motion.div>
+          )}
+          {activeTab === 'videos' && (
+            <motion.div
+              key="videos"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <VideosTab latestVideo={latestVideo} />
             </motion.div>
           )}
         </AnimatePresence>

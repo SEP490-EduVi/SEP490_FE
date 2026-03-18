@@ -37,8 +37,7 @@ function resolveRole(roleName?: string | null): AppRole {
 const ROUTE_PERMISSIONS: Record<string, AppRole[]> = {
   '/admin':          ['admin'],
   '/teacher':        ['teacher'],
-  // Thêm route cho staff / expert sau:
-  // '/review':     ['expert'],
+  '/expert':         ['expert'],
   // '/manage':     ['staff'],
 };
 

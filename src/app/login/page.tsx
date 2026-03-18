@@ -41,6 +41,8 @@ export default function LoginPage() {
             router.push('/admin');
           } else if (roleName === 'teacher') {
             router.push('/teacher');
+          } else if (roleName === 'expert') {
+            router.push('/expert');
           } else {
             router.push('/');
           }

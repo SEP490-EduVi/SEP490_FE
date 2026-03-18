@@ -18,11 +18,9 @@ import {
   Pencil,
   Trash2,
   Video,
-  Play,
   Film,
 } from 'lucide-react';
-import type { ProductDto, VideoProductDto } from '@/types/api';
-import VideoPlayerModal from './VideoPlayerModal';
+import type { ProductDto } from '@/types/api';
 
 // ── Status display config ──────────────────────────────────────────────────
 type StatusKey =
@@ -78,7 +76,6 @@ interface ProductsTabProps {
   onGenerateSlides?: (productCode: string) => void;
   onGenerateVideo?: (productCode: string) => void;
   videoLoadingCode?: string | null;
-  latestVideo?: VideoProductDto | null;
 }
 
 export default function ProductsTab({
@@ -90,10 +87,8 @@ export default function ProductsTab({
   onGenerateSlides,
   onGenerateVideo,
   videoLoadingCode = null,
-  latestVideo = null,
 }: ProductsTabProps) {
   const [confirmDeleteCode, setConfirmDeleteCode] = useState<string | null>(null);
-  const [viewingVideo, setViewingVideo] = useState<VideoProductDto | null>(null);
 
   const handleConfirmDelete = (productCode: string) => {
     onDeleteProduct?.(productCode);
@@ -110,7 +105,7 @@ export default function ProductsTab({
 
   return (
     <>
-    <div>
+      <div>
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-gray-500">
           Các sản phẩm slide được AI tạo ra từ tài liệu bài giảng.
@@ -213,61 +208,7 @@ export default function ProductsTab({
                       />
                     </div>
 
-                    {/* Video info strip — shown when this product has a completed video */}
-                    {latestVideo?.productCode === product.productCode && latestVideo.status === 'completed' && (
-                      <div className="mt-4 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                          <Film className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-violet-800">
-                            Video đã được tạo
-                          </p>
-                          {latestVideo.duration != null && (
-                            <p className="text-xs text-violet-500 mt-0.5">
-                              {Math.floor(latestVideo.duration / 60)} phút {Math.floor(latestVideo.duration % 60)} giây
-                              {latestVideo.interactions?.length > 0 && (
-                                <> &middot; {latestVideo.interactions.length} câu hỏi tương tác</>
-                              )}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setViewingVideo(latestVideo)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:shadow-md rounded-lg transition-all"
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                            Xem video
-                          </button>
-                          {confirmDeleteCode === `video_${product.productCode}` ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-red-500 font-medium">Xóa?</span>
-                              <button
-                                onClick={() => handleConfirmDelete(product.productCode)}
-                                className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
-                              >
-                                Xác nhận
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteCode(null)}
-                                className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                              >
-                                Hủy
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmDeleteCode(`video_${product.productCode}`)}
-                              className="p-1.5 text-violet-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Xóa sản phẩm"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+
                   </div>
 
                   {/* Actions */}
@@ -299,7 +240,7 @@ export default function ProductsTab({
                         Tạo slide
                       </button>
                     )}
-                    {product.hasEditedSlide && latestVideo?.productCode !== product.productCode && (
+                    {product.hasEditedSlide && product.statusName !== 'VIDEO_GENERATED' && (
                       <button
                         onClick={() => onGenerateVideo?.(product.productCode)}
                         disabled={videoLoadingCode === product.productCode}
@@ -348,14 +289,6 @@ export default function ProductsTab({
         </div>
       )}
     </div>
-
-    {/* Video player modal */}
-    {viewingVideo && (
-      <VideoPlayerModal
-        video={viewingVideo}
-        onClose={() => setViewingVideo(null)}
-      />
-    )}
     </>
   );
 }

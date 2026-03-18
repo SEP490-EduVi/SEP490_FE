@@ -1,0 +1,350 @@
+{
+  "taskId": "b76ca9de-7ad1-4be2-b7ef-dc41e3738359",
+  "userId": "5",
+  "productId": 1009,
+  "status": "completed",
+  "step": "slides_completed",
+  "progress": 100,
+  "detail": null,
+  "result": {
+    "title": "BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG",
+    "cards": [
+      {
+        "id": "card-84963c3f",
+        "type": "CARD",
+        "title": "BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG",
+        "children": [
+          {
+            "id": "block-58348150",
+            "type": "BLOCK",
+            "content": {
+              "type": "TEXT",
+              "html": "BÀI 1: ĐỊA LÍ VỚI ĐỜI SỐNG Lớp 10"
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "card-1d5fc7fb",
+        "type": "CARD",
+        "title": "1. Đặc điểm của môn Địa lí ở trường phổ thông",
+        "children": [
+          {
+            "id": "layout-84d1273a",
+            "type": "LAYOUT",
+            "variant": "SIDEBAR_RIGHT",
+            "gap": 6,
+            "children": [
+              {
+                "id": "block-a438ff01",
+                "type": "BLOCK",
+                "content": {
+                  "type": "TEXT",
+                  "html": "Môn Địa lí được giảng dạy xuyên suốt các cấp học phổ thông. Ở Tiểu học và THCS, nội dung Địa lí nằm trong môn Lịch sử và Địa lí. Lên THPT, Địa lí là môn học độc lập thuộc nhóm khoa học xã hội.Điểm đặc biệt của môn Địa lí là tính tổng hợp và liên ngành. Môn học này không chỉ bao gồm kiến thức khoa học tự nhiên (liên quan đến Toán, Vật lí, Hóa học, Sinh học) mà còn cả khoa học xã hội (liên quan đến Lịch sử, Giáo dục kinh tế và pháp luật,...). Điều này giúp chúng ta có cái nhìn toàn diện về thế giới xung quanh."
+                },
+                "children": []
+              },
+              {
+                "id": "block-687e9773",
+                "type": "BLOCK",
+                "content": {
+                  "type": "IMAGE",
+                  "src": "",
+                  "alt": "Sơ đồ thể hiện mối liên hệ của Địa lí với các môn khoa học tự nhiên và xã hội"
+                },
+                "children": []
+              }
+            ]
+          }
+        ],
+        "templateId": "template-002"
+      },
+      {
+        "id": "card-83b8b4cf",
+        "type": "CARD",
+        "title": "2. Vai trò và phạm vi nghiên cứu của Địa lí học",
+        "children": [
+          {
+            "id": "layout-1d1679ec",
+            "type": "LAYOUT",
+            "variant": "SIDEBAR_LEFT",
+            "gap": 6,
+            "children": [
+              {
+                "id": "block-8577885b",
+                "type": "BLOCK",
+                "content": {
+                  "type": "IMAGE",
+                  "src": "",
+                  "alt": "Hình ảnh Trái Đất nhìn từ không gian, kết hợp với các biểu tượng về hoạt động con người và hiện tượng tự nhiên"
+                },
+                "children": []
+              },
+              {
+                "id": "block-b7c79683",
+                "type": "BLOCK",
+                "content": {
+                  "type": "TEXT",
+                  "html": "Địa lí học là một ngành khoa học có lịch sử lâu đời, nghiên cứu về Trái Đất, các hiện tượng tự nhiên và hoạt động của con người trên bề mặt Trái Đất. Đây là một hệ thống khoa học rộng lớn, bao gồm Địa lí tự nhiên và Địa lí kinh tế – xã hội.Vai trò quan trọng của Địa lí học là cung cấp những hiểu biết cơ bản về thế giới, giúp chúng ta giải thích các hiện tượng tự nhiên, xã hội, và ứng dụng kiến thức đó vào cuộc sống, từ việc quy hoạch phát triển kinh tế, xã hội đến bảo vệ môi trường và ứng phó với biến đổi khí hậu."
+                },
+                "children": []
+              }
+            ]
+          }
+        ],
+        "templateId": "template-001"
+      },
+      {
+        "id": "card-3fe1fde1",
+        "type": "CARD",
+        "title": "3. Các ứng dụng của Địa lí học trong đời sống",
+        "children": [
+          {
+            "id": "block-191973be",
+            "type": "BLOCK",
+            "content": {
+              "type": "HEADING",
+              "html": "3. Các ứng dụng của Địa lí học trong đời sống",
+              "level": 2
+            },
+            "children": []
+          },
+          {
+            "id": "block-0f4f6af9",
+            "type": "BLOCK",
+            "content": {
+              "type": "TEXT",
+              "html": "Quy hoạch phát triển: Lập kế hoạch sử dụng đất, quy hoạch đô thị, nông thôn, phát triển vùng.Dự báo: Dự báo thời tiết, khí hậu, thiên tai, xu hướng phát triển kinh tế - xã hội.Quản lý tài nguyên: Quản lý đất đai, nguồn nước, rừng, khoáng sản và bảo vệ môi trường.Phát triển du lịch: Khảo sát tiềm năng, thiết kế tour, quản lý và phát triển các điểm đến du lịch.Quốc phòng - An ninh: Phân tích địa hình, điều kiện tự nhiên phục vụ chiến lược."
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "card-ab737a97",
+        "type": "CARD",
+        "title": "Môn Địa lí với định hướng nghề nghiệp",
+        "children": [
+          {
+            "id": "block-d9ca51ea",
+            "type": "BLOCK",
+            "content": {
+              "type": "TEXT",
+              "html": "Môn Địa lí với định hướng nghề nghiệp"
+            },
+            "children": []
+          }
+        ],
+        "backgroundColor": "#1e293b"
+      },
+      {
+        "id": "card-3881a9c1",
+        "type": "CARD",
+        "title": "4. Một số ngành nghề liên quan đến Địa lí",
+        "children": [
+          {
+            "id": "block-b1c1ce4e",
+            "type": "BLOCK",
+            "content": {
+              "type": "HEADING",
+              "html": "4. Một số ngành nghề liên quan đến Địa lí",
+              "level": 2
+            },
+            "children": []
+          },
+          {
+            "id": "layout-8f30cb70",
+            "type": "LAYOUT",
+            "variant": "THREE_COLUMN",
+            "gap": 6,
+            "children": [
+              {
+                "id": "block-14ec408e",
+                "type": "BLOCK",
+                "content": {
+                  "type": "TEXT",
+                  "html": "Địa lí tự nhiên & Môi trường Khí tượng thủy văn: Dự báo thời tiết, nghiên cứu khí hậu.Quản lý tài nguyên: Đất, nước, rừng, khoáng sản.Môi trường: Đánh giá tác động, bảo tồn đa dạng sinh học.Nông nghiệp: Quy hoạch sản xuất, quản lý đất nông nghiệp."
+                },
+                "children": []
+              },
+              {
+                "id": "block-363865e3",
+                "type": "BLOCK",
+                "content": {
+                  "type": "TEXT",
+                  "html": "Địa lí kinh tế - xã hội Thương mại - Dịch vụ: Phân tích thị trường, lựa chọn vị trí kinh doanh.Du lịch: Phát triển sản phẩm, quản lý điểm đến.Phát triển cộng đồng: Nghiên cứu dân cư, văn hóa, xã hội.Nghiên cứu thị trường: Phân tích không gian tiêu thụ, hành vi khách hàng."
+                },
+                "children": []
+              },
+              {
+                "id": "block-d4759fca",
+                "type": "BLOCK",
+                "content": {
+                  "type": "TEXT",
+                  "html": "Quy hoạch & Công nghệ Địa líQuy hoạch: Đô thị, nông thôn, vùng, sử dụng đất.Bản đồ & GIS: Xây dựng bản đồ, phân tích thông tin không gian.Địa chính: Quản lý hồ sơ đất đai, đo đạc địa chính.Giáo dục: Giảng dạy Địa lí ở các cấp học."
+                },
+                "children": []
+              }
+            ]
+          }
+        ],
+        "templateId": "template-005"
+      },
+      {
+        "id": "card-ceb0644c",
+        "type": "CARD",
+        "title": "Củng cố kiến thức (1/3)",
+        "children": [
+          {
+            "id": "block-4ca4f0b2",
+            "type": "BLOCK",
+            "content": {
+              "type": "QUIZ",
+              "title": "Củng cố kiến thức (1/3)",
+              "questions": [
+                {
+                  "id": "q-1d42beb5",
+                  "question": "Đặc điểm nào sau đây thể hiện tính tổng hợp của môn Địa lí?",
+                  "options": [
+                    {
+                      "id": "opt-80b98df7",
+                      "text": "A. Chỉ tập trung vào các hiện tượng tự nhiên."
+                    },
+                    {
+                      "id": "opt-14352899",
+                      "text": "B. Chỉ nghiên cứu về kinh tế và xã hội."
+                    },
+                    {
+                      "id": "opt-6d8f65f0",
+                      "text": "C. Kết hợp cả lĩnh vực khoa học tự nhiên và khoa học xã hội."
+                    },
+                    {
+                      "id": "opt-4ba17cae",
+                      "text": "D. Chỉ liên quan đến môn Lịch sử."
+                    }
+                  ],
+                  "correctIndex": 2,
+                  "explanation": "Môn Địa lí mang tính chất tổng hợp, bao gồm cả lĩnh vực khoa học tự nhiên và khoa học xã hội, có mối liên hệ với nhiều môn học khác."
+                }
+              ]
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "card-ac5cdc04",
+        "type": "CARD",
+        "title": "Củng cố kiến thức (2/3)",
+        "children": [
+          {
+            "id": "block-02b99f30",
+            "type": "BLOCK",
+            "content": {
+              "type": "QUIZ",
+              "title": "Củng cố kiến thức (2/3)",
+              "questions": [
+                {
+                  "id": "q-c4a0ce11",
+                  "question": "Vai trò chính của môn Địa lí ở trường phổ thông là gì?",
+                  "options": [
+                    {
+                      "id": "opt-c83024b0",
+                      "text": "A. Giúp học sinh trở thành nhà khoa học địa lí chuyên nghiệp."
+                    },
+                    {
+                      "id": "opt-963c8d0e",
+                      "text": "B. Cung cấp hiểu biết cơ bản về khoa học địa lí và khả năng ứng dụng vào đời sống."
+                    },
+                    {
+                      "id": "opt-618707e1",
+                      "text": "C. Chỉ để học sinh ghi nhớ các địa danh và số liệu."
+                    },
+                    {
+                      "id": "opt-5be5cd9d",
+                      "text": "D. Phát triển kĩ năng vẽ bản đồ một cách thuần túy."
+                    }
+                  ],
+                  "correctIndex": 1,
+                  "explanation": "Môn Địa lí giúp các em có được những hiểu biết cơ bản về khoa học địa lí, khả năng ứng dụng kiến thức địa lí trong đời sống."
+                }
+              ]
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "card-117a4c2c",
+        "type": "CARD",
+        "title": "Củng cố kiến thức (3/3)",
+        "children": [
+          {
+            "id": "block-fa2c3c0a",
+            "type": "BLOCK",
+            "content": {
+              "type": "QUIZ",
+              "title": "Củng cố kiến thức (3/3)",
+              "questions": [
+                {
+                  "id": "q-c54de7c7",
+                  "question": "Kiến thức về địa lí tự nhiên (địa hình, khí hậu, thủy văn) có thể hỗ trợ trực tiếp cho ngành nghề nào sau đây?",
+                  "options": [
+                    {
+                      "id": "opt-69edbe9b",
+                      "text": "A. Kế toán tài chính."
+                    },
+                    {
+                      "id": "opt-37ba39f7",
+                      "text": "B. Thiết kế thời trang."
+                    },
+                    {
+                      "id": "opt-bc80b522",
+                      "text": "C. Quản lí đất đai và quy hoạch nông nghiệp."
+                    },
+                    {
+                      "id": "opt-082f4a54",
+                      "text": "D. Biên tập viên truyền hình."
+                    }
+                  ],
+                  "correctIndex": 2,
+                  "explanation": "Kiến thức về địa lí tự nhiên rất quan trọng trong các hoạt động của ngành nông nghiệp như trồng trọt, chăn nuôi, thiết kế quy hoạch các công trình nông nghiệp, quản lí đất đai và bảo vệ môi trường."
+                }
+              ]
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "card-b30f8923",
+        "type": "CARD",
+        "title": "Tóm tắt bài học",
+        "children": [
+          {
+            "id": "block-cb9c98d3",
+            "type": "BLOCK",
+            "content": {
+              "type": "HEADING",
+              "html": "Tóm tắt bài học",
+              "level": 2
+            },
+            "children": []
+          },
+          {
+            "id": "block-b3f63a64",
+            "type": "BLOCK",
+            "content": {
+              "type": "TEXT",
+              "html": "Địa lí là môn học tổng hợp, kết hợp cả khoa học tự nhiên và khoa học xã hội, có mối liên hệ rộng rãi với nhiều môn học khác.Môn Địa lí cung cấp kiến thức cơ bản về khoa học địa lí và khả năng ứng dụng vào đời sống hàng ngày.Kiến thức địa lí tự nhiên (địa hình, khí hậu, thủy văn) giúp ích trong nông nghiệp, quản lí đất đai và bảo vệ môi trường.Kiến thức địa lí về tự nhiên, kinh tế, văn hóa, xã hội hỗ trợ các ngành thương mại, tài chính, dịch vụ. Địa lí học là nền tảng quan trọng, mở ra nhiều cơ hội nghề nghiệp đa dạng trong xã hội hiện đại."
+            },
+            "children": []
+          }
+        ]
+      }
+    ],
+    "activeCardId": "card-84963c3f"
+  },
+  "error": null
+}

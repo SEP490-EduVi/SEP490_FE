@@ -189,3 +189,41 @@ export interface GenerateSlidesInput {
   productCode: string;
   slideRange: 'short' | 'medium' | 'long';
 }
+
+// ─── Expert: Verification (Certificate) ────────────────────────────────────
+export interface VerificationDto {
+  verificationCode: string;
+  fileType: string;
+  description: string;
+  status: string;
+  rejectionReason: string | null;
+  uploadedAt: string;
+  reviewedAt: string | null;
+}
+
+// ─── Expert: Material ──────────────────────────────────────────────────────
+export interface MaterialDto {
+  materialCode: string;
+  title: string;
+  description: string;
+  type: string;
+  price: number;
+  previewUrl: string | null;
+  resourceUrl: string | null;
+  subjectCode: string;
+  subjectName: string;
+  gradeCode: string;
+  gradeName: string;
+  approvalStatus: number;
+  expertCode: string;
+  expertName: string;
+  createdAt: string;
+}
+
+export interface UpdateMaterialInput {
+  title: string;
+  description: string;
+  price: number;
+  subjectCode: string;
+  gradeCode: string;
+}

@@ -100,6 +100,26 @@ export const API_ENDPOINTS = {
     GET_BY_SUBJECT: (subjectCode: string) => `/api/Lesson?subjectCode=${subjectCode}`,
   },
 
+  // Expert Verification (Certificate)
+  EXPERT_VERIFICATION: {
+    SUBMIT:   '/api/expert/verifications',
+    GET_ALL:  '/api/expert/verifications',
+    DELETE:   (code: string) => `/api/expert/verifications/${code}`,
+  },
+
+  // Material (Expert)
+  MATERIAL: {
+    UPLOAD:   '/api/material/file',
+    GET_MY:   '/api/material/my',
+    UPDATE:   (code: string) => `/api/material/${code}`,
+    DELETE:   (code: string) => `/api/material/${code}`,
+    // Teacher-facing
+    GET_BY_CODE: (code: string) => `/api/material/${code}`,
+    BROWSE:      '/api/material/browse',
+    PURCHASE:    (code: string) => `/api/material/${code}/purchase`,
+    GET_PURCHASED: '/api/material/purchased',
+  },
+
 } as const;
 
 
