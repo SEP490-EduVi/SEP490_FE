@@ -132,6 +132,7 @@ export interface VideoInteraction {
     title: string;
     question: string;
     options: string[];
+    correct_answer?: number; // 0-based index of the correct option
   };
 }
 
@@ -183,11 +184,22 @@ export interface LessonAnalysisInput {
   documentCode: string;
   projectCode: string;
   productName: string;
+  curriculumYear: number;
 }
 
 export interface GenerateSlidesInput {
   productCode: string;
   slideRange: 'short' | 'medium' | 'long';
+}
+
+export interface CurriculumDto {
+  documentCode: string;
+  subjectCode: string;
+  educationLevel: string;
+  curriculumYear: number;
+  originalFileName: string;
+  status: number;
+  statusName: string;
 }
 
 // ─── Expert: Verification (Certificate) ────────────────────────────────────

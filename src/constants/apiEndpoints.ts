@@ -6,6 +6,7 @@ const buildPipelineEndpoint = (path: string) => `/api/Pipeline${path}`;
 const buildProjectEndpoint  = (path: string) => `/api/Project${path}`;
 const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
+const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -118,6 +119,12 @@ export const API_ENDPOINTS = {
     BROWSE:      '/api/material/browse',
     PURCHASE:    (code: string) => `/api/material/${code}/purchase`,
     GET_PURCHASED: '/api/material/purchased',
+  },
+
+  // Curriculum Ingestion
+  CURRICULUM: {
+    // GET /api/curriculum-ingestion
+    GET_ALL: buildCurriculumEndpoint(''),
   },
 
 } as const;

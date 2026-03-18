@@ -11,6 +11,7 @@
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -26,6 +27,8 @@ export function MainStage() {
   const isLoading       = useDocumentStore((state) => state.isLoading);
   const error           = useDocumentStore((state) => state.error);
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
+  const isGenerating    = useDocumentStore((state) => state.isGenerating);
+  const revealedCardCount = useDocumentStore((state) => state.revealedCardCount);
 
   // Map cardId → DOM div ref (used to scroll-to on sidebar click)
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -87,27 +90,36 @@ export function MainStage() {
     );
   }
 
-  // ── Main render: all slides stacked vertically ───────────────────────────
+  // ── Main render: all slides stacked vertically ───
+  const visibleCards = isGenerating && revealedCardCount < document.cards.length
+    ? document.cards.slice(0, revealedCardCount)
+    : document.cards;
+
   return (
     <main
       className={cn('flex-1 overflow-y-auto bg-surface-tertiary')}
       onClick={handleStageClick}
     >
       <div className="w-full max-w-4xl mx-auto px-6 py-10 space-y-10">
-        {document.cards.map((card, index) => (
-          <div
-            key={card.id}
-            data-card-id={card.id}
-            ref={(el) => setCardRef(card.id, el)}
-          >
-            <SortableContext
-              items={card.children.map((n) => n.id)}
-              strategy={verticalListSortingStrategy}
+        <AnimatePresence initial={false}>
+          {visibleCards.map((card, index) => (
+            <motion.div
+              key={card.id}
+              initial={isGenerating ? { opacity: 0, y: 48, scale: 0.97 } : false}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+              data-card-id={card.id}
+              ref={(el) => setCardRef(card.id, el)}
             >
-              <NodeRenderer node={card} />
-            </SortableContext>
-          </div>
-        ))}
+              <SortableContext
+                items={card.children.map((n) => n.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <NodeRenderer node={card} />
+              </SortableContext>
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {/* Bottom padding so last slide doesn't sit flush at bottom */}
         <div className="h-24" />

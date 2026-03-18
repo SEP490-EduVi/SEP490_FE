@@ -3,7 +3,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as pipelineService from '@/services/pipelineServices';
 import * as videoService from '@/services/videoServices';
-import type { LessonAnalysisInput, GenerateSlidesInput, GenerateVideoInput } from '@/types/api';
+import type { LessonAnalysisInput, GenerateSlidesInput, GenerateVideoInput, CurriculumDto } from '@/types/api';
+import { getCurricula } from '@/services/curriculumServices';
+
+// ─── GET curricula ─────────────────────────────────────────────
+export function useCurricula() {
+  return useQuery<CurriculumDto[]>({
+    queryKey: ['curricula'],
+    queryFn: getCurricula,
+    staleTime: 5 * 60_000,
+  });
+}
 
 // ─── POST lesson analysis ──────────────────────────────────────────────────
 export function useLessonAnalysis() {

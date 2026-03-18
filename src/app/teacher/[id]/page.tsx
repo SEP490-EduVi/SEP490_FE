@@ -2,12 +2,12 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, FileText, Layers, Film, CheckCircle, AlertCircle, Loader2, Sparkles, ChevronRight } from 'lucide-react';
-
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
-import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject } from '@/hooks/usePipelineApi';
+import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject, useCurricula } from '@/hooks/usePipelineApi';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentsTab from '@/components/projects/DocumentsTab';
@@ -18,7 +18,7 @@ import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
-import type { PipelineProgress } from '@/types/api';
+import type { PipelineProgress, CurriculumDto } from '@/types/api';
 
 type TabKey = 'documents' | 'slides' | 'videos';
 
@@ -43,11 +43,12 @@ export default function ProjectDetailPage() {
   const { data: latestVideo = null } = useLatestVideoByProject(projectCode);
   const setDocument = useDocumentStore((state) => state.setDocument);
   const startGeneration = useDocumentStore((state) => state.startGeneration);
+  const queryClient = useQueryClient();
 
   // ─ SignalR pipeline progress ─
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
-  const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides'>('evaluation');
+  const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides' | 'video'>('evaluation');
   const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => {
@@ -57,10 +58,12 @@ export default function ProjectDetailPage() {
   const handlePipelineProgress = useCallback((event: PipelineProgress) => {
     setPipelineProgress(event);
     if (event.status === 'completed' || event.status === 'failed') {
-      // Refresh products list when pipeline finishes
       refetchProducts();
+      if (event.step === 'video_completed') {
+        queryClient.invalidateQueries({ queryKey: ['video', 'latest', projectCode] });
+      }
     }
-  }, [refetchProducts]);
+  }, [refetchProducts, queryClient, projectCode]);
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
@@ -81,7 +84,10 @@ export default function ProjectDetailPage() {
   // Analysis form state
   const [analysisDocCode, setAnalysisDocCode] = useState<string | null>(null);
   const [analysisProductName, setAnalysisProductName] = useState('');
+  const [analysisYear, setAnalysisYear] = useState<number | null>(null);
   const [showAnalysisForm, setShowAnalysisForm] = useState(false);
+
+  const { data: curricula = [] } = useCurricula();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,12 +137,13 @@ export default function ProjectDetailPage() {
   };
 
   const handleConfirmAnalysis = () => {
-    if (!analysisDocCode || !analysisProductName) return;
+    if (!analysisDocCode || !analysisProductName || !analysisYear) return;
     lessonAnalysis.mutate(
       {
         documentCode: analysisDocCode,
         projectCode,
         productName: analysisProductName,
+        curriculumYear: analysisYear,
       },
       {
         onSuccess: () => {
@@ -145,6 +152,7 @@ export default function ProjectDetailPage() {
           setShowAnalysisForm(false);
           setAnalysisDocCode(null);
           setAnalysisProductName('');
+          setAnalysisYear(null);
         },
       },
     );
@@ -172,12 +180,19 @@ export default function ProjectDetailPage() {
       setVideoLoadingCode(productCode);
       const url = await getEditedSlideGcsUrl(productCode);
       if (!url) {
-      console.error('[generateVideo] Không tìm thấy URL slide đã chỉnh sửa');
+        console.error('[generateVideo] Không tìm thấy URL slide đã chỉnh sửa');
+        setVideoLoadingCode(null);
         return;
       }
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url },
-        { onSettled: () => setVideoLoadingCode(null) },
+        {
+          onSuccess: () => {
+            setPipelineType('video');
+            setShowPipelineModal(true);
+          },
+          onSettled: () => setVideoLoadingCode(null),
+        },
       );
     } catch {
       setVideoLoadingCode(null);
@@ -452,7 +467,27 @@ export default function ProjectDetailPage() {
               exit={{ scale: 0.9, opacity: 0 }}
             >
               <h3 className="text-lg font-bold text-gray-900 mb-1">Phân tích bài giảng</h3>
-              <p className="text-sm text-gray-500 mb-4">Đặt tên cho sản phẩm AI sẽ được tạo từ tài liệu này.</p>
+              <p className="text-sm text-gray-500 mb-4">Chọn chương trình và đặt tên cho sản phẩm AI.</p>
+
+              <label className="block text-sm font-medium text-gray-700 mb-1">Chương trình</label>
+              <select
+                value={analysisYear ?? ''}
+                onChange={(e) => setAnalysisYear(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 mb-4 bg-white"
+              >
+                <option value="">-- Chọn năm chương trình --</option>
+                {Array.from(
+                  new Map(
+                    curricula
+                      .filter((c): c is CurriculumDto => c.statusName === 'COMPLETED')
+                      .map((c) => [c.curriculumYear, c] as [number, CurriculumDto])
+                  ).values()
+                ).map((c) => (
+                  <option key={c.curriculumYear} value={c.curriculumYear}>
+                    {c.curriculumYear} — {c.subjectCode.replace(/_/g, ' ').toUpperCase()}
+                  </option>
+                ))}
+              </select>
 
               <label className="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm</label>
               <input
@@ -465,14 +500,14 @@ export default function ProjectDetailPage() {
 
               <div className="flex justify-end gap-2">
                 <button
-                  onClick={() => { setShowAnalysisForm(false); setAnalysisDocCode(null); setAnalysisProductName(''); }}
+                  onClick={() => { setShowAnalysisForm(false); setAnalysisDocCode(null); setAnalysisProductName(''); setAnalysisYear(null); }}
                   className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleConfirmAnalysis}
-                  disabled={!analysisProductName || lessonAnalysis.isPending}
+                  disabled={!analysisProductName || !analysisYear || lessonAnalysis.isPending}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:shadow-lg disabled:opacity-50 transition-all"
                 >
                   {lessonAnalysis.isPending ? (
