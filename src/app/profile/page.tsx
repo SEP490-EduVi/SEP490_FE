@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -54,10 +54,10 @@ function CertStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────
-export default function ProfilePage() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
+// ── Inner page (needs Suspense because of useSearchParams) ───────────────
+function ProfilePageInner() {
+  const router          = useRouter();
+  const searchParams    = useSearchParams();
   const { user, role, setUser } = useAuthStore();
 
   const defaultTab = (): Tab => {
@@ -613,6 +613,14 @@ export default function ProfilePage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageInner />
+    </Suspense>
   );
 }
 
