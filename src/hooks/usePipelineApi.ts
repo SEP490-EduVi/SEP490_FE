@@ -61,3 +61,15 @@ export function useLatestVideoByProject(projectCode: string) {
     retry: false,
   });
 }
+
+// ─── DELETE video ──────────────────────────────────────────────────────────
+export function useDeleteVideo(projectCode: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (productVideoCode: string) => videoService.deleteVideo(productVideoCode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['video', 'latest', projectCode] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}

@@ -9,6 +9,7 @@ import { useMyMaterials, useUploadMaterial, useUpdateMaterial, useDeleteMaterial
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import type { MaterialDto, UpdateMaterialInput } from '@/types/api';
 import { MaterialCard, MaterialListItem, EditMaterialModal, UploadMaterialForm } from '@/components/expert';
+import { AppHeader } from '@/components';
 
 export default function MaterialPage() {
   const { data: materials = [], isLoading, isError, error } = useMyMaterials();
@@ -50,34 +51,7 @@ export default function MaterialPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Trang chủ">
-              <Home className="w-5 h-5 text-gray-600" />
-            </Link>
-            <div className="h-6 w-px bg-gray-200" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">Tài liệu của tôi</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/expert/certificate" className="flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
-              <ShieldCheck className="w-4 h-4" /> Chứng chỉ
-            </Link>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all shadow-lg shadow-blue-600/25 font-medium text-sm"
-            >
-              <Upload className="w-4 h-4" /> Tải lên tài liệu
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {showForm && (

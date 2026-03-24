@@ -4,13 +4,15 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Film, Play, Clock, Loader2, MessageSquare } from 'lucide-react';
+import { Film, Play, Clock, Loader2, MessageSquare, Trash2 } from 'lucide-react';
 import type { VideoProductDto } from '@/types/api';
 import VideoPlayerModal from './VideoPlayerModal';
 
 interface VideosTabProps {
   latestVideo: VideoProductDto | null;
   isLoading?: boolean;
+  onDelete?: (productVideoCode: string) => void;
+  isDeleting?: boolean;
 }
 
 function formatDuration(seconds: number): string {
@@ -28,8 +30,9 @@ function formatDate(dateStr: string | null) {
   });
 }
 
-export default function VideosTab({ latestVideo, isLoading = false }: VideosTabProps) {
+export default function VideosTab({ latestVideo, isLoading = false, onDelete, isDeleting = false }: VideosTabProps) {
   const [viewingVideo, setViewingVideo] = useState<VideoProductDto | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (isLoading) {
     return (
@@ -103,13 +106,43 @@ export default function VideosTab({ latestVideo, isLoading = false }: VideosTabP
             </div>
 
             {/* Action */}
-            <button
-              onClick={() => setViewingVideo(latestVideo)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:shadow-md rounded-xl transition-all flex-shrink-0"
-            >
-              <Play className="w-4 h-4" />
-              Xem video
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => setViewingVideo(latestVideo)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:shadow-md rounded-xl transition-all flex-shrink-0"
+              >
+                <Play className="w-4 h-4" />
+                Xem video
+              </button>
+
+              {/* Delete — inline confirm */}
+              {confirmDelete ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-red-500 font-medium whitespace-nowrap">Xóa video?</span>
+                  <button
+                    onClick={() => { onDelete?.(latestVideo.productVideoCode); setConfirmDelete(false); }}
+                    disabled={isDeleting}
+                    className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-60"
+                  >
+                    {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Xác nhận'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                  title="Xóa video"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </motion.div>
       </div>

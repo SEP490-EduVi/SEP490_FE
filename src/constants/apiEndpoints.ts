@@ -86,8 +86,10 @@ export const API_ENDPOINTS = {
   VIDEO: {
     // POST /api/Video/generate — Tạo video từ slide đã chỉnh sửa
     GENERATE: '/api/Video/generate',
-    // GET /api/Video/project/{projectCode}/latest
+    // GET  /api/Video/project/{projectCode}/latest
     GET_LATEST_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}/latest`,
+    // DELETE /api/Video/{productVideoCode}
+    DELETE: (productVideoCode: string) => `/api/Video/${productVideoCode}`,
   },
 
   // Metadata

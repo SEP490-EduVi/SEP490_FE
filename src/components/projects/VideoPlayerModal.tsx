@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Play, Pause, Loader2, Clock, Film,
   CheckCircle, XCircle, HelpCircle, Volume2, VolumeX, Maximize, Minimize,
+  BookOpen, PenLine,
 } from 'lucide-react';
 import type { VideoProductDto, VideoInteraction } from '@/types/api';
 import { getVideoSignedUrl } from '@/services/videoServices';
@@ -31,7 +32,7 @@ interface QuizOverlayProps {
 function QuizOverlay({ interaction, onAnswer }: QuizOverlayProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const { payload } = interaction;
-  const correctIdx = payload.correct_answer;
+  const correctIdx = payload.correctIndex;
 
   const handleSelect = (idx: number) => {
     if (selected !== null) return;
@@ -101,7 +102,7 @@ function QuizOverlay({ interaction, onAnswer }: QuizOverlayProps) {
         </h3>
 
         <div className="space-y-2.5">
-          {payload.options.map((option, idx) => (
+          {(payload.options ?? []).map((option, idx) => (
             <button
               key={idx}
               onClick={() => handleSelect(idx)}
@@ -138,6 +139,176 @@ function QuizOverlay({ interaction, onAnswer }: QuizOverlayProps) {
           <p className="text-xs text-gray-400 text-center mt-4">
             Chọn đáp án để tiếp tục video
           </p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Flashcard Overlay ─────────────────────────────────────────────────────
+
+function FlashcardOverlay({ interaction, onAnswer }: { interaction: VideoInteraction; onAnswer: () => void }) {
+  const [flipped, setFlipped] = useState(false);
+  const { payload } = interaction;
+
+  return (
+    <motion.div
+      key="flashcard-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 text-center"
+      >
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="w-4 h-4 text-blue-600" />
+          </div>
+          <p className="text-sm font-semibold text-blue-600">{payload.title}</p>
+        </div>
+
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+          {flipped ? 'Mặt sau' : 'Mặt trước'}
+        </p>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={flipped ? 'back' : 'front'}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className={`min-h-[72px] flex items-center justify-center rounded-xl px-5 py-5 mb-5 text-base font-medium leading-relaxed ${
+              flipped
+                ? 'bg-blue-50 text-blue-800 border border-blue-100'
+                : 'bg-gray-50 text-gray-800 border border-gray-200'
+            }`}
+          >
+            {flipped ? payload.back : payload.front}
+          </motion.div>
+        </AnimatePresence>
+
+        {!flipped ? (
+          <button
+            onClick={() => setFlipped(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Lật thẻ →
+          </button>
+        ) : (
+          <button
+            onClick={onAnswer}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+          >
+            Tiếp tục video →
+          </button>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Fill in Blank Overlay ─────────────────────────────────────────────────
+
+function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInteraction; onAnswer: () => void }) {
+  const { payload } = interaction;
+  const correctBlanks = payload.blanks ?? [];
+  // parts alternates: [text, blank_label, text, blank_label, text, ...]
+  const parts = (payload.sentence ?? '').split(/\[([^\]]+)\]/);
+  const blankCount = Math.floor(parts.length / 2);
+
+  const [inputs, setInputs] = useState<string[]>(Array(blankCount).fill(''));
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+    setTimeout(onAnswer, 2200);
+  };
+
+  const isCorrect = (idx: number) =>
+    (inputs[idx] ?? '').trim().toLowerCase() === (correctBlanks[idx] ?? '').trim().toLowerCase();
+
+  return (
+    <motion.div
+      key="fill-blank-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 text-left"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <PenLine className="w-4 h-4 text-amber-600" />
+          </div>
+          <p className="text-sm font-semibold text-amber-600">{payload.title}</p>
+        </div>
+
+        <h3 className="text-sm font-bold text-gray-900 mb-3">Điền vào chỗ trống:</h3>
+
+        <div className="bg-gray-50 rounded-xl px-4 py-4 mb-4 text-sm text-gray-700 leading-loose border border-gray-100">
+          {parts.map((part, idx) => {
+            if (idx % 2 === 0) return <span key={idx}>{part}</span>;
+            const blankIdx = Math.floor(idx / 2);
+            if (submitted) {
+              const correct = isCorrect(blankIdx);
+              return (
+                <span
+                  key={idx}
+                  className={`inline-flex items-center mx-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
+                    correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {inputs[blankIdx] || '___'}
+                  {!correct && <span className="ml-1 opacity-70">({correctBlanks[blankIdx]})</span>}
+                </span>
+              );
+            }
+            return (
+              <input
+                key={idx}
+                value={inputs[blankIdx]}
+                onChange={(e) => {
+                  const next = [...inputs];
+                  next[blankIdx] = e.target.value;
+                  setInputs(next);
+                }}
+                className="inline-block mx-1 w-28 border-0 border-b-2 border-amber-400 bg-transparent text-center text-sm font-medium text-gray-900 focus:outline-none focus:border-amber-600 transition-colors"
+                placeholder="..."
+              />
+            );
+          })}
+        </div>
+
+        {payload.hint && !submitted && (
+          <p className="text-xs text-gray-400 mb-3">💡 Gợi ý: {payload.hint}</p>
+        )}
+
+        {!submitted ? (
+          <button
+            onClick={handleSubmit}
+            disabled={inputs.some((v) => !v.trim())}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Kiểm tra
+          </button>
+        ) : (
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Video sẽ tiếp tục...
+          </div>
         )}
       </motion.div>
     </motion.div>
@@ -213,7 +384,6 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
     setCurrentTime(el.currentTime);
     if (activeQuiz || !video.interactions?.length) return;
     for (const interaction of video.interactions) {
-      if (!interaction.payload?.question) continue;
       const pauseAt = interaction.pause_time;
       if (el.currentTime >= pauseAt - 0.5 && el.currentTime <= pauseAt + 0.5 && !triggeredRef.current.has(pauseAt)) {
         triggeredRef.current.add(pauseAt);
@@ -262,7 +432,7 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
   }, [duration]);
 
   const progressPct  = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const interactions = video.interactions?.filter((i) => i.payload?.question) ?? [];
+  const interactions = video.interactions ?? [];
 
   return (
     <AnimatePresence>
@@ -290,7 +460,7 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
                   {video.duration != null && (
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(video.duration)}</span>
                   )}
-                  {interactions.length > 0 && <span>{interactions.length} câu hỏi tương tác</span>}
+                  {interactions.length > 0 && <span>{interactions.length} hoạt động tương tác</span>}
                 </div>
               </div>
             </div>
@@ -332,9 +502,17 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
               />
             )}
 
-            {/* Quiz overlay */}
+            {/* Interaction overlay */}
             <AnimatePresence>
-              {activeQuiz && <QuizOverlay interaction={activeQuiz} onAnswer={handleQuizAnswer} />}
+              {activeQuiz && (
+                activeQuiz.type === 'flashcard' ? (
+                  <FlashcardOverlay interaction={activeQuiz} onAnswer={handleQuizAnswer} />
+                ) : activeQuiz.type === 'fill_blank' ? (
+                  <FillBlankOverlay interaction={activeQuiz} onAnswer={handleQuizAnswer} />
+                ) : (
+                  <QuizOverlay interaction={activeQuiz} onAnswer={handleQuizAnswer} />
+                )
+              )}
             </AnimatePresence>
 
             {/* Custom controls */}
@@ -364,7 +542,7 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
                       return (
                         <div
                           key={idx}
-                          title={item.payload.question}
+                          title={item.type === 'flashcard' ? item.payload.front : item.type === 'fill_blank' ? item.payload.sentence : item.payload.question}
                           className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-black shadow -translate-x-1/2 z-10 transition-colors"
                           style={{
                             left: `${(item.pause_time / duration) * 100}%`,
@@ -401,7 +579,7 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
           {interactions.length > 0 && (
             <div className="px-5 py-4 bg-gray-900/60 border-t border-white/10 max-h-44 overflow-y-auto">
               <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-3">
-                Câu hỏi tương tác ({interactions.length})
+                Hoạt động tương tác ({interactions.length})
               </p>
               <div className="space-y-1">
                 {interactions.map((item, idx) => {
@@ -417,7 +595,13 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
                         style={{ backgroundColor: isAnswered ? '#10b981' : '#facc15' }}
                       />
                       <span className="w-12 text-gray-500 flex-shrink-0 tabular-nums">{formatTime(item.pause_time)}</span>
-                      <span className="text-gray-300 line-clamp-1 flex-1">{item.payload.question}</span>
+                      <span className="text-gray-300 line-clamp-1 flex-1">
+                        {item.type === 'flashcard'
+                          ? (item.payload.front ?? item.payload.title)
+                          : item.type === 'fill_blank'
+                          ? (item.payload.sentence ?? item.payload.title)
+                          : (item.payload.question ?? item.payload.title)}
+                      </span>
                       {isAnswered && <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
                     </button>
                   );

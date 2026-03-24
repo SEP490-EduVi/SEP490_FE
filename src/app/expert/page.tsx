@@ -28,13 +28,14 @@ import {
 import { useVerifications, useMyMaterials } from '@/hooks/useExpertApi';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { VerificationDto, MaterialDto } from '@/types/api';
+import { AppHeader } from '@/components';
 
 // ── Status helpers ─────────────────────────────────────────────────────────
 
 const VERIFICATION_STATUS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  Pending:  { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
-  Approved: { label: 'Đã duyệt',  color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
-  Rejected: { label: 'Từ chối',   color: 'bg-red-50 text-red-700 border-red-100', icon: XCircle },
+  pending:  { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
+  approved: { label: 'Đã duyệt',  color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
+  rejected: { label: 'Từ chối',   color: 'bg-red-50 text-red-700 border-red-100', icon: XCircle },
 };
 
 const APPROVAL_STATUS_MAP: Record<number, { label: string; color: string }> = {
@@ -101,40 +102,7 @@ export default function ExpertDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Trang chủ">
-              <Home className="w-5 h-5 text-gray-600" />
-            </Link>
-            <div className="h-6 w-px bg-gray-200" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Star className="w-4 h-4 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/expert/certificate"
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Chứng chỉ
-            </Link>
-            <Link
-              href="/expert/material"
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
-            >
-              <BookOpen className="w-4 h-4" />
-              Tài liệu
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* ── Welcome Banner ── */}

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, FileText, Layers, Film, CheckCircle, AlertCircle, Loader2, Sparkles, ChevronRight } from 'lucide-react';
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
-import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject, useCurricula } from '@/hooks/usePipelineApi';
+import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentsTab from '@/components/projects/DocumentsTab';
@@ -41,6 +41,7 @@ export default function ProjectDetailPage() {
   const generateSlides = useGenerateSlides();
   const generateVideo = useGenerateVideo();
   const { data: latestVideo = null } = useLatestVideoByProject(projectCode);
+  const deleteVideo = useDeleteVideo(projectCode);
   const setDocument = useDocumentStore((state) => state.setDocument);
   const startGeneration = useDocumentStore((state) => state.startGeneration);
   const queryClient = useQueryClient();
@@ -419,7 +420,11 @@ export default function ProjectDetailPage() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <VideosTab latestVideo={latestVideo} />
+              <VideosTab
+                latestVideo={latestVideo}
+                onDelete={(videoCode) => deleteVideo.mutate(videoCode)}
+                isDeleting={deleteVideo.isPending}
+              />
             </motion.div>
           )}
         </AnimatePresence>

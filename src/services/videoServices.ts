@@ -17,6 +17,11 @@ export async function getLatestVideoByProject(projectCode: string): Promise<Vide
   return res.data.result ?? null;
 }
 
+// ─── DELETE video ────────────────────────────────────────────────────────
+export async function deleteVideo(productVideoCode: string): Promise<void> {
+  await api.delete(API_ENDPOINTS.VIDEO.DELETE(productVideoCode));
+}
+
 // ─── Get a browser-playable signed URL for a gs:// video ──────────────────
 export async function getVideoSignedUrl(gcsUrl: string): Promise<string> {
   const res = await fetch('/api/gcs/download-url', {

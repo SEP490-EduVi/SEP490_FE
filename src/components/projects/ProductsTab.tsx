@@ -240,7 +240,7 @@ export default function ProductsTab({
                         Tạo slide
                       </button>
                     )}
-                    {product.hasEditedSlide && product.statusName !== 'VIDEO_GENERATED' && (
+                    {product.hasEditedSlide && (
                       <button
                         onClick={() => onGenerateVideo?.(product.productCode)}
                         disabled={videoLoadingCode === product.productCode}
