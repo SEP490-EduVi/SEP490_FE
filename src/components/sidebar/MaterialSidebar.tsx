@@ -73,7 +73,7 @@ function getIconByName(name: string): React.ReactNode {
 // ============================================================================
 
 const categoryConfig: Record<MaterialCategory, { label: string; icon: keyof typeof LucideIcons; color: string; bg: string }> = {
-  [MaterialCategory.MEDIA]: { label: 'Phương tiện', icon: 'Film', color: 'text-rose-500', bg: 'bg-rose-50' },
+  [MaterialCategory.MEDIA]: { label: 'Phương tiện', icon: 'Film', color: 'text-blue-500', bg: 'bg-blue-50' },
   [MaterialCategory.INTERACTIVE]: { label: 'Tương tác', icon: 'MousePointer2', color: 'text-violet-500', bg: 'bg-violet-50' },
   [MaterialCategory.DATA]: { label: 'Dữ liệu & Biểu đồ', icon: 'BarChart3', color: 'text-orange-400', bg: 'bg-orange-50' },
   [MaterialCategory.EMBED]: { label: 'Nhúng ngoài', icon: 'Code', color: 'text-pink-500', bg: 'bg-pink-50' },
@@ -106,15 +106,15 @@ function DraggableMaterialItem({ material }: MaterialItemProps) {
       className={cn(
         'group flex items-center gap-3 p-2 rounded-lg cursor-grab',
         'bg-white border border-gray-100',
-        'hover:border-rose-300 hover:bg-rose-50/40',
+        'hover:border-blue-300 hover:bg-blue-50/40',
         'transition-all duration-150',
-        isDragging && 'opacity-50 shadow-lg ring-2 ring-rose-400'
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-blue-400'
       )}
       {...listeners}
       {...attributes}
     >
       {/* Drag Handle */}
-      <div className="flex-shrink-0 text-gray-300 group-hover:text-rose-400">
+      <div className="flex-shrink-0 text-gray-300 group-hover:text-blue-400">
         <GripVertical className="w-4 h-4" />
       </div>
 
@@ -158,7 +158,7 @@ function CategorySection({ category, materials, isExpanded, onToggle }: Category
         onClick={onToggle}
         className={cn(
           'w-full flex items-center gap-2 px-3 py-2.5',
-          'text-left hover:bg-rose-50/50 transition-colors'
+          'text-left hover:bg-blue-50/50 transition-colors'
         )}
       >
         {isExpanded ? (
@@ -305,7 +305,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             className={cn(
               'w-full pl-9 pr-3 py-2 text-sm',
               'border border-gray-200 rounded-lg',
-              'focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent',
+              'focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent',
               'placeholder:text-gray-400'
             )}
           />
@@ -317,7 +317,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 text-rose-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
           </div>
         )}
 
@@ -327,7 +327,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             <p className="text-sm text-red-500">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-rose-500 hover:underline"
+              className="mt-2 text-sm text-blue-500 hover:underline"
             >
               Thử lại
             </button>
@@ -369,8 +369,8 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
       <QuickLayoutSection />
 
       {/* Footer Hint */}
-      <div className="p-3 bg-gradient-to-r from-rose-50 to-violet-50 border-t border-rose-100">
-        <p className="text-xs text-rose-500 text-center">
+      <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-t border-blue-100">
+        <p className="text-xs text-blue-500 text-center">
           <span className="font-semibold">Mẹo:</span> Kéo tài nguyên vào các cột bố cục
         </p>
       </div>
@@ -400,7 +400,7 @@ function QuickLayoutSection() {
           className={cn(
             'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg',
             'font-semibold text-sm transition-all duration-150',
-            'bg-gradient-to-r from-rose-500 to-violet-500 text-white hover:from-rose-600 hover:to-violet-600 shadow-sm hover:shadow-md'
+            'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-700 hover:to-cyan-600 shadow-sm hover:shadow-md'
           )}
         >
           <Sparkles className="w-4 h-4" />
@@ -425,7 +425,7 @@ function QuickLayoutSection() {
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
                 activeTab === 'basic'
-                  ? 'bg-white text-rose-500 border border-b-white border-gray-200 -mb-px'
+                  ? 'bg-white text-blue-600 border border-b-white border-gray-200 -mb-px'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >

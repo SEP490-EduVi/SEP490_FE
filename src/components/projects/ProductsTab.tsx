@@ -17,6 +17,8 @@ import {
   BarChart3,
   Pencil,
   Trash2,
+  Video,
+  Film,
 } from 'lucide-react';
 import type { ProductDto } from '@/types/api';
 
@@ -28,7 +30,8 @@ type StatusKey =
   | 'EVALUATION_FAILED'
   | 'GENERATING_SLIDES'
   | 'SLIDES_GENERATED'
-  | 'SLIDES_FAILED';
+  | 'SLIDES_FAILED'
+  | 'VIDEO_GENERATED';
 
 const STATUS_CONFIG: Record<
   StatusKey,
@@ -41,6 +44,7 @@ const STATUS_CONFIG: Record<
   GENERATING_SLIDES: { label: 'Đang tạo slide',   color: 'bg-amber-50 text-amber-600',    icon: Loader2 },
   SLIDES_GENERATED:  { label: 'Hoàn thành',       color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle },
   SLIDES_FAILED:     { label: 'Tạo slide thất bại', color: 'bg-red-50 text-red-600',      icon: AlertCircle },
+  VIDEO_GENERATED:   { label: 'Video đã tạo',     color: 'bg-violet-50 text-violet-600',  icon: Film },
 };
 
 function getStatusConfig(statusName: string) {
@@ -70,6 +74,8 @@ interface ProductsTabProps {
   onViewSlide?: (productCode: string) => void;
   onViewEvaluation?: (productCode: string) => void;
   onGenerateSlides?: (productCode: string) => void;
+  onGenerateVideo?: (productCode: string) => void;
+  videoLoadingCode?: string | null;
 }
 
 export default function ProductsTab({
@@ -79,8 +85,9 @@ export default function ProductsTab({
   onViewSlide,
   onViewEvaluation,
   onGenerateSlides,
+  onGenerateVideo,
+  videoLoadingCode = null,
 }: ProductsTabProps) {
-  // Tracks which product is in "confirm delete" mode
   const [confirmDeleteCode, setConfirmDeleteCode] = useState<string | null>(null);
 
   const handleConfirmDelete = (productCode: string) => {
@@ -97,7 +104,8 @@ export default function ProductsTab({
   }
 
   return (
-    <div>
+    <>
+      <div>
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-gray-500">
           Các sản phẩm slide được AI tạo ra từ tài liệu bài giảng.
@@ -199,6 +207,8 @@ export default function ProductsTab({
                         icon={Pencil}
                       />
                     </div>
+
+
                   </div>
 
                   {/* Actions */}
@@ -230,14 +240,22 @@ export default function ProductsTab({
                         Tạo slide
                       </button>
                     )}
-                    {product.hasSlide && !product.hasEditedSlide && (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors">
-                        <Pencil className="w-3.5 h-3.5" />
-                        Chỉnh sửa
+                    {product.hasEditedSlide && (
+                      <button
+                        onClick={() => onGenerateVideo?.(product.productCode)}
+                        disabled={videoLoadingCode === product.productCode}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-rose-500 to-orange-500 hover:shadow-md rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {videoLoadingCode === product.productCode ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Video className="w-3.5 h-3.5" />
+                        )}
+                        Tạo Video
                       </button>
                     )}
 
-                    {/* Delete — inline confirm */}
+                    {/* Delete product — inline confirm */}
                     {confirmDeleteCode === product.productCode ? (
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-red-500 font-medium">Xóa?</span>
@@ -271,6 +289,7 @@ export default function ProductsTab({
         </div>
       )}
     </div>
+    </>
   );
 }
 

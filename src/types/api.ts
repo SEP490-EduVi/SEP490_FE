@@ -97,6 +97,7 @@ export const PRODUCT_STATUS_MAP: Record<number, string> = {
   4: 'GENERATING_SLIDES',
   5: 'SLIDES_GENERATED',
   6: 'SLIDES_FAILED',
+  7: 'VIDEO_GENERATED',
 };
 
 // ─── Pipeline: Input Documents ─────────────────────────────────────────────
@@ -114,6 +115,52 @@ export interface InputDocumentDto {
   uploadDate: string;
 }
 
+export interface GenerateVideoInput {
+  productCode: string;
+  slideEditedDocumentUrl: string;
+}
+
+// ─── Video ─────────────────────────────────────────────────────────────────
+export interface VideoInteraction {
+  type: 'quiz' | 'flashcard' | 'fill_blank' | string;
+  slide_index: number;
+  card_index: number;
+  start_time: number;
+  end_time: number;
+  pause_time: number;
+  payload: {
+    title: string;
+    // quiz
+    question?: string;
+    options?: string[];
+    correctIndex?: number;
+    correctAnswer?: string;
+    // flashcard
+    front?: string;
+    back?: string;
+    // fill_blank
+    sentence?: string;
+    blanks?: string[];
+    hint?: string;
+  };
+}
+
+export interface VideoProductDto {
+  productCode: string;
+  productName: string;
+  productVideoCode: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  slideDocumentUrl: string | null;
+  videoUrl: string | null;
+  duration: number | null;
+  interactions: VideoInteraction[];
+  pausePoints: unknown;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
 export interface UploadInputDocumentInput {
   File: File;
   Title: string;
@@ -123,13 +170,81 @@ export interface UploadInputDocumentInput {
   LessonCode: string;
 }
 
+// ─── Metadata ─────────────────────────────────────────────────────────────
+export interface SubjectDto {
+  subjectCode: string;
+  subjectName: string;
+  lessonCount: number;
+}
+
+export interface GradeDto {
+  gradeCode: string;
+  gradeName: string;
+}
+
+export interface LessonDto {
+  lessonCode: string;
+  lessonName: string;
+  subjectCode: string;
+  subjectName: string;
+}
+
 export interface LessonAnalysisInput {
   documentCode: string;
   projectCode: string;
   productName: string;
+  curriculumYear: number;
 }
 
 export interface GenerateSlidesInput {
   productCode: string;
   slideRange: 'short' | 'medium' | 'long';
+}
+
+export interface CurriculumDto {
+  documentCode: string;
+  subjectCode: string;
+  educationLevel: string;
+  curriculumYear: number;
+  originalFileName: string;
+  status: number;
+  statusName: string;
+}
+
+// ─── Expert: Verification (Certificate) ────────────────────────────────────
+export interface VerificationDto {
+  verificationCode: string;
+  fileType: string;
+  description: string;
+  status: string;
+  rejectionReason: string | null;
+  uploadedAt: string;
+  reviewedAt: string | null;
+}
+
+// ─── Expert: Material ──────────────────────────────────────────────────────
+export interface MaterialDto {
+  materialCode: string;
+  title: string;
+  description: string;
+  type: string;
+  price: number;
+  previewUrl: string | null;
+  resourceUrl: string | null;
+  subjectCode: string;
+  subjectName: string;
+  gradeCode: string;
+  gradeName: string;
+  approvalStatus: number;
+  expertCode: string;
+  expertName: string;
+  createdAt: string;
+}
+
+export interface UpdateMaterialInput {
+  title: string;
+  description: string;
+  price: number;
+  subjectCode: string;
+  gradeCode: string;
 }

@@ -16,6 +16,11 @@ import {
   Brain,
   Layers,
   X,
+  Film,
+  Video,
+  Scissors,
+  Clock,
+  Upload,
 } from 'lucide-react';
 import type { PipelineProgress } from '@/types/api';
 
@@ -43,15 +48,28 @@ const SLIDE_STEPS: Record<string, StepInfo> = {
   slides_completed:  { label: 'Hoàn thành',              icon: CheckCircle },
 };
 
-function getStepInfo(step: string, pipelineType: 'evaluation' | 'slides'): StepInfo {
-  const map = pipelineType === 'evaluation' ? EVALUATION_STEPS : SLIDE_STEPS;
+const VIDEO_STEPS: Record<string, StepInfo> = {
+  started:             { label: 'Bắt đầu tạo video',       icon: Sparkles },
+  rendering_slides:    { label: 'Render từng slide',        icon: Film },
+  concatenating_video: { label: 'Ghép clip video',          icon: Scissors },
+  building_timeline:   { label: 'Tạo timeline tương tác',  icon: Clock },
+  uploading_video:     { label: 'Tải lên video',           icon: Upload },
+  video_completed:     { label: 'Hoàn thành',              icon: CheckCircle },
+};
+
+function getStepInfo(step: string, pipelineType: 'evaluation' | 'slides' | 'video'): StepInfo {
+  const map = pipelineType === 'evaluation' ? EVALUATION_STEPS
+            : pipelineType === 'video'      ? VIDEO_STEPS
+            : SLIDE_STEPS;
   return map[step] ?? { label: step, icon: Loader2 };
 }
 
-function getOrderedSteps(pipelineType: 'evaluation' | 'slides') {
-  return pipelineType === 'evaluation'
-    ? ['started', 'downloading', 'extracting_text', 'fetching_data', 'evaluating', 'completed']
-    : ['started', 'planning', 'generating_slides', 'assembling', 'slides_completed'];
+function getOrderedSteps(pipelineType: 'evaluation' | 'slides' | 'video') {
+  if (pipelineType === 'evaluation')
+    return ['started', 'downloading', 'extracting_text', 'fetching_data', 'evaluating', 'completed'];
+  if (pipelineType === 'video')
+    return ['started', 'rendering_slides', 'concatenating_video', 'building_timeline', 'uploading_video', 'video_completed'];
+  return ['started', 'planning', 'generating_slides', 'assembling', 'slides_completed'];
 }
 
 // ── Props ──────────────────────────────────────────────────────────────────
@@ -59,7 +77,7 @@ function getOrderedSteps(pipelineType: 'evaluation' | 'slides') {
 interface PipelineProgressModalProps {
   open: boolean;
   progress: PipelineProgress | null;
-  pipelineType: 'evaluation' | 'slides';
+  pipelineType: 'evaluation' | 'slides' | 'video';
   onClose: () => void;
 }
 
@@ -114,7 +132,9 @@ export default function PipelineProgressModal({
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
-                      {pipelineType === 'evaluation' ? 'Đánh giá bài giảng' : 'Tạo slide AI'}
+                      {pipelineType === 'evaluation' ? 'Đánh giá bài giảng'
+                       : pipelineType === 'video'    ? 'Tạo video AI'
+                       : 'Tạo slide AI'}
                     </h3>
                     <p className="text-xs text-gray-500">
                       {isCompleted

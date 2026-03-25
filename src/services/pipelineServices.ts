@@ -29,14 +29,16 @@ export async function generateSlides(
   await api.post(API_ENDPOINTS.PIPELINE.GENERATE_SLIDES, input);
 }
 
-// ─── PUT save edited slide ─────────────────────────────────────────────────
-export async function saveEditedSlide(
+// ─── PUT save edited slide (GCS URL only) ─────────────────────────────────
+// FE now uploads the JSON directly to GCS and only sends the resulting URL
+// to the backend so it can store / reference the file.
+export async function saveEditedSlideUrl(
   productCode: string,
-  slideDocument: string,
+  slideGcsUrl: string,
 ): Promise<void> {
   await api.put(
     API_ENDPOINTS.PIPELINE.SAVE_EDITED_SLIDE(productCode),
-    { slideDocument },
-    { timeout: 60_000 }, // large payload may take longer
+    { slideEditedDocumentUrl: slideGcsUrl },
+    { timeout: 30_000 },
   );
 }

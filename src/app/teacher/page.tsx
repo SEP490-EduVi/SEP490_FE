@@ -7,8 +7,6 @@ import {
   Plus,
   FolderOpen,
   Search,
-  Home,
-  BookOpen,
   Grid3X3,
   List,
   Loader2,
@@ -16,7 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
-
+import AppHeader from '@/components/sidebar/AppHeader';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import type { PipelineProgress } from '@/types/api';
 import ProjectCard from '@/components/projects/ProjectCard';
@@ -26,7 +24,7 @@ import CreateProjectModal from '@/components/projects/CreateProjectModal';
 import EditProjectModal from '@/components/projects/EditProjectModal';
 import type { ProjectDto, UpdateProjectInput } from '@/types/api';
 
-export default function ProjectsPage() {
+export default function TeacherPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -89,39 +87,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/')}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              title="Trang chủ"
-            >
-              <Home className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="h-6 w-px bg-gray-200" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">Dự án của tôi</h1>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all shadow-lg shadow-blue-600/25 font-medium text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo dự án mới
-          </button>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* ── Filters Bar ── */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -133,7 +103,15 @@ export default function ProjectsPage() {
             />
           </div>
 
-          <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all shadow-lg shadow-blue-600/25 font-medium text-sm whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo dự án mới
+          </button>
+
+          <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2.5 transition-colors ${
@@ -212,11 +190,11 @@ export default function ProjectsPage() {
                   key={project.projectCode}
                   project={project}
                   index={idx}
-                  menuOpen={menuOpen === project.projectCode}
+                  menuOpen={menuOpen !== null && menuOpen === project.projectCode}
                   onMenuToggle={() =>
                     setMenuOpen(menuOpen === project.projectCode ? null : project.projectCode)
                   }
-                  onClick={() => router.push(`/projects/${project.projectCode}`)}
+                  onClick={() => router.push(`/teacher/${project.projectCode}`)}
                   onEdit={() => handleEdit(project)}
                   onDelete={() => handleDelete(project.projectCode)}
                 />
@@ -229,7 +207,7 @@ export default function ProjectsPage() {
         {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'list' && (
           <ProjectListTable
             projects={filteredProjects}
-            onClickProject={(code) => router.push(`/projects/${code}`)}
+            onClickProject={(code) => router.push(`/teacher/${code}`)}
             onDelete={handleDelete}
             isDeleting={deleteProject.isPending ? (deleteProject.variables as string) : null}
           />

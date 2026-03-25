@@ -23,7 +23,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { mockDocument } from '@/data/mock-data';
+import { emptyDocument } from '@/data/mock-data';
 import { IDocument } from '@/types';
 
 /**
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   // Return mock data
-  return NextResponse.json(mockDocument, {
+  return NextResponse.json(emptyDocument, {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     // 3. Return the saved document
 
     const updatedDocument: IDocument = {
-      ...mockDocument,
+      ...emptyDocument,
       ...body,
       updatedAt: new Date().toISOString(),
     };

@@ -6,6 +6,7 @@ const buildPipelineEndpoint = (path: string) => `/api/Pipeline${path}`;
 const buildProjectEndpoint  = (path: string) => `/api/Project${path}`;
 const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
+const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -79,6 +80,53 @@ export const API_ENDPOINTS = {
     GET_BY_PROJECT: (projectCode: string) => buildInputDocumentEndpoint(`/project/${projectCode}`),
     // DELETE /api/InputDocument/{documentCode} — Xóa tài liệu
     DELETE:         (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
+  },
+
+  // Video generation
+  VIDEO: {
+    // POST /api/Video/generate — Tạo video từ slide đã chỉnh sửa
+    GENERATE: '/api/Video/generate',
+    // GET  /api/Video/project/{projectCode}/latest
+    GET_LATEST_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}/latest`,
+    // DELETE /api/Video/{productVideoCode}
+    DELETE: (productVideoCode: string) => `/api/Video/${productVideoCode}`,
+  },
+
+  // Metadata
+  SUBJECT: {
+    GET_ALL: '/api/Subject',
+  },
+  GRADE: {
+    GET_ALL: '/api/Grade',
+  },
+  LESSON: {
+    GET_BY_SUBJECT: (subjectCode: string) => `/api/Lesson?subjectCode=${subjectCode}`,
+  },
+
+  // Expert Verification (Certificate)
+  EXPERT_VERIFICATION: {
+    SUBMIT:   '/api/expert/verifications',
+    GET_ALL:  '/api/expert/verifications',
+    DELETE:   (code: string) => `/api/expert/verifications/${code}`,
+  },
+
+  // Material (Expert)
+  MATERIAL: {
+    UPLOAD:   '/api/material/file',
+    GET_MY:   '/api/material/my',
+    UPDATE:   (code: string) => `/api/material/${code}`,
+    DELETE:   (code: string) => `/api/material/${code}`,
+    // Teacher-facing
+    GET_BY_CODE: (code: string) => `/api/material/${code}`,
+    BROWSE:      '/api/material/browse',
+    PURCHASE:    (code: string) => `/api/material/${code}/purchase`,
+    GET_PURCHASED: '/api/material/purchased',
+  },
+
+  // Curriculum Ingestion
+  CURRICULUM: {
+    // GET /api/curriculum-ingestion
+    GET_ALL: buildCurriculumEndpoint(''),
   },
 
 } as const;
