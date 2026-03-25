@@ -35,7 +35,11 @@ export interface DocumentState {
   isLoading: boolean;
   error: string | null;
   currentProductCode: string | null;
+  currentProjectCode: string | null;
   isSaving: boolean;
+  isDirty: boolean;
+  isSlideEdited: boolean;
+  isNewlyGenerated: boolean;
   
   // History for undo/redo
   history: IDocument[];
@@ -60,7 +64,7 @@ export interface DocumentState {
 
   // Document Actions
   loadDocument: () => Promise<void>;
-  setDocument: (doc: IDocument, productCode?: string) => void;
+  setDocument: (doc: IDocument, productCode?: string, projectCode?: string, isSlideEdited?: boolean) => void;
   saveSlide: () => Promise<void>;
   
   // Undo/Redo Actions
@@ -115,7 +119,7 @@ export interface DocumentState {
   wrapBlocksInLayout: (cardId: string, blockIds: string[], variant: LayoutVariant) => void;
   
   // Generation Actions
-  startGeneration: (productCode: string) => void;
+  startGeneration: (productCode: string, projectCode?: string) => void;
   setGenerationProgress: (step: string, progress: number) => void;
   completeGeneration: (doc: IDocument) => void;
   cancelGeneration: () => void;

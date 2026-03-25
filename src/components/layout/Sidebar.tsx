@@ -187,7 +187,7 @@ function SlideThumbnailPreview({ card, isActive }: { card: ICard; isActive: bool
           top: 0,
           left: 0,
           pointerEvents: 'none',
-          backgroundColor: card.backgroundColor || '#ffffff',
+          backgroundColor: (card.backgroundColor === '#1e293b' ? '#ffffff' : card.backgroundColor) || '#ffffff',
           backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',

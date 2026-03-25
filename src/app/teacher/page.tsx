@@ -62,8 +62,14 @@ export default function TeacherPage() {
     p.projectCode.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleCreate = (data: { projectCode: string; projectName: string }) => {
-    createProject.mutate(data, {
+  const handleCreate = (data: { projectName: string }) => {
+    // Auto-generate project code: P-1, P-2, ... using max existing number
+    const maxNum = projects.reduce((max, p) => {
+      const match = p.projectCode?.match(/^P-(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    const projectCode = `P-${maxNum + 1}`;
+    createProject.mutate({ projectCode, projectName: data.projectName }, {
       onSuccess: () => setShowCreateModal(false),
     });
   };

@@ -34,6 +34,10 @@ function QuizOverlay({ interaction, onAnswer }: QuizOverlayProps) {
   const { payload } = interaction;
   const correctIdx = payload.correctIndex;
 
+  // Reset when a new interaction is shown
+  useEffect(() => {
+    setSelected(null);
+  }, [interaction]);
   const handleSelect = (idx: number) => {
     if (selected !== null) return;
     setSelected(idx);
@@ -77,7 +81,7 @@ function QuizOverlay({ interaction, onAnswer }: QuizOverlayProps) {
 
   return (
     <motion.div
-      key="quiz-overlay"
+      key={`quiz-overlay-${interaction.pause_time}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -151,9 +155,13 @@ function FlashcardOverlay({ interaction, onAnswer }: { interaction: VideoInterac
   const [flipped, setFlipped] = useState(false);
   const { payload } = interaction;
 
+  // Reset when a new interaction is shown
+  useEffect(() => {
+    setFlipped(false);
+  }, [interaction]);
   return (
     <motion.div
-      key="flashcard-overlay"
+      key={`flashcard-overlay-${interaction.pause_time}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -226,6 +234,11 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
   const [inputs, setInputs] = useState<string[]>(Array(blankCount).fill(''));
   const [submitted, setSubmitted] = useState(false);
 
+  // Reset when a new interaction is shown
+  useEffect(() => {
+    setInputs(Array(Math.floor((payload.sentence ?? '').split(/\[([^\]]+)\]/).length / 2)).fill(''));
+    setSubmitted(false);
+  }, [interaction]); 
   const handleSubmit = () => {
     setSubmitted(true);
     setTimeout(onAnswer, 2200);
@@ -236,7 +249,7 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
 
   return (
     <motion.div
-      key="fill-blank-overlay"
+      key={`fill-blank-overlay-${interaction.pause_time}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

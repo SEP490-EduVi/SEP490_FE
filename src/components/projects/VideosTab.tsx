@@ -109,7 +109,7 @@ export default function VideosTab({ latestVideo, isLoading = false, onDelete, is
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setViewingVideo(latestVideo)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:shadow-md rounded-xl transition-all flex-shrink-0"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-md rounded-xl transition-all flex-shrink-0"
               >
                 <Play className="w-4 h-4" />
                 Xem video

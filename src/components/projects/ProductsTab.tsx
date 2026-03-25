@@ -244,7 +244,7 @@ export default function ProductsTab({
                       <button
                         onClick={() => onGenerateVideo?.(product.productCode)}
                         disabled={videoLoadingCode === product.productCode}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-rose-500 to-orange-500 hover:shadow-md rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r  from-blue-600 to-purple-600 hover:shadow-md rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {videoLoadingCode === product.productCode ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />

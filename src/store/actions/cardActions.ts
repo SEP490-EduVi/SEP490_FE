@@ -299,13 +299,13 @@ export function createCardActions(
           ),
         ];
       }
-      // SECTION_DIV: Transition slide between major topics. Dark bg.
+      // SECTION_DIV: Transition slide between major topics.
       else if (templateType === 'section-divider') {
         const newSectionCard: ICard = {
           id: cardId,
           type: NodeType.CARD,
           title: 'Section Divider',
-          backgroundColor: '#1e293b',
+          backgroundColor: '#ffffff',
           children: [
             createTextBlock(`block-${uuidv4()}`, '<h1>Tên chủ đề</h1>'),
           ],

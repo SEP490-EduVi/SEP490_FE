@@ -13,6 +13,8 @@ import { uploadSlideToGcs } from '@/services/gcsServices';
 
 const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
+const PROJECT_CODE_KEY = 'eduvi_project_code';
+const IS_EDITED_KEY = 'eduvi_is_edited';
 
 export function createDocumentActions(
   set: StoreSet,
@@ -42,6 +44,9 @@ export function createDocumentActions(
         if (cached) {
           const doc: IDocument = JSON.parse(cached);
           const productCode = sessionStorage.getItem(PRODUCT_CODE_KEY) || null;
+          const projectCode = sessionStorage.getItem(PROJECT_CODE_KEY) || null;
+          const isSlideEdited = sessionStorage.getItem(IS_EDITED_KEY) === 'true';
+          const isNewlyGenerated = sessionStorage.getItem('eduvi_is_newly_generated') === 'true';
           set({
             document: doc,
             activeCardId: doc.activeCardId || doc.cards[0]?.id || null,
@@ -49,7 +54,11 @@ export function createDocumentActions(
             historyIndex: 0,
             isLoading: false,
             error: null,
+            isDirty: false,
             currentProductCode: productCode,
+            currentProjectCode: projectCode,
+            isSlideEdited,
+            isNewlyGenerated,
           });
           return;
         }
@@ -85,7 +94,7 @@ export function createDocumentActions(
       }
     },
 
-    setDocument: (doc: IDocument, productCode?: string) => {
+    setDocument: (doc: IDocument, productCode?: string, projectCode?: string, isSlideEdited?: boolean) => {
       const newHistory = [deepClone(doc)];
 
       // Persist so the editor survives a page reload
@@ -94,6 +103,13 @@ export function createDocumentActions(
         if (productCode !== undefined) {
           sessionStorage.setItem(PRODUCT_CODE_KEY, productCode);
         }
+        if (projectCode !== undefined) {
+          sessionStorage.setItem(PROJECT_CODE_KEY, projectCode);
+        }
+        if (isSlideEdited !== undefined) {
+          sessionStorage.setItem(IS_EDITED_KEY, String(isSlideEdited));
+        }
+        sessionStorage.setItem('eduvi_is_newly_generated', 'false');
       } catch {
         // sessionStorage unavailable (e.g. private browsing quota) — ignore
       }
@@ -105,6 +121,10 @@ export function createDocumentActions(
         historyIndex: 0,
         error: null,
         ...(productCode !== undefined ? { currentProductCode: productCode } : {}),
+        ...(projectCode !== undefined ? { currentProjectCode: projectCode } : {}),
+        isDirty: false,
+        isSlideEdited: isSlideEdited ?? false,
+        isNewlyGenerated: false,
       });
     },
 
@@ -166,6 +186,11 @@ export function createDocumentActions(
 
         // 2. Notify BE with the GCS URL so it can reference/download the file
         await saveEditedSlideUrl(currentProductCode, gcsObjectUrl);
+        set({ isDirty: false, isSlideEdited: true, isNewlyGenerated: false });
+        try {
+          sessionStorage.setItem(IS_EDITED_KEY, 'true');
+          sessionStorage.setItem('eduvi_is_newly_generated', 'false');
+        } catch { /* ignore */ }
       } catch (err: unknown) {
         const msg =
           err && typeof err === 'object' && 'message' in err
