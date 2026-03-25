@@ -9,7 +9,7 @@ import { FolderOpen, X, Loader2 } from 'lucide-react';
 interface CreateProjectModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (data: { projectCode: string; projectName: string }) => void;
+  onCreate: (data: { projectName: string }) => void;
   isLoading?: boolean;
 }
 
@@ -19,27 +19,21 @@ export default function CreateProjectModal({
   onCreate,
   isLoading = false,
 }: CreateProjectModalProps) {
-  const [projectCode, setProjectCode] = useState('');
   const [projectName, setProjectName] = useState('');
 
   const handleSubmit = () => {
-    if (!projectName.trim() || !projectCode.trim()) return;
-    onCreate({
-      projectCode: projectCode.trim(),
-      projectName: projectName.trim(),
-    });
+    if (!projectName.trim()) return;
+    onCreate({ projectName: projectName.trim() });
   };
 
   const handleClose = () => {
     if (isLoading) return;
-    setProjectCode('');
     setProjectName('');
     onClose();
   };
 
   // Reset form when modal opens
   const handleExited = () => {
-    setProjectCode('');
     setProjectName('');
   };
 
@@ -80,20 +74,6 @@ export default function CreateProjectModal({
 
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Mã dự án <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={projectCode}
-                  onChange={(e) => setProjectCode(e.target.value)}
-                  placeholder="VD: TOAN-10"
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
-                  autoFocus
-                  disabled={isLoading}
-                />
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -105,6 +85,7 @@ export default function CreateProjectModal({
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="VD: Toán Đại số lớp 10"
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+                  autoFocus
                   disabled={isLoading}
                 />
               </div>
@@ -121,7 +102,7 @@ export default function CreateProjectModal({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!projectName.trim() || !projectCode.trim() || isLoading}
+                disabled={!projectName.trim() || isLoading}
                 className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors shadow-sm"
               >
                 {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}

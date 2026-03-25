@@ -436,7 +436,7 @@ function QuickLayoutSection() {
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
                 activeTab === 'freeform'
-                  ? 'bg-white text-rose-500 border border-b-white border-gray-200 -mb-px'
+                  ? 'bg-white text-blue-600 border border-b-white border-gray-200 -mb-px'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
@@ -465,7 +465,7 @@ function QuickLayoutSection() {
                       className={cn(
                         'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
                         'border-2 transition-all duration-150',
-                        'border-gray-100 hover:border-rose-400 hover:shadow-md'
+                        'border-gray-100 hover:border-blue-400 hover:shadow-md'
                       )}
                     >
                       {template.preview}
@@ -500,7 +500,7 @@ function QuickLayoutSection() {
                       className={cn(
                         'w-full h-32 rounded-lg overflow-hidden',
                         'border-2 transition-all duration-150',
-                        'border-gray-100 hover:border-rose-400 hover:shadow-md'
+                        'border-gray-100 hover:border-blue-400 hover:shadow-md'
                       )}
                     >
                       {template.preview}

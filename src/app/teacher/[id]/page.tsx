@@ -76,6 +76,8 @@ export default function ProjectDetailPage() {
   const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
   const [videoLoadingCode, setVideoLoadingCode] = useState<string | null>(null);
+  const [showVideoConfirm, setShowVideoConfirm] = useState(false);
+  const [pendingVideoProductCode, setPendingVideoProductCode] = useState<string | null>(null);
   // Upload form state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -164,7 +166,7 @@ export default function ProjectDetailPage() {
       { productCode, slideRange: 'short' },
       {
         onSuccess: () => {
-          startGeneration(productCode);
+          startGeneration(productCode, projectCode);
           router.push('/teacher/editor');
         },
       },
@@ -172,11 +174,24 @@ export default function ProjectDetailPage() {
   };
 
   const handleClosePipelineModal = () => {
+    if (pipelineProgress?.status === 'completed') {
+      if (pipelineType === 'evaluation') setActiveTab('slides');
+      else if (pipelineType === 'video') setActiveTab('videos');
+    }
     setShowPipelineModal(false);
     setPipelineProgress(null);
   };
 
-  const handleGenerateVideo = async (productCode: string) => {
+  const handleGenerateVideo = (productCode: string) => {
+    setPendingVideoProductCode(productCode);
+    setShowVideoConfirm(true);
+  };
+
+  const handleConfirmGenerateVideo = async () => {
+    if (!pendingVideoProductCode) return;
+    const productCode = pendingVideoProductCode;
+    setShowVideoConfirm(false);
+    setPendingVideoProductCode(null);
     try {
       setVideoLoadingCode(productCode);
       const url = await getEditedSlideGcsUrl(productCode);
@@ -218,7 +233,7 @@ export default function ProjectDetailPage() {
         const result = await productService.getProductSlide(productCode);
         slideDoc = result.slideDocument;
       }
-      setDocument(slideDoc, productCode);
+      setDocument(slideDoc, productCode, projectCode, product?.hasEditedSlide ?? false);
       router.push('/teacher/editor');
     } finally {
       setViewSlideLoading(null);
@@ -521,6 +536,53 @@ export default function ProjectDetailPage() {
                     <Sparkles className="w-4 h-4" />
                   )}
                   Bắt đầu phân tích
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─ Video Generation Confirmation Modal ─ */}
+      <AnimatePresence>
+        {showVideoConfirm && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Film className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Xác nhận tạo video</h3>
+                  <p className="text-sm text-gray-500">Tính năng tạo video sử dụng tài nguyên AI đáng kể và có thể mất vài phút. Bạn có chắc muốn tiếp tục không?</p>
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+                <p className="text-xs text-amber-700 font-medium">⚠ Lưu ý: Mỗi dự án chỉ được tạo một video. Quá trình không thể hủy sau khi bắt đầu.</p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { setShowVideoConfirm(false); setPendingVideoProductCode(null); }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmGenerateVideo}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors"
+                >
+                  <Film className="w-4 h-4" />
+                  Xác nhận tạo video
                 </button>
               </div>
             </motion.div>
