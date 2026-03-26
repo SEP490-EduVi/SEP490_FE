@@ -248,3 +248,57 @@ export interface UpdateMaterialInput {
   subjectCode: string;
   gradeCode: string;
 }
+
+// ─── Payment ──────────────────────────────────────────────────────────────
+export interface SubscriptionPlanDto {
+  planId: number;
+  planName: string;
+  price: number;
+  durationDays: number;
+  quotaAmount: number;
+  description: string | null;
+  isActive: boolean;
+}
+
+export interface WalletDto {
+  walletId: number;
+  userId: number;
+  balance: number;
+  lastUpdated: string | null;
+}
+
+export interface TopUpInput {
+  amount: number;
+  description?: string;
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export interface TopUpResponse {
+  orderCode: number;
+  checkoutUrl: string;
+  amount: number;
+  status: string;
+}
+
+export interface BuySubscriptionResponse {
+  orderId: number;
+  planName: string;
+  amount: number;
+  status: string;
+  quotaAdded: number;
+  walletBalanceAfter: number;
+  purchasedAt: string;
+}
+
+export interface TransactionHistoryDto {
+  transactionId: number;
+  orderCode: number;
+  transactionType: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  status: string;
+  description: string | null;
+  createdAt: string;
+}

@@ -8,6 +8,7 @@ const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
 const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
+const buildPaymentEndpoint       = (path: string) => `/api/Payment${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -159,6 +160,16 @@ export const API_ENDPOINTS = {
 
     PLANS: buildAdminEndpoint('/plans'),
     PLAN_BY_ID: (planId: number) => buildAdminEndpoint(`/plans/${planId}`),
+  },
+
+  // Payment
+  PAYMENT: {
+    PLANS: buildPaymentEndpoint('/plans'),
+    WALLET: buildPaymentEndpoint('/wallet'),
+    TOP_UP: buildPaymentEndpoint('/top-up'),
+    VERIFY_TOP_UP: (orderCode: number) => buildPaymentEndpoint(`/top-up/verify/${orderCode}`),
+    BUY_SUBSCRIPTION: buildPaymentEndpoint('/buy-subscription'),
+    TRANSACTIONS: buildPaymentEndpoint('/transactions'),
   },
 
 } as const;
