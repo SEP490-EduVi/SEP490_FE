@@ -65,8 +65,12 @@ export const useDocumentStore = create<DocumentState>()(
           const currentDocJson = JSON.stringify(currentDoc);
           const newDocJson = JSON.stringify(newDoc);
           if (currentDocJson !== newDocJson) {
-            newHistory.push(deepClone(currentDoc));
+            // Push the NEW state so redo can restore it later
+            newHistory.push(deepClone(newDoc));
           }
+        } else {
+          // No prior document (first ever edit) — just push the new state
+          newHistory.push(deepClone(newDoc));
         }
 
         // Limit history to 50 items
@@ -78,6 +82,7 @@ export const useDocumentStore = create<DocumentState>()(
           document: newDoc,
           history: newHistory,
           historyIndex: newHistory.length - 1,
+          isDirty: true,
           ...otherUpdates,
         });
       };
@@ -92,7 +97,11 @@ export const useDocumentStore = create<DocumentState>()(
         isLoading: false,
         error: null,
         currentProductCode: null,
+        currentProjectCode: null,
         isSaving: false,
+        isDirty: false,
+        isSlideEdited: false,
+        isNewlyGenerated: false,
 
         // History
         history: [],

@@ -11,10 +11,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, LayoutVariant } from '@/types';
 import { exportToEduvi } from '@/lib/exportToEduvi';
+import { useGenerateVideo } from '@/hooks/usePipelineApi';
+import { getEditedSlideGcsUrl } from '@/services/productServices';
 import {
   Undo2,
   Redo2,
@@ -30,6 +33,8 @@ import {
   ChevronDown,
   Save,
   Loader2,
+  ArrowLeft,
+  Film,
 } from 'lucide-react';
 
 // ============================================================================
@@ -148,6 +153,7 @@ function BgColorPicker({
 }
 
 export function Toolbar() {
+  const router = useRouter();
   const activeCardId = useDocumentStore((state) => state.activeCardId);
   const addBlockToCard = useDocumentStore((state) => state.addBlockToCard);
   const addLayoutToCard = useDocumentStore((state) => state.addLayoutToCard);
@@ -160,8 +166,17 @@ export function Toolbar() {
   const setCardContentAlignment = useDocumentStore((state) => state.setCardContentAlignment);
   const setCardBackground = useDocumentStore((state) => state.setCardBackground);
   const currentProductCode = useDocumentStore((state) => state.currentProductCode);
+  const currentProjectCode = useDocumentStore((state) => state.currentProjectCode);
   const isSaving = useDocumentStore((state) => state.isSaving);
   const saveSlide = useDocumentStore((state) => state.saveSlide);
+  const isDirty = useDocumentStore((state) => state.isDirty);
+  const isSlideEdited = useDocumentStore((state) => state.isSlideEdited);
+  const isNewlyGenerated = useDocumentStore((state) => state.isNewlyGenerated);
+
+  const generateVideo = useGenerateVideo();
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [showVideoConfirm, setShowVideoConfirm] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
 
   const activeCard = document?.cards.find((c) => c.id === activeCardId);
   const currentAlignment = activeCard?.contentAlignment ?? 'center';
@@ -195,7 +210,8 @@ export function Toolbar() {
         useDocumentStore.getState().redo();
       } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        useDocumentStore.getState().saveSlide();
+        const state = useDocumentStore.getState();
+        if (state.isDirty) state.saveSlide();
       }
     };
 
@@ -219,21 +235,55 @@ export function Toolbar() {
     addCardFromTemplate(templateType);
   };
 
+  const handleGenerateVideo = async () => {
+    if (!currentProductCode) return;
+    setShowVideoConfirm(true);
+  };
+
+  const handleConfirmGenerateVideo = async () => {
+    if (!currentProductCode) return;
+    setShowVideoConfirm(false);
+    setIsGeneratingVideo(true);
+    try {
+      const url = await getEditedSlideGcsUrl(currentProductCode);
+      if (!url) return;
+      generateVideo.mutate(
+        { productCode: currentProductCode, slideEditedDocumentUrl: url },
+        {
+          onSuccess: () => {
+            if (currentProjectCode) router.push(`/teacher/${currentProjectCode}`);
+          },
+          onSettled: () => setIsGeneratingVideo(false),
+        },
+      );
+    } catch {
+      setIsGeneratingVideo(false);
+    }
+  };
+
   return (
+    <>
     <div className="flex flex-col shadow-md">
       {/* ── Row 1: Main navigation bar ────────────────────────────────────── */}
       <header className="h-14 bg-gradient-to-r from-[#0d3349] via-[#1a5276] to-[#2980b9] px-4 flex items-center justify-between">
-        {/* Left: menu + title + undo/redo */}
+        {/* Left: back button + title + undo/redo */}
         <div className="flex items-center gap-3">
           <button
+            onClick={() => {
+              if (isNewlyGenerated && !isSlideEdited) {
+                setShowExitWarning(true);
+                return;
+              }
+              if (currentProjectCode) {
+                router.push(`/teacher/${currentProjectCode}`);
+              } else {
+                router.back();
+              }
+            }}
             className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
-            title="Menu"
+            title="Quay lại dự án"
           >
-            <div className="w-5 h-5 flex flex-col justify-center gap-1">
-              <div className="w-full h-0.5 bg-white rounded" />
-              <div className="w-full h-0.5 bg-white rounded" />
-              <div className="w-full h-0.5 bg-white rounded" />
-            </div>
+            <ArrowLeft className="w-5 h-5" />
           </button>
 
           <h1 className="text-base font-semibold text-white max-w-[200px] truncate">
@@ -316,11 +366,12 @@ export function Toolbar() {
 
           <button
             onClick={saveSlide}
-            disabled={!document || !currentProductCode || isSaving}
+            disabled={!isDirty || !document || !currentProductCode || isSaving}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors',
-              'disabled:opacity-40 disabled:cursor-not-allowed'
+              'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors',
+              isDirty && document && currentProductCode && !isSaving
+                ? 'bg-white/15 hover:bg-white/25 text-white'
+                : 'bg-white/5 text-white/40 cursor-not-allowed'
             )}
             title="Lưu (Ctrl+S)"
           >
@@ -329,6 +380,25 @@ export function Toolbar() {
               : <Save className="w-4 h-4" />}
             Lưu
           </button>
+
+          {isSlideEdited && (
+            <button
+              onClick={handleGenerateVideo}
+              disabled={isGeneratingVideo || isDirty}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors',
+                !isGeneratingVideo && !isDirty
+                  ? 'bg-white/15 hover:bg-white/25 text-white'
+                  : 'bg-white/5 text-white/40 cursor-not-allowed'
+              )}
+              title={isDirty ? 'Hãy lưu slide trước khi tạo video' : 'Tạo video từ slide hiện tại'}
+            >
+              {isGeneratingVideo
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Film className="w-4 h-4" />}
+              Tạo video
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -459,6 +529,70 @@ export function Toolbar() {
         />
       </div>
     </div>
+
+      {/* ── Video Confirmation Modal ──────────────────────────────────────── */}
+      {showVideoConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Film className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Xác nhận tạo video</h3>
+                <p className="text-sm text-gray-500">Tính năng tạo video sử dụng tài nguyên AI đáng kể và có thể mất vài phút. Bạn có chắc muốn tiếp tục không?</p>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+              <p className="text-xs text-amber-700 font-medium">⚠ Lưu ý: Mỗi dự án chỉ được tạo một video. Quá trình không thể hủy sau khi bắt đầu.</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowVideoConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmGenerateVideo}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors"
+              >
+                <Film className="w-4 h-4" />
+                Xác nhận tạo video
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Exit Warning Modal ──────────────────────────────────────────────── */}
+      {showExitWarning && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <ArrowLeft className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Chưa thể thoát</h3>
+                <p className="text-sm text-gray-500">Slide vừa được AI tạo ra. Vui lòng chỉnh sửa nội dung và lưu slide trước khi quay lại.</p>
+              </div>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
+              <p className="text-xs text-orange-700 font-medium">💡 Hãy chỉnh sửa ít nhất một nội dung rồi nhấn <strong>Lưu</strong> (Ctrl+S) để hoàn tất.</p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowExitWarning(false)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+              >
+                Tiếp tục chỉnh sửa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

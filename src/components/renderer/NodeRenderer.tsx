@@ -771,7 +771,7 @@ function CardRenderer({ node }: { node: ICard }) {
         isOver && 'ring-4 ring-blue-400 ring-inset'
       )}
       style={{
-        backgroundColor: node.backgroundColor || undefined,
+        backgroundColor: node.backgroundColor === '#1e293b' ? '#ffffff' : (node.backgroundColor || undefined),
         backgroundImage: node.backgroundImage
           ? `url(${node.backgroundImage})`
           : undefined,

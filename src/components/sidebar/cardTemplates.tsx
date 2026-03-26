@@ -234,10 +234,10 @@ export const freeformCardTemplates: CardTemplateItem[] = [
     type: 'section-divider',
     label: 'Thẻ chuyển tiếp',
     preview: (
-      <div className="w-full h-32 flex flex-col justify-center items-center gap-2 p-3 bg-slate-800 rounded">
+      <div className="w-full h-32 flex flex-col justify-center items-center gap-2 p-3 bg-white border border-gray-200 rounded">
         <div className="h-1 w-8 bg-indigo-400 rounded-full" />
-        <div className="h-4 bg-white/70 rounded w-3/4" />
-        <div className="h-2.5 bg-white/30 rounded w-1/2" />
+        <div className="h-4 bg-gray-300 rounded w-3/4" />
+        <div className="h-2.5 bg-gray-200 rounded w-1/2" />
         <div className="h-1 w-8 bg-indigo-400 rounded-full" />
       </div>
     ),

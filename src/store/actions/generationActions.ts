@@ -15,6 +15,7 @@ import type { StoreGet, StoreSet } from '../types';
 
 const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
+const PROJECT_CODE_KEY = 'eduvi_project_code';
 
 export function createGenerationActions(set: StoreSet, get: StoreGet) {
   return {
@@ -23,7 +24,11 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
      * sets the editor into "generating" mode. Call this before navigating
      * to `/teacher/editor`.
      */
-    startGeneration: (productCode: string) => {
+    startGeneration: (productCode: string, projectCode?: string) => {
+      if (projectCode !== undefined) {
+        try { sessionStorage.setItem(PROJECT_CODE_KEY, projectCode); } catch { /* ignore */ }
+      }
+      try { sessionStorage.setItem('eduvi_is_newly_generated', 'true'); } catch { /* ignore */ }
       set({
         isGenerating: true,
         generationStep: 'started',
@@ -33,6 +38,10 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
         activeCardId: null,
         revealedCardCount: 0,
         currentProductCode: productCode,
+        currentProjectCode: projectCode ?? null,
+        isDirty: false,
+        isSlideEdited: false,
+        isNewlyGenerated: true,
         error: null,
       });
     },
@@ -49,6 +58,9 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
      */
     completeGeneration: (doc: IDocument) => {
       const productCode = get().generationProductCode;
+      const projectCode = (() => {
+        try { return sessionStorage.getItem(PROJECT_CODE_KEY) || null; } catch { return null; }
+      })();
 
       // Persist so the editor survives a page reload
       try {
@@ -67,6 +79,9 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
         generationProgress: 100,
         revealedCardCount: 0,
         currentProductCode: productCode,
+        currentProjectCode: projectCode,
+        isDirty: false,
+        isSlideEdited: false,
         history: [deepClone(doc)],
         historyIndex: 0,
       });

@@ -163,12 +163,12 @@ export default function SlideGenerationOverlay() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.35 }}
           className={`fixed inset-0 z-50 flex items-center justify-center ${
-            slidesReady ? 'pointer-events-none' : ''
+            slidesReady ? 'pointer-events-none' : 'backdrop-blur-sm'
           }`}
           style={{
             background: slidesReady
-              ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(168,85,247,0.08) 100%)'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.95) 0%, rgba(168,85,247,0.95) 100%)',
+              ? 'transparent'
+              : 'rgba(0,0,0,0.25)',
             transition: 'background 0.8s ease',
           }}
         >

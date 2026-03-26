@@ -47,6 +47,7 @@ export function TextBlock({
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
   const setEditingNodeId = useDocumentStore((state) => state.setEditingNodeId);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isReadyRef = useRef(false); // guard against Tiptap's init-time onUpdate
   const [showToolbar, setShowToolbar] = useState(false);
 
   const editor = useEditor({
@@ -87,7 +88,12 @@ export function TextBlock({
         ),
       },
     },
+    onCreate: () => {
+      // Defer flag so any init-time onUpdate calls are ignored
+      setTimeout(() => { isReadyRef.current = true; }, 0);
+    },
     onUpdate: ({ editor }) => {
+      if (!isReadyRef.current) return;
       // Debounce content updates to avoid creating too many history entries
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
