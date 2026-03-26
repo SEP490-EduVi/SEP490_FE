@@ -207,8 +207,20 @@ export interface CurriculumDto {
   educationLevel: string;
   curriculumYear: number;
   originalFileName: string;
+  fileUrl?: string;
+  note?: string | null;
+  errorMessage?: string | null;
+  warning?: string | null;
   status: number;
   statusName: string;
+}
+
+export interface UploadCurriculumInput {
+  File: File;
+  SubjectCode: string;
+  EducationLevel: string;
+  CurriculumYear: number;
+  Note?: string;
 }
 
 // ─── Expert: Verification (Certificate) ────────────────────────────────────
@@ -247,4 +259,83 @@ export interface UpdateMaterialInput {
   price: number;
   subjectCode: string;
   gradeCode: string;
+}
+
+// ─── Payment ──────────────────────────────────────────────────────────────
+export interface SubscriptionPlanDto {
+  planId: number;
+  planName: string;
+  price: number;
+  durationDays: number;
+  quotaAmount: number;
+  description: string | null;
+  isActive: boolean;
+}
+
+export interface WalletDto {
+  walletId: number;
+  userId: number;
+  balance: number;
+  lastUpdated: string | null;
+}
+
+export interface TopUpInput {
+  amount: number;
+  description?: string;
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export interface TopUpResponse {
+  orderCode: number;
+  checkoutUrl: string;
+  amount: number;
+  status: string;
+}
+
+export interface BuySubscriptionResponse {
+  orderId: number;
+  planName: string;
+  amount: number;
+  status: string;
+  quotaAdded: number;
+  walletBalanceAfter: number;
+  purchasedAt: string;
+}
+
+export interface TransactionHistoryDto {
+  transactionId: number;
+  orderCode: number;
+  transactionType: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  status: string;
+  description: string | null;
+  createdAt: string;
+}
+
+// ─── Staff Review ─────────────────────────────────────────────────────────
+export interface StaffVerificationDto {
+  verificationCode: string;
+  expertId: number;
+  expertName: string;
+  expertEmail: string;
+  fileType: string;
+  description: string | null;
+  status: string;
+  rejectionReason: string | null;
+  uploadedAt: string;
+  reviewedAt: string | null;
+  signedUrl: string | null;
+}
+
+export interface ReviewVerificationInput {
+  approved: boolean;
+  rejectionReason?: string;
+}
+
+export interface ReviewMaterialInput {
+  approved: boolean;
+  rejectionReason?: string;
 }

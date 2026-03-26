@@ -7,15 +7,16 @@ import {
   User, Shield, ShieldCheck, ArrowLeft, CheckCircle,
   Eye, EyeOff, Loader2, AlertCircle, Camera,
   Upload, Trash2, FileText, Clock, CheckCircle2, XCircle,
-  Mail, Phone, BadgeCheck, Activity, KeyRound, LockKeyhole,
+  Mail, Phone, BadgeCheck, Activity, KeyRound, LockKeyhole, Wallet, CreditCard,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetMeService, useChangePasswordService } from '@/services/authServices';
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
+import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
 import AppHeader from '@/components/sidebar/AppHeader';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type Tab = 'profile' | 'security' | 'certificate';
+type Tab = 'profile' | 'security' | 'payment' | 'certificate';
 
 // ── Password strength ──────────────────────────────────────────────────────
 function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; color: string } {
@@ -63,6 +64,7 @@ function ProfilePageInner() {
   const defaultTab = (): Tab => {
     const t = searchParams.get('tab');
     if (t === 'security')    return 'security';
+    if (t === 'payment')     return 'payment';
     if (t === 'certificate') return 'certificate';
     return 'profile';
   };
@@ -119,6 +121,92 @@ function ProfilePageInner() {
   const [certDesc,      setCertDesc]      = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  // ── Payment ──────────────────────────────────────────────────────────────
+  const [topUpAmount, setTopUpAmount] = useState('100000');
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [verifyingOrder, setVerifyingOrder] = useState<number | null>(null);
+
+  const { data: plans = [], isLoading: plansLoading } = useSubscriptionPlans();
+  const { data: wallet, isLoading: walletLoading, refetch: refetchWallet } = useWalletInfo();
+  const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10);
+  const topUpWallet = useTopUpWallet();
+  const verifyTopUp = useVerifyTopUp();
+  const buySubscription = useBuySubscription();
+
+  useEffect(() => {
+    const orderCodeRaw = searchParams.get('orderCode');
+    if (!orderCodeRaw) return;
+    const orderCode = Number(orderCodeRaw);
+    if (!Number.isFinite(orderCode) || orderCode <= 0) return;
+    if (verifyingOrder === orderCode) return;
+
+    setVerifyingOrder(orderCode);
+    setPaymentError(null);
+    verifyTopUp.mutate(orderCode, {
+      onSuccess: (result) => {
+        setPaymentMessage(`Đã xác minh giao dịch #${result.orderCode} (${result.status}).`);
+        void refetchWallet();
+      },
+      onError: (err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        setPaymentError(msg ?? 'Không thể xác minh giao dịch nạp tiền.');
+      },
+    });
+  }, [searchParams, verifyTopUp, verifyingOrder, refetchWallet]);
+
+  const handleTopUp = () => {
+    const amount = Number(topUpAmount);
+    if (!Number.isFinite(amount) || amount < 10000) {
+      setPaymentError('Số tiền nạp tối thiểu là 10.000.');
+      return;
+    }
+
+    setPaymentError(null);
+    setPaymentMessage(null);
+
+    const returnUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/profile?tab=payment`
+      : '/profile?tab=payment';
+
+    topUpWallet.mutate(
+      {
+        amount,
+        description: `Nap EduCoin ${amount}`,
+        returnUrl,
+        cancelUrl: returnUrl,
+      },
+      {
+        onSuccess: (res) => {
+          if (res.checkoutUrl) {
+            window.location.href = res.checkoutUrl;
+            return;
+          }
+          setPaymentError('Không nhận được đường dẫn thanh toán từ hệ thống.');
+        },
+        onError: (err: unknown) => {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+          setPaymentError(msg ?? 'Tạo yêu cầu nạp tiền thất bại.');
+        },
+      },
+    );
+  };
+
+  const handleBuyPlan = (planId: number) => {
+    setPaymentError(null);
+    setPaymentMessage(null);
+
+    buySubscription.mutate(planId, {
+      onSuccess: (res) => {
+        setPaymentMessage(`Mua gói ${res.planName} thành công. Số dư còn lại: ${res.walletBalanceAfter.toLocaleString('vi-VN')} EduCoin.`);
+      },
+      onError: (err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        setPaymentError(msg ?? 'Mua gói thất bại.');
+      },
+    });
+  };
+
   const handleCertSubmit = () => {
     if (!certFile) return;
     submitVerification.mutate(
@@ -147,6 +235,7 @@ function ProfilePageInner() {
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
+    { key: 'payment',  label: 'Thanh toán', icon: Wallet    },
     ...(isExpert ? [{ key: 'certificate' as Tab, label: 'Chứng chỉ', icon: ShieldCheck }] : []),
   ];
 
@@ -393,6 +482,144 @@ function ProfilePageInner() {
                     )}
                   </button>
                 </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ════ Thanh toán ════ */}
+          {activeTab === 'payment' && (
+            <motion.div key="payment"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+              className="space-y-5"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:col-span-1">
+                  <p className="text-xs text-gray-500 mb-1">Số dư hiện tại</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {walletLoading ? '...' : `${(wallet?.balance ?? 0).toLocaleString('vi-VN')} EduCoin`}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Cập nhật: {wallet?.lastUpdated ? new Date(wallet.lastUpdated).toLocaleString('vi-VN') : '—'}
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:col-span-2">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Nạp tiền vào ví</h3>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="number"
+                      min={10000}
+                      step={1000}
+                      value={topUpAmount}
+                      onChange={(e) => setTopUpAmount(e.target.value)}
+                      className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                      placeholder="Nhập số tiền (VND)"
+                    />
+                    <button
+                      onClick={handleTopUp}
+                      disabled={topUpWallet.isPending}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                    >
+                      {topUpWallet.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                      {topUpWallet.isPending ? 'Đang tạo link...' : 'Nạp tiền'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Tối thiểu 10.000 VND mỗi lần nạp.</p>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {paymentError && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-2.5 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl"
+                  >
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {paymentError}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {paymentMessage && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-2.5 text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 px-4 py-3 rounded-xl"
+                  >
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    {paymentMessage}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50">
+                  <h3 className="text-sm font-semibold text-gray-900">Gói subscription</h3>
+                  <p className="text-xs text-gray-400 mt-1">Chọn gói để mua bằng EduCoin trong ví.</p>
+                </div>
+
+                {plansLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                  </div>
+                ) : (
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {plans.filter((p) => p.isActive).map((plan) => (
+                      <div key={plan.planId} className="rounded-xl border border-gray-200 p-4 bg-white">
+                        <p className="text-sm font-semibold text-gray-900">{plan.planName}</p>
+                        <p className="text-xs text-gray-500 mt-1 min-h-8">{plan.description || 'Không có mô tả'}</p>
+                        <div className="mt-3 space-y-1 text-sm text-gray-600">
+                          <p>Giá: <span className="font-semibold text-gray-900">{plan.price.toLocaleString('vi-VN')} EduCoin</span></p>
+                          <p>Thời hạn: {plan.durationDays} ngày</p>
+                          <p>Quota: {plan.quotaAmount.toLocaleString('vi-VN')}</p>
+                        </div>
+                        <button
+                          onClick={() => handleBuyPlan(plan.planId)}
+                          disabled={buySubscription.isPending || role !== 'teacher'}
+                          className="mt-4 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {buySubscription.isPending ? 'Đang xử lý...' : role !== 'teacher' ? 'Chỉ dành cho giáo viên' : 'Mua gói'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50">
+                  <h3 className="text-sm font-semibold text-gray-900">Lịch sử giao dịch gần đây</h3>
+                </div>
+
+                {txLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                  </div>
+                ) : transactions?.items?.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-500">
+                        <tr>
+                          <th className="px-5 py-3 text-left font-medium">Loại</th>
+                          <th className="px-5 py-3 text-left font-medium">Số tiền</th>
+                          <th className="px-5 py-3 text-left font-medium">Trạng thái</th>
+                          <th className="px-5 py-3 text-left font-medium">Thời gian</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.items.map((tx) => (
+                          <tr key={tx.transactionId} className="border-t border-gray-100">
+                            <td className="px-5 py-3 text-gray-700">{tx.transactionType}</td>
+                            <td className="px-5 py-3 text-gray-900 font-medium">{tx.amount.toLocaleString('vi-VN')}</td>
+                            <td className="px-5 py-3 text-gray-600">{tx.status}</td>
+                            <td className="px-5 py-3 text-gray-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="px-6 py-10 text-sm text-gray-400 text-center">Chưa có giao dịch nào.</div>
+                )}
               </div>
             </motion.div>
           )}

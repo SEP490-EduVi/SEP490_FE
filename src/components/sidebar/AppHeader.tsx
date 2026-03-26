@@ -36,7 +36,9 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
     { href: '/admin/wallets',  label: 'Ví',               icon: Wallet          },
   ],
   staff: [
-    { href: '/', label: 'Trang chủ', icon: LayoutDashboard },
+    { href: '/staff', label: 'Bảng điều khiển', icon: LayoutDashboard },
+    { href: '/staff/verifications', label: 'Duyệt hồ sơ', icon: ShieldCheck },
+    { href: '/staff/materials', label: 'Duyệt học liệu', icon: FileText },
   ],
   guest: [],
 };
@@ -45,7 +47,7 @@ const HOME_ROUTE: Record<AppRole, string> = {
   teacher: '/teacher',
   expert:  '/expert',
   admin:   '/admin',
-  staff:   '/',
+  staff:   '/staff',
   guest:   '/login',
 };
 
