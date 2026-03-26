@@ -1,6 +1,5 @@
 // src/types/auth.ts
 
-// ─── Login ─────────────────────────────────────────────────────────────────────
 export interface LoginInput {
   username: string;
   password: string;

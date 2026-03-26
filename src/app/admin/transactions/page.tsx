@@ -3,19 +3,19 @@
 import React, { useEffect, useState } from 'react';
 import Pagination from '@/components/admin/Pagination';
 import { adminServices } from '@/services/adminServices';
-import { AdminOrderResponse } from '@/types/admin';
+import { AdminTransactionResponse } from '@/types/admin';
 
 const PAGE_SIZE = 10;
 const formatVND = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
 
-export default function AdminOrdersPage() {
-  const [items, setItems] = useState<AdminOrderResponse[]>([]);
+export default function AdminTransactionsPage() {
+  const [items, setItems] = useState<AdminTransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [teacherId, setTeacherId] = useState('');
+  const [userId, setUserId] = useState('');
+  const [transactionType, setTransactionType] = useState('');
   const [status, setStatus] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
@@ -23,14 +23,14 @@ export default function AdminOrdersPage() {
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [total, setTotal] = useState(0);
 
-  const loadOrders = async (targetPage = page) => {
+  const loadTransactions = async (targetPage = page) => {
     setLoading(true);
     setError('');
     try {
-      const res = await adminServices.listOrders({
-        teacherId: teacherId ? Number(teacherId) : undefined,
+      const res = await adminServices.listTransactions({
+        userId: userId ? Number(userId) : undefined,
+        type: transactionType || undefined,
         status: status || undefined,
-        paymentMethod: paymentMethod || undefined,
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         page: targetPage,
@@ -44,29 +44,36 @@ export default function AdminOrdersPage() {
       setPage(result.page ?? result.currentPage ?? targetPage);
       setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
     } catch (err) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the tai danh sach don hang.');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the tai danh sach giao dich.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void loadOrders(1);
+    void loadTransactions(1);
   }, []);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-        <p className="mt-1 text-sm text-gray-500">Bo loc: teacherId, status, paymentMethod, fromDate, toDate</p>
+        <h1 className="text-2xl font-bold text-gray-900">Transactions Management</h1>
+        <p className="mt-1 text-sm text-gray-500">Bo loc: userId, transactionType, status, fromDate, toDate</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
         <input
           type="number"
-          value={teacherId}
-          onChange={(e) => setTeacherId(e.target.value)}
-          placeholder="TeacherId"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          placeholder="UserId"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        />
+        <input
+          type="text"
+          value={transactionType}
+          onChange={(e) => setTransactionType(e.target.value)}
+          placeholder="TransactionType"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
         <input
@@ -74,13 +81,6 @@ export default function AdminOrdersPage() {
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           placeholder="Status"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-        />
-        <input
-          type="text"
-          value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value)}
-          placeholder="PaymentMethod"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
         <input
@@ -100,7 +100,7 @@ export default function AdminOrdersPage() {
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           onClick={() => {
             setPage(1);
-            void loadOrders(1);
+            void loadTransactions(1);
           }}
         >
           Loc
@@ -114,10 +114,10 @@ export default function AdminOrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Order Code</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Teacher</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Transaction ID</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">User</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Type</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Status</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Payment</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Amount</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Created</th>
               </tr>
@@ -132,14 +132,14 @@ export default function AdminOrdersPage() {
                   <td colSpan={6} className="px-5 py-16 text-center text-gray-400">Khong co du lieu.</td>
                 </tr>
               ) : (
-                items.map((order) => (
-                  <tr key={order.orderId} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-900">{order.orderCode}</td>
-                    <td className="px-5 py-3 text-gray-700">{order.teacherName || (order.teacherId ? `Teacher ${order.teacherId}` : '-')}</td>
-                    <td className="px-5 py-3 text-gray-600">{order.status}</td>
-                    <td className="px-5 py-3 text-gray-600">{order.paymentMethod || '-'}</td>
-                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(order.amount)}</td>
-                    <td className="px-5 py-3 text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : '-'}</td>
+                items.map((tx) => (
+                  <tr key={tx.transactionId} className="hover:bg-gray-50">
+                    <td className="px-5 py-3 font-medium text-gray-900">#{tx.transactionId}</td>
+                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.userCode || `User ${tx.userId}`}</td>
+                    <td className="px-5 py-3 text-gray-600">{tx.transactionType}</td>
+                    <td className="px-5 py-3 text-gray-600">{tx.status}</td>
+                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(tx.amount)}</td>
+                    <td className="px-5 py-3 text-gray-500">{tx.createdAt ? new Date(tx.createdAt).toLocaleString('vi-VN') : '-'}</td>
                   </tr>
                 ))
               )}
@@ -152,7 +152,7 @@ export default function AdminOrdersPage() {
           total={total}
           onChange={(nextPage) => {
             setPage(nextPage);
-            void loadOrders(nextPage);
+            void loadTransactions(nextPage);
           }}
         />
       </div>
