@@ -8,10 +8,11 @@ import {
   BookOpen, PenLine,
 } from 'lucide-react';
 import type { VideoProductDto, VideoInteraction } from '@/types/api';
-import { getVideoSignedUrl } from '@/services/videoServices';
+import { getVideoSignedUrl, getLatestVideoByProject } from '@/services/videoServices';
 
 interface VideoPlayerModalProps {
   video: VideoProductDto;
+  projectCode?: string;
   onClose: () => void;
 }
 
@@ -330,10 +331,11 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
 
 // ─── Main Modal ────────────────────────────────────────────────────────────
 
-export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalProps) {
+export default function VideoPlayerModal({ video, projectCode, onClose }: VideoPlayerModalProps) {
   const [signedUrl, setSignedUrl]   = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(true);
   const [urlError, setUrlError]     = useState<string | null>(null);
+  const [liveVideoUrl, setLiveVideoUrl] = useState<string | null>(video.videoUrl);
 
   const videoRef     = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -351,14 +353,46 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
   const triggeredRef = useRef<Set<number>>(new Set());
   const [answered, setAnswered]     = useState<ReadonlyArray<number>>([]);
 
-  // URL fetch
+  // Poll for videoUrl if it's not ready yet (backend race condition)
   useEffect(() => {
-    if (!video.videoUrl) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); return; }
+    if (video.videoUrl) { setLiveVideoUrl(video.videoUrl); return; }
+    if (!projectCode) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); return; }
+
+    let cancelled = false;
+    let attempt = 0;
+    const MAX = 8;
+    const DELAY = 3000;
+
+    const poll = async () => {
+      while (attempt < MAX && !cancelled) {
+        attempt++;
+        await new Promise(r => setTimeout(r, DELAY));
+        if (cancelled) break;
+        try {
+          const fresh = await getLatestVideoByProject(projectCode);
+          if (fresh?.videoUrl && !cancelled) {
+            setLiveVideoUrl(fresh.videoUrl);
+            return;
+          }
+        } catch { /* keep polling */ }
+      }
+      if (!cancelled) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); }
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video.videoUrl, projectCode]);
+
+  // Fetch signed URL once we have liveVideoUrl
+  useEffect(() => {
+    if (!liveVideoUrl) return;
     setLoadingUrl(true);
-    getVideoSignedUrl(video.videoUrl)
+    setUrlError(null);
+    getVideoSignedUrl(liveVideoUrl)
       .then((url) => { setSignedUrl(url); setLoadingUrl(false); })
       .catch(() => { setUrlError('Không thể tải video. Vui lòng thử lại.'); setLoadingUrl(false); });
-  }, [video.videoUrl]);
+  }, [liveVideoUrl]);
 
   // Fullscreen change
   useEffect(() => {
@@ -491,7 +525,7 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
             {loadingUrl && (
               <div className="flex flex-col items-center gap-3 text-gray-400">
                 <Loader2 className="w-8 h-8 animate-spin" />
-                <span className="text-sm">Đang tải video...</span>
+                <span className="text-sm">{liveVideoUrl ? 'Đang tải video...' : 'Đang chờ video từ server...'}</span>
               </div>
             )}
             {!loadingUrl && urlError && (

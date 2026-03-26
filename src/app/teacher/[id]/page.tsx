@@ -9,6 +9,7 @@ import {
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
 import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
+import { useInputDocumentsByProject } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentTree from '@/components/projects/DocumentTree';
 import ProductTreeItem from '@/components/projects/ProductTreeItem';
@@ -29,6 +30,7 @@ export default function ProjectDetailPage() {
 
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
   const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useProductsByProject(projectCode);
+  const { data: inputDocuments = [] } = useInputDocumentsByProject(projectCode);
   const deleteProduct = useDeleteProduct();
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
@@ -81,13 +83,36 @@ export default function ProjectDetailPage() {
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
+  // Auto-assign unlinked products to their document when only 1 document exists
+  useEffect(() => {
+    if (products.length === 0 || inputDocuments.length !== 1) return;
+    const doc = inputDocuments[0];
+    const allLinked = new Set(Object.values(docProductMap).flat());
+    const unlinked = products.filter(p => !allLinked.has(p.productCode));
+    if (unlinked.length === 0) return;
+    setDocProductMap(prev => {
+      const next = {
+        ...prev,
+        [doc.documentCode]: [
+          ...(prev[doc.documentCode] ?? []),
+          ...unlinked.map(p => p.productCode).filter(c => !(prev[doc.documentCode] ?? []).includes(c)),
+        ],
+      };
+      try { sessionStorage.setItem(`dpm-${projectCode}`, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, inputDocuments]);
+
   const toggleDoc = (docCode: string) =>
     setExpandedDocCodes(prev => { const n = new Set(prev); n.has(docCode) ? n.delete(docCode) : n.add(docCode); return n; });
 
   const toggleProduct = (productCode: string) =>
     setExpandedProductCodes(prev => { const n = new Set(prev); n.has(productCode) ? n.delete(productCode) : n.add(productCode); return n; });
 
-  const handleStartAnalysis = (docCode: string) => { setAnalysisDocCode(docCode); setShowAnalysisForm(true); };
+  const handleStartAnalysis = (docCode: string) => {
+    router.push(`/pipeline?projectCode=${encodeURIComponent(projectCode)}&documentCode=${encodeURIComponent(docCode)}`);
+  };
 
   const handleConfirmAnalysis = async (productName: string, year: number) => {
     if (!analysisDocCode) return;
@@ -248,40 +273,10 @@ export default function ProjectDetailPage() {
           onDeleteVideo={(productVideoCode) => deleteVideo.mutate(productVideoCode)}
         />
 
-        {(isProductsLoading || unlinkedProducts.length > 0) && (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
-                <Layers className="w-4 h-4 text-purple-500" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-gray-800">Sản phẩm AI</h2>
-                <p className="text-xs text-gray-400">{unlinkedProducts.length} sản phẩm</p>
-              </div>
-            </div>
-            {isProductsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-5 h-5 animate-spin text-blue-500 mr-2" /><span className="text-sm text-gray-500">Đang tải...</span>
-              </div>
-            ) : (
-              <div className="px-4 py-3 space-y-2">
-                {unlinkedProducts.map(product => (
-                  <ProductTreeItem
-                    key={product.productCode}
-                    product={product}
-                    isExpanded={expandedProductCodes.has(product.productCode)}
-                    onToggle={() => toggleProduct(product.productCode)}
-                    {...sharedProductProps}
-                    latestVideo={latestVideo?.productCode === product.productCode ? latestVideo : null}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+
       </main>
 
-      {viewingVideo && <VideoPlayerModal video={viewingVideo} onClose={() => setViewingVideo(null)} />}
+      {viewingVideo && <VideoPlayerModal video={viewingVideo} projectCode={projectCode} onClose={() => setViewingVideo(null)} />}
 
       <EvaluationModal
         open={!!evalProductCode}

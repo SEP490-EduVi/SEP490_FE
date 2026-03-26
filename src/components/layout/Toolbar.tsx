@@ -16,8 +16,6 @@ import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, LayoutVariant } from '@/types';
 import { exportToEduvi } from '@/lib/exportToEduvi';
-import { useGenerateVideo } from '@/hooks/usePipelineApi';
-import { getEditedSlideGcsUrl } from '@/services/productServices';
 import {
   Undo2,
   Redo2,
@@ -173,8 +171,6 @@ export function Toolbar() {
   const isSlideEdited = useDocumentStore((state) => state.isSlideEdited);
   const isNewlyGenerated = useDocumentStore((state) => state.isNewlyGenerated);
 
-  const generateVideo = useGenerateVideo();
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [showVideoConfirm, setShowVideoConfirm] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
 
@@ -240,25 +236,12 @@ export function Toolbar() {
     setShowVideoConfirm(true);
   };
 
-  const handleConfirmGenerateVideo = async () => {
-    if (!currentProductCode) return;
+  const handleConfirmGenerateVideo = () => {
+    if (!currentProductCode || !currentProjectCode) return;
     setShowVideoConfirm(false);
-    setIsGeneratingVideo(true);
-    try {
-      const url = await getEditedSlideGcsUrl(currentProductCode);
-      if (!url) return;
-      generateVideo.mutate(
-        { productCode: currentProductCode, slideEditedDocumentUrl: url },
-        {
-          onSuccess: () => {
-            if (currentProjectCode) router.push(`/teacher/${currentProjectCode}`);
-          },
-          onSettled: () => setIsGeneratingVideo(false),
-        },
-      );
-    } catch {
-      setIsGeneratingVideo(false);
-    }
+    router.push(
+      `/pipeline?projectCode=${encodeURIComponent(currentProjectCode)}&productCode=${encodeURIComponent(currentProductCode)}&step=video`
+    );
   };
 
   return (
@@ -384,18 +367,16 @@ export function Toolbar() {
           {isSlideEdited && (
             <button
               onClick={handleGenerateVideo}
-              disabled={isGeneratingVideo || isDirty}
+              disabled={isDirty}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors',
-                !isGeneratingVideo && !isDirty
+                !isDirty
                   ? 'bg-white/15 hover:bg-white/25 text-white'
                   : 'bg-white/5 text-white/40 cursor-not-allowed'
               )}
               title={isDirty ? 'Hãy lưu slide trước khi tạo video' : 'Tạo video từ slide hiện tại'}
             >
-              {isGeneratingVideo
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Film className="w-4 h-4" />}
+              <Film className="w-4 h-4" />
               Tạo video
             </button>
           )}
