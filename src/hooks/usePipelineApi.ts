@@ -3,8 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as pipelineService from '@/services/pipelineServices';
 import * as videoService from '@/services/videoServices';
-import type { LessonAnalysisInput, GenerateSlidesInput, GenerateVideoInput, CurriculumDto } from '@/types/api';
-import { getCurricula } from '@/services/curriculumServices';
+import type { LessonAnalysisInput, GenerateSlidesInput, GenerateVideoInput, CurriculumDto, UploadCurriculumInput } from '@/types/api';
+import { getCurricula, getCurriculumByCode, uploadCurriculum } from '@/services/curriculumServices';
 
 // ─── GET curricula ─────────────────────────────────────────────
 export function useCurricula() {
@@ -12,6 +12,26 @@ export function useCurricula() {
     queryKey: ['curricula'],
     queryFn: getCurricula,
     staleTime: 5 * 60_000,
+  });
+}
+
+// ─── GET curriculum detail by documentCode ───────────────────────────────
+export function useCurriculum(documentCode?: string) {
+  return useQuery({
+    queryKey: ['curricula', documentCode],
+    queryFn: () => getCurriculumByCode(documentCode!),
+    enabled: !!documentCode,
+  });
+}
+
+// ─── POST curriculum upload ───────────────────────────────────────────────
+export function useUploadCurriculum() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UploadCurriculumInput) => uploadCurriculum(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['curricula'] });
+    },
   });
 }
 
@@ -59,6 +79,27 @@ export function useLatestVideoByProject(projectCode: string) {
     enabled: !!projectCode,
     staleTime: 30_000,
     retry: false,
+  });
+}
+
+// ─── GET all videos by project ───────────────────────────────────────────
+export function useVideosByProject(projectCode: string) {
+  return useQuery({
+    queryKey: ['video', 'project', projectCode],
+    queryFn: () => videoService.getVideosByProject(projectCode),
+    enabled: !!projectCode,
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+// ─── GET pipeline status by task id ──────────────────────────────────────
+export function usePipelineTaskStatus(taskId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['pipeline-task-status', taskId],
+    queryFn: () => pipelineService.getPipelineTaskStatus(taskId!),
+    enabled: !!taskId && enabled,
+    refetchInterval: 5_000,
   });
 }
 

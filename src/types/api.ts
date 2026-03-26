@@ -207,8 +207,20 @@ export interface CurriculumDto {
   educationLevel: string;
   curriculumYear: number;
   originalFileName: string;
+  fileUrl?: string;
+  note?: string | null;
+  errorMessage?: string | null;
+  warning?: string | null;
   status: number;
   statusName: string;
+}
+
+export interface UploadCurriculumInput {
+  File: File;
+  SubjectCode: string;
+  EducationLevel: string;
+  CurriculumYear: number;
+  Note?: string;
 }
 
 // ─── Expert: Verification (Certificate) ────────────────────────────────────

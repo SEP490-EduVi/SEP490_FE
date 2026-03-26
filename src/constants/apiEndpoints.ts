@@ -77,10 +77,14 @@ export const API_ENDPOINTS = {
 
   // InputDocument
   INPUT_DOCUMENT: {
+    // GET  /api/InputDocument — Lấy tất cả InputDocuments của Teacher hiện tại
+    GET_ALL:        buildInputDocumentEndpoint(""),
     // POST /api/InputDocument — Upload tài liệu đầu vào
     UPLOAD:         buildInputDocumentEndpoint(""),
     // GET  /api/InputDocument/project/{projectCode} — Lấy danh sách tài liệu theo project
     GET_BY_PROJECT: (projectCode: string) => buildInputDocumentEndpoint(`/project/${projectCode}`),
+    // GET  /api/InputDocument/{documentCode}
+    GET_BY_CODE:    (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
     // DELETE /api/InputDocument/{documentCode} — Xóa tài liệu
     DELETE:         (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
   },
@@ -89,6 +93,8 @@ export const API_ENDPOINTS = {
   VIDEO: {
     // POST /api/Video/generate — Tạo video từ slide đã chỉnh sửa
     GENERATE: '/api/Video/generate',
+    // GET  /api/Video/project/{projectCode}
+    GET_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}`,
     // GET  /api/Video/project/{projectCode}/latest
     GET_LATEST_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}/latest`,
     // DELETE /api/Video/{productVideoCode}
@@ -144,8 +150,12 @@ export const API_ENDPOINTS = {
 
   // Curriculum Ingestion
   CURRICULUM: {
+    // POST /api/curriculum-ingestion
+    UPLOAD: buildCurriculumEndpoint(''),
     // GET /api/curriculum-ingestion
     GET_ALL: buildCurriculumEndpoint(''),
+    // GET /api/curriculum-ingestion/{documentCode}
+    GET_BY_CODE: (documentCode: string) => buildCurriculumEndpoint(`/${documentCode}`),
   },
 
   // Admin

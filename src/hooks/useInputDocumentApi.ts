@@ -6,12 +6,29 @@ import type { UploadInputDocumentInput } from '@/types/api';
 
 const INPUT_DOCS_KEY = 'input-documents';
 
+// ─── GET all input documents ─────────────────────────────────────────────
+export function useAllInputDocuments() {
+  return useQuery({
+    queryKey: [INPUT_DOCS_KEY, 'all'],
+    queryFn: () => inputDocService.getAllInputDocuments(),
+  });
+}
+
 // ─── GET input documents by project ───────────────────────────────────────
 export function useInputDocumentsByProject(projectCode?: string) {
   return useQuery({
     queryKey: [INPUT_DOCS_KEY, projectCode],
     queryFn: () => inputDocService.getInputDocumentsByProject(projectCode!),
     enabled: !!projectCode,
+  });
+}
+
+// ─── GET input document by code ──────────────────────────────────────────
+export function useInputDocument(documentCode?: string) {
+  return useQuery({
+    queryKey: [INPUT_DOCS_KEY, 'detail', documentCode],
+    queryFn: () => inputDocService.getInputDocumentByCode(documentCode!),
+    enabled: !!documentCode,
   });
 }
 
