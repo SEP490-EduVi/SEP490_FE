@@ -20,6 +20,8 @@ import {
 import { ApiResponse } from "@/types/api";
 
 // ─── Login ─────────────────────────────────────────────────────────────────────
+// POST /identity-service/api/login
+// IDE tự biết: mutate(LoginInput) → data: ApiResponse<LoginResponse>
 export const useLoginService = createStandaloneMutationHook<
   ApiResponse<LoginResponse>,
   LoginInput
