@@ -274,12 +274,6 @@ export default function LoginPage() {
           {isGooglePending ? 'Đang đăng nhập với Google...' : 'Đăng nhập với Google'}
         </button>
 
-        {!googleClientId && (
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            Chưa cấu hình NEXT_PUBLIC_GOOGLE_CLIENT_ID nên đăng nhập Google sẽ không hoạt động.
-          </p>
-        )}
-
         {/* Register link */}
         <p className="text-center text-sm text-slate-500">
           Chưa có tài khoản?{' '}
