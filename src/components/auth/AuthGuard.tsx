@@ -22,7 +22,7 @@ function getFallbackRoute(role: AppRole): string {
   switch (role) {
     case 'admin':   return '/admin';
     case 'teacher': return '/teacher';
-    case 'staff':   return '/';       // Cập nhật sau khi có trang staff
+    case 'staff':   return '/staff';
     case 'expert':  return '/expert';
     case 'guest':
     default:        return '/login';

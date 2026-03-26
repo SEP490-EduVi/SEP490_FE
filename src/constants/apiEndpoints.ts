@@ -9,6 +9,7 @@ const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
 const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
 const buildPaymentEndpoint       = (path: string) => `/api/Payment${path}`;
+const buildStaffEndpoint         = (path: string) => `/api/staff${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -131,6 +132,9 @@ export const API_ENDPOINTS = {
     GET_MY:   '/api/material/my',
     UPDATE:   (code: string) => `/api/material/${code}`,
     DELETE:   (code: string) => `/api/material/${code}`,
+    GET_PENDING: '/api/material/pending',
+    GET_REVIEW_DETAIL: (code: string) => `/api/material/review/${code}`,
+    REVIEW: (code: string) => `/api/material/${code}/review`,
     // Teacher-facing
     GET_BY_CODE: (code: string) => `/api/material/${code}`,
     BROWSE:      '/api/material/browse',
@@ -160,6 +164,13 @@ export const API_ENDPOINTS = {
 
     PLANS: buildAdminEndpoint('/plans'),
     PLAN_BY_ID: (planId: number) => buildAdminEndpoint(`/plans/${planId}`),
+  },
+
+  // Staff
+  STAFF: {
+    VERIFICATION_PENDING: buildStaffEndpoint('/verifications/pending'),
+    VERIFICATION_DETAIL: (code: string) => buildStaffEndpoint(`/verifications/${code}`),
+    REVIEW_VERIFICATION: (code: string) => buildStaffEndpoint(`/verifications/${code}/review`),
   },
 
   // Payment

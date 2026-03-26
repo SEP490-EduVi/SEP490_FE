@@ -302,3 +302,28 @@ export interface TransactionHistoryDto {
   description: string | null;
   createdAt: string;
 }
+
+// ─── Staff Review ─────────────────────────────────────────────────────────
+export interface StaffVerificationDto {
+  verificationCode: string;
+  expertId: number;
+  expertName: string;
+  expertEmail: string;
+  fileType: string;
+  description: string | null;
+  status: string;
+  rejectionReason: string | null;
+  uploadedAt: string;
+  reviewedAt: string | null;
+  signedUrl: string | null;
+}
+
+export interface ReviewVerificationInput {
+  approved: boolean;
+  rejectionReason?: string;
+}
+
+export interface ReviewMaterialInput {
+  approved: boolean;
+  rejectionReason?: string;
+}
