@@ -96,12 +96,25 @@ export const API_ENDPOINTS = {
   // Metadata
   SUBJECT: {
     GET_ALL: '/api/Subject',
+    GET_BY_CODE: (subjectCode: string) => `/api/Subject/${subjectCode}`,
+    CREATE: '/api/Subject',
+    UPDATE: (subjectCode: string) => `/api/Subject/${subjectCode}`,
+    DELETE: (subjectCode: string) => `/api/Subject/${subjectCode}`,
   },
   GRADE: {
     GET_ALL: '/api/Grade',
+    GET_BY_CODE: (gradeCode: string) => `/api/Grade/${gradeCode}`,
+    CREATE: '/api/Grade',
+    UPDATE: (gradeCode: string) => `/api/Grade/${gradeCode}`,
+    DELETE: (gradeCode: string) => `/api/Grade/${gradeCode}`,
   },
   LESSON: {
+    GET_ALL: '/api/Lesson',
     GET_BY_SUBJECT: (subjectCode: string) => `/api/Lesson?subjectCode=${subjectCode}`,
+    GET_BY_CODE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
+    CREATE: '/api/Lesson',
+    UPDATE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
+    DELETE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
   },
 
   // Expert Verification (Certificate)

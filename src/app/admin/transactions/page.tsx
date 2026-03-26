@@ -44,7 +44,7 @@ export default function AdminTransactionsPage() {
       setPage(result.page ?? result.currentPage ?? targetPage);
       setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
     } catch (err) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the tai danh sach giao dich.');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể tải danh sách giao dịch.');
     } finally {
       setLoading(false);
     }
@@ -57,8 +57,8 @@ export default function AdminTransactionsPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Transactions Management</h1>
-        <p className="mt-1 text-sm text-gray-500">Bo loc: userId, transactionType, status, fromDate, toDate</p>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý giao dịch</h1>
+        <p className="mt-1 text-sm text-gray-500">Bộ lọc: người dùng, loại giao dịch, trạng thái, khoảng thời gian</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
@@ -66,21 +66,21 @@ export default function AdminTransactionsPage() {
           type="number"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
-          placeholder="UserId"
+          placeholder="Mã người dùng"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
         <input
           type="text"
           value={transactionType}
           onChange={(e) => setTransactionType(e.target.value)}
-          placeholder="TransactionType"
+          placeholder="Loại giao dịch"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
         <input
           type="text"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          placeholder="Status"
+          placeholder="Trạng thái"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
         <input
@@ -103,7 +103,7 @@ export default function AdminTransactionsPage() {
             void loadTransactions(1);
           }}
         >
-          Loc
+          Lọc
         </button>
       </div>
 
@@ -114,28 +114,28 @@ export default function AdminTransactionsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Transaction ID</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">User</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Type</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Status</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Amount</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Created</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Mã giao dịch</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Người dùng</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Loại</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Số tiền</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Thời gian</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-gray-500">Dang tai du lieu...</td>
+                  <td colSpan={6} className="px-5 py-16 text-center text-gray-500">Đang tải dữ liệu...</td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-gray-400">Khong co du lieu.</td>
+                  <td colSpan={6} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
                 items.map((tx) => (
                   <tr key={tx.transactionId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{tx.transactionId}</td>
-                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.userCode || `User ${tx.userId}`}</td>
+                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.userCode || `Người dùng ${tx.userId}`}</td>
                     <td className="px-5 py-3 text-gray-600">{tx.transactionType}</td>
                     <td className="px-5 py-3 text-gray-600">{tx.status}</td>
                     <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(tx.amount)}</td>

@@ -16,7 +16,6 @@ import {
   Wallet,
   Clock,
   ChevronDown,
-  Filter,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -96,6 +95,12 @@ const TX_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   success: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
   pending: { bg: 'bg-amber-50', text: 'text-amber-700' },
   failed: { bg: 'bg-red-50', text: 'text-red-600' },
+};
+
+const TX_STATUS_LABELS: Record<string, string> = {
+  success: 'Thành công',
+  pending: 'Đang xử lý',
+  failed: 'Thất bại',
 };
 
 type TypeFilter = 'all' | 'deposit' | 'withdraw';
@@ -261,7 +266,7 @@ export default function WalletHistoryPage() {
                     <span
                       className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${st.bg} ${st.text}`}
                     >
-                      {tx.status}
+                      {TX_STATUS_LABELS[tx.status] ?? tx.status}
                     </span>
                   </div>
                 </li>

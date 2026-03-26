@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
         const res = await adminServices.getFinancialOverview();
         setOverview(res.result ?? EMPTY_OVERVIEW);
       } catch (err) {
-        setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the tai tong quan tai chinh.');
+        setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể tải tổng quan tài chính.');
       } finally {
         setLoading(false);
       }
@@ -50,8 +50,8 @@ export default function AdminDashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Financial Overview</h1>
-        <p className="mt-1 text-sm text-gray-500">Tong quan so lieu he thong theo API /api/Admin/financial/overview</p>
+        <h1 className="text-2xl font-bold text-gray-900">Tổng quan tài chính</h1>
+        <p className="mt-1 text-sm text-gray-500">Tổng quan số liệu hệ thống</p>
       </div>
 
       {error && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
@@ -60,55 +60,55 @@ export default function AdminDashboardPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center gap-2 text-blue-600">
             <Users className="h-5 w-5" />
-            <p className="text-sm font-medium">Nguoi dung</p>
+            <p className="text-sm font-medium">Người dùng</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">{loading ? '...' : overview.totalUsers.toLocaleString('vi-VN')}</p>
-          <p className="text-xs text-gray-500">Active: {overview.activeUsers} - Banned: {overview.bannedUsers}</p>
+          <p className="text-xs text-gray-500">Hoạt động: {overview.activeUsers} - Bị khóa: {overview.bannedUsers}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center gap-2 text-emerald-600">
             <Wallet className="h-5 w-5" />
-            <p className="text-sm font-medium">Vi va so du</p>
+            <p className="text-sm font-medium">Ví và số dư</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">{loading ? '...' : formatVND(overview.totalBalance)}</p>
-          <p className="text-xs text-gray-500">Tong vi: {overview.totalWallets.toLocaleString('vi-VN')}</p>
+          <p className="text-xs text-gray-500">Tổng ví: {overview.totalWallets.toLocaleString('vi-VN')}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center gap-2 text-violet-600">
             <ArrowUpRight className="h-5 w-5" />
-            <p className="text-sm font-medium">Top-up</p>
+            <p className="text-sm font-medium">Nạp tiền</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">{loading ? '...' : formatVND(overview.totalTopUpAmount)}</p>
-          <p className="text-xs text-gray-500">So giao dich: {overview.totalTopUpCount.toLocaleString('vi-VN')}</p>
+          <p className="text-xs text-gray-500">Số giao dịch: {overview.totalTopUpCount.toLocaleString('vi-VN')}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center gap-2 text-amber-600">
             <ShoppingCart className="h-5 w-5" />
-            <p className="text-sm font-medium">Don hang</p>
+            <p className="text-sm font-medium">Đơn hàng</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">{loading ? '...' : overview.totalOrders.toLocaleString('vi-VN')}</p>
-          <p className="text-xs text-gray-500">Completed: {overview.completedOrders.toLocaleString('vi-VN')}</p>
+          <p className="text-xs text-gray-500">Hoàn tất: {overview.completedOrders.toLocaleString('vi-VN')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="text-sm text-gray-500">Subscription Revenue</p>
+          <p className="text-sm text-gray-500">Doanh thu gói đăng ký</p>
           <p className="mt-2 text-2xl font-bold text-gray-900">{loading ? '...' : formatVND(subscriptionRevenue)}</p>
-          <p className="text-xs text-gray-500">So dang ky: {subscriptionCount.toLocaleString('vi-VN')}</p>
+          <p className="text-xs text-gray-500">Số đăng ký: {subscriptionCount.toLocaleString('vi-VN')}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="mb-3 text-sm text-gray-500">Quick Links</p>
+          <p className="mb-3 text-sm text-gray-500">Liên kết nhanh</p>
           <div className="flex flex-wrap gap-2">
-            <Link href="/admin/users" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Users</Link>
-            <Link href="/admin/wallets" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Wallets</Link>
-            <Link href="/admin/orders" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Orders</Link>
-            <Link href="/admin/transactions" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Transactions</Link>
-            <Link href="/admin/packages" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Plans</Link>
+            <Link href="/admin/users" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Người dùng</Link>
+            <Link href="/admin/wallets" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Ví</Link>
+            <Link href="/admin/orders" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Đơn hàng</Link>
+            <Link href="/admin/transactions" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Giao dịch</Link>
+            <Link href="/admin/packages" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Gói cước</Link>
           </div>
         </div>
       </div>

@@ -9,10 +9,14 @@ export interface PagedResponse<T> {
   items?: T[];
   total?: number;
   totalItems?: number;
+  totalCount?: number;
   page?: number;
   currentPage?: number;
   pageSize?: number;
   size?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 }
 
 export interface AdminRoleResponse {
@@ -96,13 +100,16 @@ export interface AdminTransactionResponse {
 
 export interface AdminOrderResponse {
   orderId: number;
-  orderCode: string;
+  orderCode?: string | null;
   teacherId?: number | null;
   teacherName?: string | null;
-  status: string;
+  status?: number | string;
+  statusName?: string | null;
   paymentMethod?: string | null;
-  amount: number;
+  amount?: number;
+  totalAmount?: number;
   createdAt?: string | null;
+  orderDate?: string | null;
 }
 
 export interface PlanResponse {
@@ -132,4 +139,54 @@ export interface UpdatePlanRequest {
   price?: number;
   quotaAmount?: number;
   isActive?: boolean;
+}
+
+export interface AdminGradeResponse {
+  gradeCode: string;
+  gradeName: string;
+}
+
+export interface CreateGradeRequest {
+  gradeCode: string;
+  gradeName: string;
+}
+
+export interface UpdateGradeRequest {
+  gradeCode?: string;
+  gradeName?: string;
+}
+
+export interface AdminSubjectResponse {
+  subjectCode: string;
+  subjectName: string;
+  lessonCount?: number;
+}
+
+export interface CreateSubjectRequest {
+  subjectCode: string;
+  subjectName: string;
+}
+
+export interface UpdateSubjectRequest {
+  subjectCode?: string;
+  subjectName?: string;
+}
+
+export interface AdminLessonResponse {
+  lessonCode: string;
+  lessonName: string;
+  subjectCode?: string;
+  subjectName?: string;
+}
+
+export interface CreateLessonRequest {
+  lessonCode: string;
+  lessonName: string;
+  subjectCode: string;
+}
+
+export interface UpdateLessonRequest {
+  lessonCode?: string;
+  lessonName?: string;
+  subjectCode?: string;
 }

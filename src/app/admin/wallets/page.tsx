@@ -28,7 +28,7 @@ export default function AdminWalletsPage() {
       setPage(result.page ?? result.currentPage ?? targetPage);
       setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
     } catch (err) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the tai danh sach vi.');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể tải danh sách ví.');
     } finally {
       setLoading(false);
     }
@@ -41,8 +41,8 @@ export default function AdminWalletsPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Wallets Management</h1>
-        <p className="mt-1 text-sm text-gray-500">Danh sach vi he thong, mac dinh sap xep theo balance giam dan tu backend.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý ví</h1>
+        <p className="mt-1 text-sm text-gray-500">Danh sách ví hệ thống, mặc định sắp xếp theo số dư giảm dần .</p>
       </div>
 
       {error && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
@@ -52,27 +52,27 @@ export default function AdminWalletsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Wallet ID</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Nguoi dung</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Mã ví</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Người dùng</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Email</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Balance</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Cap nhat</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Số dư</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Cập nhật</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-16 text-center text-gray-500">Dang tai du lieu...</td>
+                  <td colSpan={5} className="px-5 py-16 text-center text-gray-500">Đang tải dữ liệu...</td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-16 text-center text-gray-400">Khong co du lieu.</td>
+                  <td colSpan={5} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
                 items.map((wallet) => (
                   <tr key={wallet.walletId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{wallet.walletId}</td>
-                    <td className="px-5 py-3 text-gray-700">{wallet.fullName || wallet.userCode || `User ${wallet.userId}`}</td>
+                    <td className="px-5 py-3 text-gray-700">{wallet.fullName || wallet.userCode || `Người dùng ${wallet.userId}`}</td>
                     <td className="px-5 py-3 text-gray-500">{wallet.email || '-'}</td>
                     <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(wallet.balance)}</td>
                     <td className="px-5 py-3 text-gray-500">{wallet.updatedAt ? new Date(wallet.updatedAt).toLocaleString('vi-VN') : '-'}</td>

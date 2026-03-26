@@ -138,6 +138,20 @@ const STATUS_STYLES: Record<OrderDetail['status'], string> = {
   refunded: 'bg-gray-100 text-gray-500',
 };
 
+const STATUS_LABELS: Record<OrderDetail['status'], string> = {
+  completed: 'Hoàn tất',
+  pending: 'Đang xử lý',
+  failed: 'Thất bại',
+  refunded: 'Đã hoàn tiền',
+};
+
+const MATERIAL_TYPE_LABELS: Record<OrderDetail['materials'][number]['type'], string> = {
+  document: 'Tài liệu',
+  image: 'Hình ảnh',
+  video: 'Video',
+  audio: 'Âm thanh',
+};
+
 const MATERIAL_ICONS: Record<string, React.ReactNode> = {
   document: <FileText className="w-4 h-4 text-blue-500" />,
   image: <Image className="w-4 h-4 text-purple-500" />,
@@ -195,7 +209,7 @@ export default function OrderDetailPage() {
           <span
             className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[order.status]}`}
           >
-            {order.status.toUpperCase()}
+            {STATUS_LABELS[order.status]}
           </span>
         </div>
       </div>
@@ -225,7 +239,7 @@ export default function OrderDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500">Vai trò</dt>
-              <dd className="text-gray-700 capitalize">{order.userRole}</dd>
+              <dd className="text-gray-700 capitalize">{order.userRole === 'teacher' ? 'Giáo viên' : order.userRole}</dd>
             </div>
           </dl>
         </div>
@@ -320,7 +334,7 @@ export default function OrderDetailPage() {
                     {mat.name}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {mat.type} &middot; {mat.size}
+                    {MATERIAL_TYPE_LABELS[mat.type]} &middot; {mat.size}
                   </p>
                 </div>
                 <span className="text-xs text-gray-400 flex-shrink-0">

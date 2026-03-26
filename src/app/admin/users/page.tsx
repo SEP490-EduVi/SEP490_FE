@@ -13,9 +13,9 @@ type ToastState = { kind: 'success' | 'error'; message: string } | null;
 const PAGE_SIZE = 10;
 
 const getStatusLabel = (status: number, statusName?: string | null) => {
-  if (status === 1) return 'Hoat dong';
-  if (status === 0) return 'Da khoa';
-  return statusName || 'Khong xac dinh';
+  if (status === 1) return 'Hoạt động';
+  if (status === 0) return 'Đã khóa';
+  return statusName || 'Không xác định';
 };
 
 export default function AdminUsersPage() {
@@ -79,7 +79,7 @@ export default function AdminUsersPage() {
       setPage(result.page ?? result.currentPage ?? targetPage);
       setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
     } catch (err) {
-      setError(parseErrorMessage(err, 'Khong the tai danh sach nguoi dung.'));
+      setError(parseErrorMessage(err, 'Không thể tải danh sách người dùng.'));
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export default function AdminUsersPage() {
       const res = await adminServices.getUserDetail(userCode);
       setDetailUser(res.result);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Khong the tai thong tin nguoi dung.') });
+      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể tải thông tin người dùng.') });
     } finally {
       setBusy(false);
     }
@@ -127,10 +127,10 @@ export default function AdminUsersPage() {
         avatar: editForm.avatar,
       });
       setEditingUser(null);
-      setToast({ kind: 'success', message: 'Cap nhat nguoi dung thanh cong.' });
+      setToast({ kind: 'success', message: 'Cập nhật người dùng thành công.' });
       await loadUsers(page);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Khong the cap nhat nguoi dung.') });
+      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể cập nhật người dùng.') });
     } finally {
       setBusy(false);
     }
@@ -148,10 +148,10 @@ export default function AdminUsersPage() {
     try {
       await adminServices.changeUserRole(roleChangingUser.userCode, { roleId: Number(roleForm) });
       setRoleChangingUser(null);
-      setToast({ kind: 'success', message: 'Doi vai tro thanh cong. Nguoi dung se phai dang nhap lai.' });
+      setToast({ kind: 'success', message: 'Đổi vai trò thành công. Người dùng sẽ phải đăng nhập lại.' });
       await loadUsers(page);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Khong the doi vai tro.') });
+      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể đổi vai trò.') });
     } finally {
       setBusy(false);
     }
@@ -164,36 +164,36 @@ export default function AdminUsersPage() {
     try {
       if (confirmAction.type === 'ban') {
         await adminServices.banUser(confirmAction.user.userCode);
-        setToast({ kind: 'success', message: 'Da khoa nguoi dung va thu hoi token.' });
+        setToast({ kind: 'success', message: 'Đã khóa người dùng và thu hồi token.' });
       }
 
       if (confirmAction.type === 'unban') {
         await adminServices.unbanUser(confirmAction.user.userCode);
-        setToast({ kind: 'success', message: 'Da mo khoa nguoi dung.' });
+        setToast({ kind: 'success', message: 'Đã mở khóa người dùng.' });
       }
 
       if (confirmAction.type === 'delete') {
         await adminServices.deleteUser(confirmAction.user.userCode);
-        setToast({ kind: 'success', message: 'Da xoa nguoi dung (hard delete).' });
+        setToast({ kind: 'success', message: 'Đã xóa người dùng (hard delete).'});
       }
 
       setConfirmAction(null);
       await loadUsers(page);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Thao tac that bai.') });
+      setToast({ kind: 'error', message: parseErrorMessage(err, 'Thao tác thất bại.') });
     } finally {
       setBusy(false);
     }
   };
 
-  const summaryText = useMemo(() => `Tong ${total} nguoi dung`, [total]);
+  const summaryText = useMemo(() => `Tổng ${total} người dùng`, [total]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       {toast && <StatusToast kind={toast.kind} message={toast.message} onClose={() => setToast(null)} />}
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Quan ly nguoi dung</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
         <p className="mt-1 text-sm text-gray-500">{summaryText}</p>
       </div>
 
@@ -202,7 +202,7 @@ export default function AdminUsersPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tim theo ten/email"
+          placeholder="Tìm theo tên/email"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 md:col-span-2"
         />
 
@@ -211,7 +211,7 @@ export default function AdminUsersPage() {
           onChange={(e) => setRoleId(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         >
-          <option value="">Tat ca vai tro</option>
+          <option value="">Tất cả vai trò</option>
           {roles.map((r) => (
             <option key={r.roleId} value={r.roleId}>
               {r.roleName}
@@ -224,9 +224,9 @@ export default function AdminUsersPage() {
           onChange={(e) => setStatus(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         >
-          <option value="">Tat ca trang thai</option>
-          <option value="1">Hoat dong</option>
-          <option value="0">Da khoa</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="1">Hoạt động</option>
+          <option value="0">Đã khóa</option>
         </select>
 
         <input
@@ -257,14 +257,14 @@ export default function AdminUsersPage() {
           }}
           className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
         >
-          Reset
+          Đặt lại
         </button>
         <button
           type="button"
           onClick={() => void applyFilters()}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          Loc
+          Lọc
         </button>
       </div>
 
@@ -275,24 +275,24 @@ export default function AdminUsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Nguoi dung</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Vai tro</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Trang thai</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Ngay tao</th>
-                <th className="px-5 py-3 text-right font-medium text-gray-500">Hanh dong</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Người dùng</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Vai trò</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Ngày tạo</th>
+                <th className="px-5 py-3 text-right font-medium text-gray-500">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-16 text-center text-gray-500">
-                    Dang tai du lieu...
+                    Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-16 text-center text-gray-400">
-                    Khong co du lieu.
+                    Không có dữ liệu.
                   </td>
                 </tr>
               ) : (
@@ -336,7 +336,7 @@ export default function AdminUsersPage() {
                           type="button"
                           className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
                           onClick={() => openEditModal(user)}
-                          title="Sua"
+                          title="Sửa"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -344,7 +344,7 @@ export default function AdminUsersPage() {
                           type="button"
                           className="rounded-md p-1.5 text-violet-600 hover:bg-violet-50"
                           onClick={() => openChangeRoleModal(user)}
-                          title="Doi vai tro"
+                          title="Đổi vai trò"
                         >
                           <Shield className="h-4 w-4" />
                         </button>
@@ -353,7 +353,7 @@ export default function AdminUsersPage() {
                             type="button"
                             className="rounded-md p-1.5 text-emerald-600 hover:bg-emerald-50"
                             onClick={() => setConfirmAction({ type: 'unban', user })}
-                            title="Bo khoa"
+                            title="Bỏ khóa"
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </button>
@@ -362,7 +362,7 @@ export default function AdminUsersPage() {
                             type="button"
                             className="rounded-md p-1.5 text-amber-600 hover:bg-amber-50"
                             onClick={() => setConfirmAction({ type: 'ban', user })}
-                            title="Khoa"
+                            title="Khóa"
                           >
                             <Ban className="h-4 w-4" />
                           </button>
@@ -371,7 +371,7 @@ export default function AdminUsersPage() {
                           type="button"
                           className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
                           onClick={() => setConfirmAction({ type: 'delete', user })}
-                          title="Xoa"
+                          title="Xóa"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -394,29 +394,29 @@ export default function AdminUsersPage() {
         />
       </div>
 
-      <Modal isOpen={!!selectedUser && !!detailUser} onClose={() => { setSelectedUser(null); setDetailUser(null); }} title="Chi tiet nguoi dung" size="lg">
+      <Modal isOpen={!!selectedUser && !!detailUser} onClose={() => { setSelectedUser(null); setDetailUser(null); }} title="Chi tiết người dùng" size="lg">
         {busy && !detailUser ? (
-          <p className="text-sm text-gray-500">Dang tai du lieu...</p>
+          <p className="text-sm text-gray-500">Đang tải dữ liệu...</p>
         ) : detailUser ? (
           <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
             <p><strong>User Code:</strong> {detailUser.userCode}</p>
-            <p><strong>Username:</strong> {detailUser.username}</p>
+            <p><strong>Tên đăng nhập:</strong> {detailUser.username}</p>
             <p><strong>Email:</strong> {detailUser.email}</p>
-            <p><strong>Ho ten:</strong> {detailUser.fullName}</p>
-            <p><strong>Phone:</strong> {detailUser.phoneNumber || '-'}</p>
-            <p><strong>Vai tro:</strong> {detailUser.roleName || detailUser.role?.roleName || '-'}</p>
-            <p><strong>Trang thai:</strong> {getStatusLabel(detailUser.status, detailUser.statusName)}</p>
-            <p><strong>Ngay tao:</strong> {detailUser.createdAt ? new Date(detailUser.createdAt).toLocaleString('vi-VN') : '-'}</p>
+            <p><strong>Họ tên:</strong> {detailUser.fullName}</p>
+            <p><strong>Số điện thoại:</strong> {detailUser.phoneNumber || '-'}</p>
+            <p><strong>Vai trò:</strong> {detailUser.roleName || detailUser.role?.roleName || '-'}</p>
+            <p><strong>Trạng thái:</strong> {getStatusLabel(detailUser.status, detailUser.statusName)}</p>
+            <p><strong>Ngày tạo:</strong> {detailUser.createdAt ? new Date(detailUser.createdAt).toLocaleString('vi-VN') : '-'}</p>
           </div>
         ) : (
-          <p className="text-sm text-gray-500">Khong co du lieu.</p>
+          <p className="text-sm text-gray-500">Không có dữ liệu.</p>
         )}
       </Modal>
 
       <Modal
         isOpen={!!editingUser}
         onClose={() => setEditingUser(null)}
-        title="Cap nhat nguoi dung"
+        title="Cập nhật người dùng"
         size="md"
         footer={
           <div className="flex items-center justify-end gap-2">
@@ -426,7 +426,7 @@ export default function AdminUsersPage() {
               disabled={busy}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="button"
@@ -434,14 +434,14 @@ export default function AdminUsersPage() {
               disabled={busy}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {busy ? 'Dang xu ly...' : 'Luu'}
+              {busy ? 'Đang xử lý...' : 'Lưu'}
             </button>
           </div>
         }
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">FullName</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Họ và tên</label>
             <input
               type="text"
               value={editForm.fullName}
@@ -450,7 +450,7 @@ export default function AdminUsersPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Phone</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Số điện thoại</label>
             <input
               type="text"
               value={editForm.phone}
@@ -459,7 +459,7 @@ export default function AdminUsersPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Avatar URL</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">URL ảnh đại diện</label>
             <input
               type="text"
               value={editForm.avatar}
@@ -473,7 +473,7 @@ export default function AdminUsersPage() {
       <Modal
         isOpen={!!roleChangingUser}
         onClose={() => setRoleChangingUser(null)}
-        title="Doi vai tro nguoi dung"
+        title="Đổi vai trò người dùng"
         size="md"
         footer={
           <div className="flex items-center justify-end gap-2">
@@ -483,7 +483,7 @@ export default function AdminUsersPage() {
               disabled={busy}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="button"
@@ -491,21 +491,21 @@ export default function AdminUsersPage() {
               disabled={busy || !roleForm}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {busy ? 'Dang xu ly...' : 'Xac nhan'}
+              {busy ? 'Đang xử lý...' : 'Xác nhận'}
             </button>
           </div>
         }
       >
         <div className="space-y-3">
           <p className="text-sm text-gray-600">
-            Nguoi dung: <strong>{roleChangingUser?.fullName || roleChangingUser?.username}</strong>
+            Người dùng: <strong>{roleChangingUser?.fullName || roleChangingUser?.username}</strong>
           </p>
           <select
             value={roleForm}
             onChange={(e) => setRoleForm(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           >
-            <option value="">Chon vai tro</option>
+            <option value="">Chọn vai trò</option>
             {roles.map((r) => (
               <option key={r.roleId} value={r.roleId}>
                 {r.roleName}
@@ -518,7 +518,7 @@ export default function AdminUsersPage() {
       <Modal
         isOpen={!!confirmAction}
         onClose={() => setConfirmAction(null)}
-        title="Xac nhan thao tac"
+        title="Xác nhận thao tác"
         size="md"
         footer={
           <div className="flex items-center justify-end gap-2">
@@ -528,7 +528,7 @@ export default function AdminUsersPage() {
               disabled={busy}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="button"
@@ -538,20 +538,20 @@ export default function AdminUsersPage() {
                 confirmAction?.type === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {busy ? 'Dang xu ly...' : 'Xac nhan'}
+              {busy ? 'Đang xử lý...' : 'Xác nhận'}
             </button>
           </div>
         }
       >
         <p className="text-sm text-gray-600">
           {confirmAction?.type === 'ban' && (
-            <>Ban muon khoa tai khoan <strong>{confirmAction.user.fullName || confirmAction.user.username}</strong>? He thong se thu hoi token ngay lap tuc.</>
+            <>Bạn muốn khóa tài khoản <strong>{confirmAction.user.fullName || confirmAction.user.username}</strong>? Hệ thống sẽ thu hồi token ngay lập tức.</>
           )}
           {confirmAction?.type === 'unban' && (
-            <>Ban muon bo khoa tai khoan <strong>{confirmAction.user.fullName || confirmAction.user.username}</strong>?</>
+            <>Bạn muốn bỏ khóa tài khoản <strong>{confirmAction.user.fullName || confirmAction.user.username}</strong>?</>
           )}
           {confirmAction?.type === 'delete' && (
-            <>Ban muon xoa vinh vien tai khoan <strong>{confirmAction.user.fullName || confirmAction.user.username}</strong>? Hanh dong nay khong the hoan tac.</>
+            <>Bạn muốn xóa vĩnh viễn tài khoản <strong>{confirmAction.user.fullName || confirmAction.user.username}</strong>? Hành động này không thể hoàn tác.</>
           )}
         </p>
       </Modal>

@@ -81,7 +81,7 @@ export default function AdminPlansPage() {
       setPage(normalized.page || targetPage);
       setPageSize(normalized.pageSize || PAGE_SIZE);
     } catch (err) {
-      setFetchError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the tai danh sach goi cuoc.');
+      setFetchError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể tải danh sách gói cước.');
     } finally {
       setLoading(false);
     }
@@ -112,15 +112,15 @@ export default function AdminPlansPage() {
   };
 
   const validateForm = (): string => {
-    if (!form.planName.trim()) return 'Ten goi la bat buoc.';
+    if (!form.planName.trim()) return 'Tên gói là bắt buộc.';
 
     const durationDays = Number(form.durationDays);
     const price = Number(form.price);
     const quotaAmount = Number(form.quotaAmount);
 
-    if (!Number.isFinite(durationDays) || durationDays <= 0) return 'durationDays phai > 0.';
-    if (!Number.isFinite(price) || price < 0) return 'price phai >= 0.';
-    if (!Number.isFinite(quotaAmount) || quotaAmount < 0) return 'quotaAmount phai >= 0.';
+    if (!Number.isFinite(durationDays) || durationDays <= 0) return 'Số ngày sử dụng phải lớn hơn 0.';
+    if (!Number.isFinite(price) || price < 0) return 'Giá phải lớn hơn hoặc bằng 0.';
+    if (!Number.isFinite(quotaAmount) || quotaAmount < 0) return 'Quota phải lớn hơn hoặc bằng 0.';
 
     return '';
   };
@@ -149,7 +149,7 @@ export default function AdminPlansPage() {
           quotaAmount,
         };
         await adminServices.updatePlan(editingPlan.planId, payload);
-        setToast({ kind: 'success', message: 'Cap nhat goi cuoc thanh cong.' });
+        setToast({ kind: 'success', message: 'Cập nhật gói cước thành công.' });
       } else {
         const payload: CreatePlanRequest = {
           planName: form.planName.trim(),
@@ -159,13 +159,13 @@ export default function AdminPlansPage() {
           quotaAmount,
         };
         await adminServices.createPlan(payload);
-        setToast({ kind: 'success', message: 'Tao goi cuoc thanh cong.' });
+        setToast({ kind: 'success', message: 'Tạo gói cước thành công.' });
       }
 
       setIsFormOpen(false);
       await loadPlans(page);
     } catch (err) {
-      setFormError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Khong the luu goi cuoc.');
+      setFormError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể lưu gói cước.');
     } finally {
       setSubmitting(false);
     }
@@ -177,7 +177,7 @@ export default function AdminPlansPage() {
     setSubmitting(true);
     try {
       await adminServices.softDeletePlan(deletingPlan.planId);
-      setToast({ kind: 'success', message: `Da ngung kich hoat goi ${deletingPlan.planName}.` });
+      setToast({ kind: 'success', message: `Đã ngưng kích hoạt gói ${deletingPlan.planName}.` });
       setDeletingPlan(null);
       await loadPlans(page);
     } catch (err) {
@@ -185,7 +185,7 @@ export default function AdminPlansPage() {
         kind: 'error',
         message:
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          'Khong the xoa goi cuoc.',
+          'Không thể xóa gói cước.',
       });
     } finally {
       setSubmitting(false);
@@ -203,9 +203,9 @@ export default function AdminPlansPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quan ly goi cuoc</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Quản lý gói cước</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Tong {total} goi, {summary.active} hoat dong, {summary.inactive} ngung hoat dong
+            Tổng {total} gói, {summary.active} hoạt động, {summary.inactive} ngưng hoạt động
           </p>
         </div>
         <button
@@ -214,7 +214,7 @@ export default function AdminPlansPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
-          Them goi
+          Thêm gói
         </button>
       </div>
 
@@ -225,25 +225,25 @@ export default function AdminPlansPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Ten goi</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Gia</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Han su dung</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Tên gói</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Giá</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Hạn sử dụng</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Quota</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Trang thai</th>
-                <th className="px-5 py-3 text-right font-medium text-gray-500">Hanh dong</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
+                <th className="px-5 py-3 text-right font-medium text-gray-500">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-16 text-center text-gray-500">
-                    Dang tai du lieu...
+                    Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-16 text-center text-gray-400">
-                    Chua co goi cuoc nao.
+                    Chưa có gói cước nào.
                   </td>
                 </tr>
               ) : (
@@ -251,10 +251,10 @@ export default function AdminPlansPage() {
                   <tr key={plan.planId} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
                       <p className="font-medium text-gray-900">{plan.planName}</p>
-                      <p className="text-xs text-gray-400">{plan.description || 'Khong co mo ta'}</p>
+                      <p className="text-xs text-gray-400">{plan.description || 'Không có mô tả'}</p>
                     </td>
                     <td className="px-5 py-3 font-medium text-gray-900">{formatVND(plan.price)}</td>
-                    <td className="px-5 py-3 text-gray-600">{plan.durationDays} ngay</td>
+                    <td className="px-5 py-3 text-gray-600">{plan.durationDays} ngày</td>
                     <td className="px-5 py-3 text-gray-600">{plan.quotaAmount.toLocaleString('vi-VN')}</td>
                     <td className="px-5 py-3">
                       <span
@@ -262,7 +262,7 @@ export default function AdminPlansPage() {
                           plan.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
                         }`}
                       >
-                        {plan.isActive ? 'Hoat dong' : 'Ngung'}
+                        {plan.isActive ? 'Hoạt động' : 'Ngưng'}
                       </span>
                     </td>
                     <td className="px-5 py-3">
@@ -272,14 +272,14 @@ export default function AdminPlansPage() {
                           onClick={() => openEditModal(plan)}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
                         >
-                          <Pencil className="h-3.5 w-3.5" /> Sua
+                          <Pencil className="h-3.5 w-3.5" /> Sửa
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeletingPlan(plan)}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                         >
-                          <Trash2 className="h-3.5 w-3.5" /> Xoa
+                          <Trash2 className="h-3.5 w-3.5" /> Xóa
                         </button>
                       </div>
                     </td>
@@ -305,7 +305,7 @@ export default function AdminPlansPage() {
         onClose={() => {
           if (!submitting) setIsFormOpen(false);
         }}
-        title={editingPlan ? 'Cap nhat goi cuoc' : 'Tao goi cuoc'}
+        title={editingPlan ? 'Cập nhật gói cước' : 'Tạo gói cước'}
         size="lg"
         footer={
           <div className="flex items-center justify-end gap-2">
@@ -315,7 +315,7 @@ export default function AdminPlansPage() {
               disabled={submitting}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="button"
@@ -323,14 +323,14 @@ export default function AdminPlansPage() {
               disabled={submitting}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Dang xu ly...' : editingPlan ? 'Luu thay doi' : 'Tao moi'}
+              {submitting ? 'Đang xử lý...' : editingPlan ? 'Lưu thay đổi' : 'Tạo mới'}
             </button>
           </div>
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Ten goi</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Tên gói</label>
             <input
               type="text"
               value={form.planName}
@@ -340,7 +340,7 @@ export default function AdminPlansPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Mo ta</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Mô tả</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
@@ -393,7 +393,7 @@ export default function AdminPlansPage() {
         onClose={() => {
           if (!submitting) setDeletingPlan(null);
         }}
-        title="Xac nhan xoa goi"
+        title="Xác nhận xóa gói"
         size="md"
         footer={
           <div className="flex items-center justify-end gap-2">
@@ -403,7 +403,7 @@ export default function AdminPlansPage() {
               disabled={submitting}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="button"
@@ -411,13 +411,13 @@ export default function AdminPlansPage() {
               disabled={submitting}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Dang xu ly...' : 'Xac nhan'}
+              {submitting ? 'Đang xử lý...' : 'Xác nhận'}
             </button>
           </div>
         }
       >
         <p className="text-sm text-gray-600">
-          Hanh dong nay se soft-delete va dat <strong>isActive = false</strong> cho goi cuoc{' '}
+          Hành động này sẽ soft-delete và đặt <strong>isActive = false</strong> cho gói cước{' '}
           <strong>{deletingPlan?.planName}</strong>.
         </p>
       </Modal>

@@ -18,7 +18,7 @@ export default function StatusToast({ kind, message, onClose }: StatusToastProps
       <div className="flex items-center gap-3">
         <p className="text-sm font-medium">{message}</p>
         <button type="button" className="text-xs underline" onClick={onClose}>
-          Dong
+          Đóng
         </button>
       </div>
     </div>

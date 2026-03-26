@@ -1,19 +1,28 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import {
+  AdminGradeResponse,
+  AdminLessonResponse,
   AdminOrderResponse,
   AdminRoleResponse,
+  AdminSubjectResponse,
   AdminTransactionResponse,
   AdminUserResponse,
   AdminUserUpdateRequest,
   AdminWalletResponse,
   ApiResponse,
   ChangeUserRoleRequest,
+  CreateGradeRequest,
+  CreateLessonRequest,
   CreatePlanRequest,
+  CreateSubjectRequest,
   FinancialOverviewResponse,
   PagedResponse,
   PlanResponse,
+  UpdateGradeRequest,
+  UpdateLessonRequest,
   UpdatePlanRequest,
+  UpdateSubjectRequest,
 } from '@/types/admin';
 
 interface ListUsersParams {
@@ -66,6 +75,67 @@ const normalizeParams = <T extends object>(params: T) => {
 };
 
 export const adminServices = {
+  getGrades: async () => {
+    const res = await api.get<ApiResponse<AdminGradeResponse[]>>(API_ENDPOINTS.GRADE.GET_ALL);
+    return res.data;
+  },
+
+  createGrade: async (payload: CreateGradeRequest) => {
+    const res = await api.post<ApiResponse<AdminGradeResponse>>(API_ENDPOINTS.GRADE.CREATE, payload);
+    return res.data;
+  },
+
+  updateGrade: async (gradeCode: string, payload: UpdateGradeRequest) => {
+    const res = await api.put<ApiResponse<AdminGradeResponse>>(API_ENDPOINTS.GRADE.UPDATE(gradeCode), payload);
+    return res.data;
+  },
+
+  deleteGrade: async (gradeCode: string) => {
+    const res = await api.delete<ApiResponse<string | boolean>>(API_ENDPOINTS.GRADE.DELETE(gradeCode));
+    return res.data;
+  },
+
+  getSubjects: async () => {
+    const res = await api.get<ApiResponse<AdminSubjectResponse[]>>(API_ENDPOINTS.SUBJECT.GET_ALL);
+    return res.data;
+  },
+
+  createSubject: async (payload: CreateSubjectRequest) => {
+    const res = await api.post<ApiResponse<AdminSubjectResponse>>(API_ENDPOINTS.SUBJECT.CREATE, payload);
+    return res.data;
+  },
+
+  updateSubject: async (subjectCode: string, payload: UpdateSubjectRequest) => {
+    const res = await api.put<ApiResponse<AdminSubjectResponse>>(API_ENDPOINTS.SUBJECT.UPDATE(subjectCode), payload);
+    return res.data;
+  },
+
+  deleteSubject: async (subjectCode: string) => {
+    const res = await api.delete<ApiResponse<string | boolean>>(API_ENDPOINTS.SUBJECT.DELETE(subjectCode));
+    return res.data;
+  },
+
+  getLessons: async (subjectCode?: string) => {
+    const endpoint = subjectCode ? API_ENDPOINTS.LESSON.GET_BY_SUBJECT(subjectCode) : API_ENDPOINTS.LESSON.GET_ALL;
+    const res = await api.get<ApiResponse<AdminLessonResponse[]>>(endpoint);
+    return res.data;
+  },
+
+  createLesson: async (payload: CreateLessonRequest) => {
+    const res = await api.post<ApiResponse<AdminLessonResponse>>(API_ENDPOINTS.LESSON.CREATE, payload);
+    return res.data;
+  },
+
+  updateLesson: async (lessonCode: string, payload: UpdateLessonRequest) => {
+    const res = await api.put<ApiResponse<AdminLessonResponse>>(API_ENDPOINTS.LESSON.UPDATE(lessonCode), payload);
+    return res.data;
+  },
+
+  deleteLesson: async (lessonCode: string) => {
+    const res = await api.delete<ApiResponse<string | boolean>>(API_ENDPOINTS.LESSON.DELETE(lessonCode));
+    return res.data;
+  },
+
   listUsers: async (params: ListUsersParams) => {
     const res = await api.get<ApiResponse<PagedResponse<AdminUserResponse>>>(API_ENDPOINTS.ADMIN.USERS, {
       params: normalizeParams(params),

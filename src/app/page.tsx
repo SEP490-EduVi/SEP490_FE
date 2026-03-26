@@ -12,7 +12,7 @@
  * Trang chủ → Trình Prompt → Tạo nội dung → Trình Slide
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FileText,
@@ -23,9 +23,36 @@ import {
   ImagePlus,
   Edit3,
 } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function HomePage() {
   const router = useRouter();
+  const { user, role, isHydrated, hydrate, logout } = useAuthStore();
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const handleGoDashboard = () => {
+    if (role === 'admin') {
+      router.push('/admin');
+      return;
+    }
+    if (role === 'teacher') {
+      router.push('/teacher');
+      return;
+    }
+    if (role === 'expert') {
+      router.push('/expert');
+      return;
+    }
+    router.push('/');
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -39,20 +66,43 @@ export default function HomePage() {
             <h1 className="text-2xl font-bold text-gray-900">EduVi</h1>
           </div>
           <nav className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/login')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Đăng nhập
-            </button>
             <button 
             onClick={() => router.push('/expert/certificate')}
             className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
               Trợ giúp
             </button>
-            <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-              Đăng ký
-            </button>
+
+            {isHydrated && user ? (
+              <>
+                <button
+                  onClick={handleGoDashboard}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Trang của tôi
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => router.push('/login')}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng nhập
+                </button>
+                <button
+                  onClick={() => router.push('/register')}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng ký
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </header>
