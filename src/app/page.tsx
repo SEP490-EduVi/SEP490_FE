@@ -1,18 +1,18 @@
 'use client';
 
 /**
- * EduVi Home Page
+ * Trang Chủ EduVi
  * ===============
  * 
- * Landing page for choosing between:
- * 1. Prompt Editor - Create presentations using AI prompts (like Gamma)
- * 2. Slide Editor - Direct slide editing with drag-and-drop
+ * Trang bắt đầu để lựa chọn giữa:
+ * 1. Trình chỉnh sửa Prompt - Tạo bài thuyết trình bằng AI (giống Gamma)
+ * 2. Trình chỉnh sửa Slide - Chỉnh sửa slide trực tiếp bằng kéo thả
  * 
  * Workflow:
- * Home → Prompt Editor → Generate Content → Slide Editor
+ * Trang chủ → Trình Prompt → Tạo nội dung → Trình Slide
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FileText,
@@ -23,9 +23,36 @@ import {
   ImagePlus,
   Edit3,
 } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function HomePage() {
   const router = useRouter();
+  const { user, role, isHydrated, hydrate, logout } = useAuthStore();
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const handleGoDashboard = () => {
+    if (role === 'admin') {
+      router.push('/admin');
+      return;
+    }
+    if (role === 'teacher') {
+      router.push('/teacher');
+      return;
+    }
+    if (role === 'expert') {
+      router.push('/expert');
+      return;
+    }
+    router.push('/');
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -39,20 +66,43 @@ export default function HomePage() {
             <h1 className="text-2xl font-bold text-gray-900">EduVi</h1>
           </div>
           <nav className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/login')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Login
-            </button>
             <button 
             onClick={() => router.push('/expert/certificate')}
             className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-              Help
+              Trợ giúp
             </button>
-            <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-              Sign in
-            </button>
+
+            {isHydrated && user ? (
+              <>
+                <button
+                  onClick={handleGoDashboard}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Trang của tôi
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => router.push('/login')}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng nhập
+                </button>
+                <button
+                  onClick={() => router.push('/register')}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng ký
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -63,10 +113,10 @@ export default function HomePage() {
           {/* Hero Section */}
           <div className="text-center mb-16">
             <h2 className="text-5xl font-bold text-gray-900 mb-4">
-              Create Amazing Presentations
+              Tạo bài thuyết trình và video cùng AI
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Choose how you want to start: use AI to generate content or jump straight into editing
+              Chọn cách bắt đầu: dùng AI để tạo nội dung hoặc vào chỉnh sửa ngay
             </p>
           </div>
 
@@ -81,19 +131,19 @@ export default function HomePage() {
                 <Zap className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                AI Prompt Editor
+                Trình Chỉnh Sửa Prompt AI
               </h3>
               <p className="text-gray-600 mb-4">
-                Describe what you want to create and let AI generate a complete presentation outline for you
+                Mô tả điều bạn muốn tạo và để AI sinh ra bố cục bài thuyết trình hoàn chỉnh
               </p>
               <div className="flex items-center text-blue-600 font-medium group-hover:gap-3 gap-2 transition-all">
-                <span>Start with AI</span>
+                <span>Bắt đầu với AI</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </div>
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <CheckCircle className="w-4 h-4" />
-                  <span>Recommended for beginners</span>
+                  <span>Đề xuất cho người mới bắt đầu</span>
                 </div>
               </div>
             </div>
@@ -107,19 +157,19 @@ export default function HomePage() {
                 <Edit3 className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                Slide Editor
+                Trình Chỉnh Sửa Slide
               </h3>
               <p className="text-gray-600 mb-4">
-                Jump straight into editing with our powerful drag-and-drop editor and material library
+                Vào chỉnh sửa ngay với trình kéo thả mạnh mẽ và thư viện tài nguyên
               </p>
               <div className="flex items-center text-purple-600 font-medium group-hover:gap-3 gap-2 transition-all">
-                <span>Start editing</span>
+                <span>Bắt đầu chỉnh sửa</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </div>
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <CheckCircle className="w-4 h-4" />
-                  <span>Full control over design</span>
+                  <span>Toàn quyền kiểm soát thiết kế</span>
                 </div>
               </div>
             </div>
@@ -131,22 +181,22 @@ export default function HomePage() {
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Zap className="w-6 h-6 text-blue-600" />
               </div>
-              <h4 className="font-semibold text-gray-900 mb-1">AI-Powered</h4>
-              <p className="text-sm text-gray-600">Generate content with smart prompts</p>
+              <h4 className="font-semibold text-gray-900 mb-1">Được hỗ trợ bởi AI</h4>
+              <p className="text-sm text-gray-600">Tạo nội dung bằng prompt thông minh</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Palette className="w-6 h-6 text-purple-600" />
               </div>
-              <h4 className="font-semibold text-gray-900 mb-1">Drag & Drop</h4>
-              <p className="text-sm text-gray-600">Easy to use visual editor</p>
+              <h4 className="font-semibold text-gray-900 mb-1">Kéo và thả</h4>
+              <p className="text-sm text-gray-600">Trình chỉnh sửa trực quan, dễ dùng</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <ImagePlus className="w-6 h-6 text-pink-600" />
               </div>
-              <h4 className="font-semibold text-gray-900 mb-1">Rich Media</h4>
-              <p className="text-sm text-gray-600">Add videos, PDFs, charts & more</p>
+              <h4 className="font-semibold text-gray-900 mb-1">Nội dung đa phương tiện</h4>
+              <p className="text-sm text-gray-600">Thêm video, PDF, biểu đồ và nhiều hơn nữa</p>
             </div>
           </div>
         </div>
@@ -154,7 +204,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="px-8 py-6 text-center text-sm text-gray-500">
-        <p>&copy; 2026 EduVi. Create beautiful presentations with AI.</p>
+        <p>&copy; 2026 EduVi. Tạo bài thuyết trình đẹp cùng AI.</p>
       </footer>
     </div>
   );

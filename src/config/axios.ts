@@ -2,6 +2,25 @@
 
 import axios from "axios";
 
+const PUBLIC_AUTH_ENDPOINTS = [
+  "/api/auth/login",
+  "/api/auth/google-login",
+  "/api/auth/register",
+  "/api/auth/verify-otp",
+  "/api/auth/resend-otp",
+  "/api/auth/forgot-password",
+  "/api/auth/resend-reset-otp",
+  "/api/auth/reset-password",
+];
+
+const isPublicAuthRequest = (url?: string) => {
+  if (!url) return false;
+  const normalizedUrl = url.toLowerCase();
+  return PUBLIC_AUTH_ENDPOINTS.some((endpoint) =>
+    normalizedUrl.includes(endpoint)
+  );
+};
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 const api = axios.create({
@@ -16,13 +35,18 @@ const api = axios.create({
 // Đính kèm access token vào mỗi request
 api.interceptors.request.use(
   (config) => {
+    const isPublic = isPublicAuthRequest(config.url);
     const token =
       typeof window !== "undefined"
         ? localStorage.getItem("accessToken")
         : null;
-    if (token) {
+
+    if (token && !isPublic) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (config.headers?.Authorization) {
+      delete config.headers.Authorization;
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -33,7 +57,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    const isPublic = isPublicAuthRequest(error.config?.url);
+
+    if (error.response?.status === 401 && !isPublic && typeof window !== "undefined") {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");

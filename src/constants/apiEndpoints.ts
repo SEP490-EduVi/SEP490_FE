@@ -7,6 +7,7 @@ const buildProjectEndpoint  = (path: string) => `/api/Project${path}`;
 const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
+const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -95,12 +96,25 @@ export const API_ENDPOINTS = {
   // Metadata
   SUBJECT: {
     GET_ALL: '/api/Subject',
+    GET_BY_CODE: (subjectCode: string) => `/api/Subject/${subjectCode}`,
+    CREATE: '/api/Subject',
+    UPDATE: (subjectCode: string) => `/api/Subject/${subjectCode}`,
+    DELETE: (subjectCode: string) => `/api/Subject/${subjectCode}`,
   },
   GRADE: {
     GET_ALL: '/api/Grade',
+    GET_BY_CODE: (gradeCode: string) => `/api/Grade/${gradeCode}`,
+    CREATE: '/api/Grade',
+    UPDATE: (gradeCode: string) => `/api/Grade/${gradeCode}`,
+    DELETE: (gradeCode: string) => `/api/Grade/${gradeCode}`,
   },
   LESSON: {
+    GET_ALL: '/api/Lesson',
     GET_BY_SUBJECT: (subjectCode: string) => `/api/Lesson?subjectCode=${subjectCode}`,
+    GET_BY_CODE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
+    CREATE: '/api/Lesson',
+    UPDATE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
+    DELETE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
   },
 
   // Expert Verification (Certificate)
@@ -127,6 +141,24 @@ export const API_ENDPOINTS = {
   CURRICULUM: {
     // GET /api/curriculum-ingestion
     GET_ALL: buildCurriculumEndpoint(''),
+  },
+
+  // Admin
+  ADMIN: {
+    USERS: buildAdminEndpoint('/users'),
+    USER_BY_CODE: (userCode: string) => buildAdminEndpoint(`/users/${userCode}`),
+    USER_BAN: (userCode: string) => buildAdminEndpoint(`/users/${userCode}/ban`),
+    USER_UNBAN: (userCode: string) => buildAdminEndpoint(`/users/${userCode}/unban`),
+    USER_CHANGE_ROLE: (userCode: string) => buildAdminEndpoint(`/users/${userCode}/role`),
+    ROLES: buildAdminEndpoint('/roles'),
+
+    FINANCIAL_OVERVIEW: buildAdminEndpoint('/financial/overview'),
+    FINANCIAL_WALLETS: buildAdminEndpoint('/financial/wallets'),
+    FINANCIAL_TRANSACTIONS: buildAdminEndpoint('/financial/transactions'),
+    FINANCIAL_ORDERS: buildAdminEndpoint('/financial/orders'),
+
+    PLANS: buildAdminEndpoint('/plans'),
+    PLAN_BY_ID: (planId: number) => buildAdminEndpoint(`/plans/${planId}`),
   },
 
 } as const;

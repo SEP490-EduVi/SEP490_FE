@@ -16,6 +16,7 @@ function VerifyOtpForm() {
   const [successMsg, setSuccessMsg] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: verifyOtp, isPending } = useVerifyOtpService();
   const { mutate: resendOtp, isPending: isResending } = useResendOtpService();
@@ -26,6 +27,14 @@ function VerifyOtpForm() {
     const t = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearInterval(t);
   }, [secondsLeft]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const otpString = otp.join('');
 
@@ -56,6 +65,12 @@ function VerifyOtpForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+      redirectTimeoutRef.current = null;
+    }
+
     if (otpString.length < 6) {
       setErrorMsg('Vui lòng nhập đủ 6 chữ số OTP.');
       return;
@@ -64,16 +79,22 @@ function VerifyOtpForm() {
       { userId, otp: otpString },
       {
         onSuccess: (res) => {
-          if (res.result?.isVerified) {
+          const isVerified = res.code === 200 && res.result?.isVerified === true;
+
+          if (isVerified) {
             setSuccessMsg('Xác thực thành công! Đang chuyển hướng...');
-            setTimeout(() => router.push('/login'), 1500);
+            redirectTimeoutRef.current = setTimeout(() => {
+              router.push('/login');
+            }, 1500);
           } else {
-            setErrorMsg(res.message ?? 'OTP không hợp lệ.');
+            setSuccessMsg('');
+            setErrorMsg('OTP không hợp lệ.');
           }
         },
         onError: (err) => {
+          setSuccessMsg('');
           setErrorMsg(
-            (err.response?.data as { message?: string })?.message ??
+
               'OTP không hợp lệ hoặc đã hết hạn.'
           );
         },
@@ -86,7 +107,7 @@ function VerifyOtpForm() {
       { userId },
       {
         onSuccess: (res) => {
-          if (res.code === 200) {
+          if (res.code === 200 && res.result?.canResendAgainAt) {
             const diff = Math.ceil(
               (new Date(res.result.canResendAgainAt).getTime() - Date.now()) / 1000
             );
@@ -96,10 +117,12 @@ function VerifyOtpForm() {
             setOtp(['', '', '', '', '', '']);
             inputRefs.current[0]?.focus();
           } else {
-            setErrorMsg(res.message ?? 'Gửi lại OTP thất bại.');
+            setSuccessMsg('');
+            setErrorMsg( 'Gửi lại OTP thất bại.');
           }
         },
         onError: (err) => {
+          setSuccessMsg('');
           setErrorMsg(
             (err.response?.data as { message?: string })?.message ??
               'Có lỗi xảy ra, vui lòng thử lại.'
@@ -191,20 +214,23 @@ function VerifyOtpForm() {
 
         {/* Resend */}
         <div className="text-center">
-          {secondsLeft > 0 ? (
-            <p className="text-sm text-slate-500">
-              Gửi lại sau{' '}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={isResending || secondsLeft > 0}
+            className="text-sm font-medium text-indigo-600 hover:underline disabled:opacity-60 disabled:no-underline"
+          >
+            {isResending
+              ? 'Đang gửi...'
+              : secondsLeft > 0
+                ? `Gửi lại mã OTP (${secondsLeft}s)`
+                : 'Gửi lại mã OTP'}
+          </button>
+          {secondsLeft > 0 && (
+            <p className="mt-1 text-sm text-slate-500">
+              Bạn có thể gửi lại sau{' '}
               <span className="font-semibold text-indigo-600">{secondsLeft}s</span>
             </p>
-          ) : (
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={isResending}
-              className="text-sm font-medium text-indigo-600 hover:underline disabled:opacity-60"
-            >
-              {isResending ? 'Đang gửi...' : 'Gửi lại mã OTP'}
-            </button>
           )}
         </div>
 

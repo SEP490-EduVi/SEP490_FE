@@ -16,6 +16,8 @@ import {
   Package,
   ShoppingCart,
   Wallet,
+  ArrowLeftRight,
+  BookOpen,
   FileText,
   ChevronLeft,
   ChevronRight,
@@ -29,7 +31,9 @@ const NAV_ITEMS = [
   { href: '/admin/users', label: 'Người dùng', icon: Users },
   { href: '/admin/packages', label: 'Gói cước', icon: Package },
   { href: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
+  { href: '/admin/transactions', label: 'Giao dịch', icon: ArrowLeftRight },
   { href: '/admin/wallets', label: 'Ví', icon: Wallet },
+  { href: '/admin/curriculum', label: 'Chương trình học', icon: BookOpen },
 ];
 
 export default function AdminLayout({

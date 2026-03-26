@@ -2,11 +2,17 @@
 
 // src/app/login/page.tsx
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLoginService } from '@/services/authServices';
-import { LoginInput } from '@/types/auth';
+import Script from 'next/script';
+import { useGoogleLoginService, useLoginService } from '@/services/authServices';
+import { LoginInput, LoginResponse } from '@/types/auth';
 import { useAuthStore } from '@/store/useAuthStore';
+import { ApiResponse } from '@/types/api';
+
+type GoogleCredentialResponse = {
+  credential?: string;
+};
 
 export default function LoginPage() {
   const [form, setForm] = useState<LoginInput>({ username: '', password: '' });
@@ -15,7 +21,102 @@ export default function LoginPage() {
 
   const router = useRouter();
   const { mutate: login, isPending } = useLoginService();
+  const { mutate: googleLogin, isPending: isGooglePending } = useGoogleLoginService();
   const setUser = useAuthStore((s) => s.setUser);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  const handleLoginSuccess = (res: ApiResponse<LoginResponse>) => {
+    if (res.code === 200) {
+      localStorage.setItem('accessToken', res.result.accessToken);
+      setUser(res.result.user);
+
+      const roleName = res.result.user.role?.roleName?.toLowerCase();
+      if (roleName === 'admin') {
+        router.push('/admin');
+      } else if (roleName === 'teacher') {
+        router.push('/teacher');
+      } else if (roleName === 'expert') {
+        router.push('/expert');
+      } else {
+        router.push('/');
+      }
+      return;
+    }
+
+    setErrorMsg(res.message ?? 'Đăng nhập thất bại.');
+  };
+
+  const handleGoogleCredential = useCallback(
+    (response: GoogleCredentialResponse) => {
+      const idToken = response.credential;
+      if (!idToken) {
+        setErrorMsg('Không nhận được thông tin xác thực từ Google.');
+        return;
+      }
+
+      setErrorMsg('');
+      googleLogin(
+        { idToken },
+        {
+          onSuccess: handleLoginSuccess,
+          onError: (err) => {
+            setErrorMsg(
+              (err.response?.data as { message?: string })?.message ??
+                'Đăng nhập Google thất bại, vui lòng thử lại.'
+            );
+          },
+        }
+      );
+    },
+    [googleLogin]
+  );
+
+  const handleGoogleButtonClick = useCallback(() => {
+    if (!googleClientId) {
+      setErrorMsg('Thiếu cấu hình Google Client ID. Vui lòng kiểm tra biến môi trường.');
+      return;
+    }
+
+    const bootGoogleSignIn = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id) {
+        setErrorMsg('Không thể tải Google Sign-In. Vui lòng kiểm tra mạng hoặc tắt ad-block.');
+        return;
+      }
+
+      setErrorMsg('');
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+      });
+      google.accounts.id.prompt();
+    };
+
+    const google = (window as any).google;
+    if (google?.accounts?.id) {
+      bootGoogleSignIn();
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]') as HTMLScriptElement | null;
+    if (existingScript) {
+      existingScript.addEventListener('load', bootGoogleSignIn, { once: true });
+      existingScript.addEventListener(
+        'error',
+        () => setErrorMsg('Không tải được Google Sign-In. Vui lòng thử lại sau.'),
+        { once: true }
+      );
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = bootGoogleSignIn;
+    script.onerror = () => setErrorMsg('Không tải được Google Sign-In. Vui lòng thử lại sau.');
+    document.head.appendChild(script);
+  }, [googleClientId, handleGoogleCredential]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -30,26 +131,7 @@ export default function LoginPage() {
     }
 
     login(form, {
-      onSuccess: (res) => {
-        if (res.code === 200) {
-          localStorage.setItem('accessToken', res.result.accessToken);
-          setUser(res.result.user);
-
-          // Redirect theo role
-          const roleName = res.result.user.role?.roleName?.toLowerCase();
-          if (roleName === 'admin') {
-            router.push('/admin');
-          } else if (roleName === 'teacher') {
-            router.push('/teacher');
-          } else if (roleName === 'expert') {
-            router.push('/expert');
-          } else {
-            router.push('/');
-          }
-        } else {
-          setErrorMsg(res.message ?? 'Đăng nhập thất bại.');
-        }
-      },
+      onSuccess: handleLoginSuccess,
       onError: (err) => {
         setErrorMsg(
           (err.response?.data as { message?: string })?.message ??
@@ -61,6 +143,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4">
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+      />
+
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
         {/* Logo / Header */}
         <div className="text-center space-y-1">
@@ -174,8 +261,9 @@ export default function LoginPage() {
         {/* Google login */}
         <button
           type="button"
-          className="w-full flex items-center justify-center gap-2.5 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
-          onClick={() => {/* TODO: Google OAuth */}}
+          disabled={isGooglePending}
+          className="w-full flex items-center justify-center gap-2.5 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-60 disabled:cursor-not-allowed"
+          onClick={handleGoogleButtonClick}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -183,8 +271,14 @@ export default function LoginPage() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Đăng nhập với Google
+          {isGooglePending ? 'Đang đăng nhập với Google...' : 'Đăng nhập với Google'}
         </button>
+
+        {!googleClientId && (
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Chưa cấu hình NEXT_PUBLIC_GOOGLE_CLIENT_ID nên đăng nhập Google sẽ không hoạt động.
+          </p>
+        )}
 
         {/* Register link */}
         <p className="text-center text-sm text-slate-500">
