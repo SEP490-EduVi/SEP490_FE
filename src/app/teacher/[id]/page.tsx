@@ -111,7 +111,7 @@ export default function ProjectDetailPage() {
     setExpandedProductCodes(prev => { const n = new Set(prev); n.has(productCode) ? n.delete(productCode) : n.add(productCode); return n; });
 
   const handleStartAnalysis = (docCode: string) => {
-    router.push(`/pipeline?projectCode=${encodeURIComponent(projectCode)}&documentCode=${encodeURIComponent(docCode)}`);
+    router.push(`/teacher/pipeline?projectCode=${encodeURIComponent(projectCode)}&documentCode=${encodeURIComponent(docCode)}`);
   };
 
   const handleConfirmAnalysis = async (productName: string, year: number) => {

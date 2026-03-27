@@ -240,7 +240,7 @@ export function Toolbar() {
     if (!currentProductCode || !currentProjectCode) return;
     setShowVideoConfirm(false);
     router.push(
-      `/pipeline?projectCode=${encodeURIComponent(currentProjectCode)}&productCode=${encodeURIComponent(currentProductCode)}&step=video`
+      `/teacher/pipeline?projectCode=${encodeURIComponent(currentProjectCode)}&productCode=${encodeURIComponent(currentProductCode)}&step=video`
     );
   };
 
