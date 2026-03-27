@@ -28,8 +28,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Maximize2,
-  Minimize2,
 } from 'lucide-react';
 
 // ============================================================================
@@ -71,16 +69,15 @@ export function PresentationLayer() {
   const nextSlide = useDocumentStore((state) => state.nextSlide);
   const previousSlide = useDocumentStore((state) => state.previousSlide);
 
-  const [direction, setDirection] = React.useState(0);
+  const directionRef = React.useRef(0);
   const prevIndexRef = React.useRef(presentationSlideIndex);
 
-  // Track direction based on slide index changes
-  useEffect(() => {
-    if (prevIndexRef.current !== presentationSlideIndex) {
-      setDirection(presentationSlideIndex > prevIndexRef.current ? 1 : -1);
-      prevIndexRef.current = presentationSlideIndex;
-    }
-  }, [presentationSlideIndex]);
+  // Compute direction synchronously during render (no useEffect delay)
+  if (prevIndexRef.current !== presentationSlideIndex) {
+    directionRef.current = presentationSlideIndex > prevIndexRef.current ? 1 : -1;
+    prevIndexRef.current = presentationSlideIndex;
+  }
+  const direction = directionRef.current;
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -105,8 +102,8 @@ export function PresentationLayer() {
 
   useEffect(() => {
     if (appMode === 'PRESENT') {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
+      window.addEventListener('keydown', handleKeyDown, true);
+      return () => window.removeEventListener('keydown', handleKeyDown, true);
     }
   }, [appMode, handleKeyDown]);
 
@@ -118,17 +115,6 @@ export function PresentationLayer() {
   const canGoBack = presentationSlideIndex > 0;
   const canGoForward = presentationSlideIndex < totalSlides - 1;
 
-  // Debug logging
-  console.log('Presentation Debug:', {
-    presentationSlideIndex,
-    totalSlides,
-    currentCard: currentCard ? {
-      id: currentCard.id,
-      title: currentCard.title,
-      childrenCount: currentCard.children?.length || 0,
-    } : null,
-  });
-
   return (
     <AnimatePresence>
       {appMode === 'PRESENT' && (
@@ -139,62 +125,50 @@ export function PresentationLayer() {
           animate="visible"
           exit="hidden"
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 bg-gray-900 flex flex-col"
+          className="fixed inset-0 z-50 bg-[#f8f8f6] flex flex-col"
         >
-          {/* Header Bar */}
-          <div className="absolute top-0 left-0 right-0 h-14 bg-black/50 backdrop-blur-sm flex items-center justify-between px-4 z-10">
-            <div className="flex items-center gap-4">
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 h-12 bg-black/80 backdrop-blur-sm flex items-center justify-between px-5 z-20 pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-3">
               <button
                 onClick={exitPresentation}
-                className="p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors"
-                title="Exit Presentation (Esc)"
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                title="Thoát (Esc)"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
-              <h1 className="text-white font-medium truncate max-w-[300px]">
+              <h1 className="text-white/70 text-sm font-medium truncate max-w-[280px]">
                 {document.title}
               </h1>
             </div>
-
-            <div className="flex items-center gap-4">
-              {/* Slide Counter */}
-              <div className="text-white/80 text-sm font-medium">
-                {presentationSlideIndex + 1} / {totalSlides}
-              </div>
+            <div className="pointer-events-auto text-white/50 text-sm font-medium pr-1">
+              {presentationSlideIndex + 1} / {totalSlides}
             </div>
           </div>
 
-          {/* Main Slide Area */}
-          <div className="flex-1 flex items-center justify-center p-8 pt-20 pb-20">
+          {/* Slide content — fills full screen */}
+          <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
-                key={currentCard?.id}
+                key={presentationSlideIndex}
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
                 transition={{
-                  x: { type: 'spring', stiffness: 300, damping: 30 },
+                  x: { type: 'tween', duration: 0.3, ease: 'easeInOut' },
                   opacity: { duration: 0.2 },
                   scale: { duration: 0.2 },
                 }}
-                className={cn(
-                  'w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden',
-                  'max-h-[calc(100vh-12rem)]'
-                )}
+                className="absolute inset-0 bg-[#f8f8f6] select-none"
               >
                 {currentCard ? (
-                  <div className="p-8 overflow-y-auto max-h-[calc(100vh-12rem)]">
-                    {/* Slide Content */}
-                    <div className="space-y-6">
+                  <div className="min-h-full flex flex-col justify-center px-20 py-10 pt-16 pointer-events-none">
+                    <div className="w-full space-y-6">
                       {currentCard.children && currentCard.children.length > 0 ? (
                         currentCard.children.map((child) => (
-                          <NodeRenderer
-                            key={child.id}
-                            node={child}
-                            depth={0}
-                          />
+                          <NodeRenderer key={child.id} node={child} depth={0} />
                         ))
                       ) : (
                         <div className="text-center text-gray-400 py-12">
@@ -204,7 +178,7 @@ export function PresentationLayer() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-gray-400">
+                  <div className="min-h-full flex items-center justify-center text-gray-400">
                     <p className="text-lg">Không tìm thấy slide</p>
                   </div>
                 )}
@@ -212,70 +186,51 @@ export function PresentationLayer() {
             </AnimatePresence>
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-center gap-4 pb-4">
-            {/* Previous */}
-            <motion.button
-              onClick={previousSlide}
-              disabled={!canGoBack}
-              whileHover={canGoBack ? { scale: 1.1 } : {}}
-              whileTap={canGoBack ? { scale: 0.95 } : {}}
-              className={cn(
-                'w-12 h-12 rounded-full flex items-center justify-center',
-                'transition-all duration-200',
-                canGoBack
-                  ? 'bg-white/20 hover:bg-white/30 text-white cursor-pointer'
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-              )}
-              title="Previous Slide (←)"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </motion.button>
-
-            {/* Progress Dots */}
-            <div className="flex items-center gap-2 px-4">
-              {document.cards.map((card, index) => (
-                <button
-                  key={card.id}
-                  onClick={() => useDocumentStore.getState().goToSlide(index)}
-                  className={cn(
-                    'w-2 h-2 rounded-full transition-all duration-200',
-                    index === presentationSlideIndex
-                      ? 'w-8 bg-white'
-                      : 'bg-white/30 hover:bg-white/50'
-                  )}
-                  title={card.title}
-                />
-              ))}
-            </div>
-
-            {/* Next */}
-            <motion.button
-              onClick={nextSlide}
-              disabled={!canGoForward}
-              whileHover={canGoForward ? { scale: 1.1 } : {}}
-              whileTap={canGoForward ? { scale: 0.95 } : {}}
-              className={cn(
-                'w-12 h-12 rounded-full flex items-center justify-center',
-                'transition-all duration-200',
-                canGoForward
-                  ? 'bg-white/20 hover:bg-white/30 text-white cursor-pointer'
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-              )}
-              title="Next Slide (→)"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </motion.button>
+          {/* Left click zone overlay */}
+          <div
+            onClick={canGoBack ? previousSlide : undefined}
+            className={cn(
+              'absolute left-0 top-12 bottom-10 w-[12%] z-10 flex items-center justify-start pl-4 group',
+              canGoBack ? 'cursor-pointer' : 'pointer-events-none'
+            )}
+          >
+            {canGoBack && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
+                <ChevronLeft className="w-5 h-5 text-black/60" />
+              </div>
+            )}
           </div>
 
-          {/* Keyboard Hints */}
-          <div className="absolute bottom-4 left-4 text-white/40 text-xs">
-            <span className="inline-block px-2 py-1 bg-white/10 rounded mr-2">←</span>
-            <span className="inline-block px-2 py-1 bg-white/10 rounded mr-2">→</span>
-            Navigate
-            <span className="mx-2">|</span>
-            <span className="inline-block px-2 py-1 bg-white/10 rounded mr-2">Esc</span>
-            Exit
+          {/* Right click zone overlay */}
+          <div
+            onClick={canGoForward ? nextSlide : undefined}
+            className={cn(
+              'absolute right-0 top-12 bottom-10 w-[12%] z-10 flex items-center justify-end pr-4 group',
+              canGoForward ? 'cursor-pointer' : 'pointer-events-none'
+            )}
+          >
+            {canGoForward && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
+                <ChevronRight className="w-5 h-5 text-black/60" />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom progress dots */}
+          <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-1.5 z-20">
+            {document.cards.map((card, index) => (
+              <button
+                key={card.id}
+                onClick={() => useDocumentStore.getState().goToSlide(index)}
+                className={cn(
+                  'rounded-full transition-all duration-200',
+                  index === presentationSlideIndex
+                    ? 'w-6 h-2 bg-gray-600'
+                    : 'w-2 h-2 bg-gray-300 hover:bg-gray-500'
+                )}
+                title={card.title}
+              />
+            ))}
           </div>
         </motion.div>
       )}
