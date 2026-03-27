@@ -4,10 +4,26 @@ import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type { ApiResponse, InputDocumentDto, UploadInputDocumentInput } from '@/types/api';
 
+// ─── GET all input documents ──────────────────────────────────────────────
+export async function getAllInputDocuments(): Promise<InputDocumentDto[]> {
+  const { data } = await api.get<ApiResponse<InputDocumentDto[]>>(
+    API_ENDPOINTS.INPUT_DOCUMENT.GET_ALL,
+  );
+  return data.result;
+}
+
 // ─── GET input documents by project ───────────────────────────────────────
 export async function getInputDocumentsByProject(projectCode: string): Promise<InputDocumentDto[]> {
   const { data } = await api.get<ApiResponse<InputDocumentDto[]>>(
     API_ENDPOINTS.INPUT_DOCUMENT.GET_BY_PROJECT(projectCode),
+  );
+  return data.result;
+}
+    
+// ─── GET input document by code ───────────────────────────────────────────
+export async function getInputDocumentByCode(documentCode: string): Promise<InputDocumentDto> {
+  const { data } = await api.get<ApiResponse<InputDocumentDto>>(
+    API_ENDPOINTS.INPUT_DOCUMENT.GET_BY_CODE(documentCode),
   );
   return data.result;
 }

@@ -3,6 +3,8 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type {
+  ApiResponse,
+  PipelineProgress,
   LessonAnalysisInput,
   GenerateSlidesInput,
 } from '@/types/api';
@@ -41,4 +43,12 @@ export async function saveEditedSlideUrl(
     { slideEditedDocumentUrl: slideGcsUrl },
     { timeout: 30_000 },
   );
+}
+
+// ─── GET pipeline task status (polling fallback) ─────────────────────────
+export async function getPipelineTaskStatus(taskId: string): Promise<PipelineProgress> {
+  const { data } = await api.get<ApiResponse<PipelineProgress>>(
+    API_ENDPOINTS.PIPELINE.GET_TASK_STATUS(taskId),
+  );
+  return data.result;
 }

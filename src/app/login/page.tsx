@@ -43,7 +43,7 @@ export default function LoginPage() {
       return;
     }
 
-    setErrorMsg(res.message ?? 'Đăng nhập thất bại.');
+    setErrorMsg('Đăng nhập thất bại.');
   };
 
   const handleGoogleCredential = useCallback(
@@ -61,7 +61,6 @@ export default function LoginPage() {
           onSuccess: handleLoginSuccess,
           onError: (err) => {
             setErrorMsg(
-              (err.response?.data as { message?: string })?.message ??
                 'Đăng nhập Google thất bại, vui lòng thử lại.'
             );
           },
@@ -134,8 +133,8 @@ export default function LoginPage() {
       onSuccess: handleLoginSuccess,
       onError: (err) => {
         setErrorMsg(
-          (err.response?.data as { message?: string })?.message ??
-            'Có lỗi xảy ra, vui lòng thử lại.'
+          // (err.response?.data as { message?: string })?.message ??
+            'Sai tên đăng nhập hoặc mật khẩu. Vui lòng thử lại.'
         );
       },
     });

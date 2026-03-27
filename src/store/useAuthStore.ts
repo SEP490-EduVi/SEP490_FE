@@ -38,7 +38,7 @@ const ROUTE_PERMISSIONS: Record<string, AppRole[]> = {
   '/admin':          ['admin'],
   '/teacher':        ['teacher'],
   '/expert':         ['expert'],
-  // '/manage':     ['staff'],
+  '/staff':          ['staff'],
 };
 
 // ─── Store interface ───────────────────────────────────────────────────────

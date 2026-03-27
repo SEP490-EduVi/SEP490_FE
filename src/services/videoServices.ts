@@ -9,6 +9,14 @@ export async function generateVideo(input: GenerateVideoInput): Promise<void> {
   await api.post(API_ENDPOINTS.VIDEO.GENERATE, input);
 }
 
+// ─── GET all videos by project ───────────────────────────────────────────
+export async function getVideosByProject(projectCode: string): Promise<VideoProductDto[]> {
+  const res = await api.get<ApiResponse<VideoProductDto[]>>(
+    API_ENDPOINTS.VIDEO.GET_BY_PROJECT(projectCode),
+  );
+  return res.data.result ?? [];
+}
+
 // ─── GET latest video by project ──────────────────────────────────────────
 export async function getLatestVideoByProject(projectCode: string): Promise<VideoProductDto | null> {
   const res = await api.get<ApiResponse<VideoProductDto>>(

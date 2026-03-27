@@ -8,6 +8,8 @@ const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
 const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
+const buildPaymentEndpoint       = (path: string) => `/api/Payment${path}`;
+const buildStaffEndpoint         = (path: string) => `/api/staff${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -75,10 +77,14 @@ export const API_ENDPOINTS = {
 
   // InputDocument
   INPUT_DOCUMENT: {
+    // GET  /api/InputDocument — Lấy tất cả InputDocuments của Teacher hiện tại
+    GET_ALL:        buildInputDocumentEndpoint(""),
     // POST /api/InputDocument — Upload tài liệu đầu vào
     UPLOAD:         buildInputDocumentEndpoint(""),
     // GET  /api/InputDocument/project/{projectCode} — Lấy danh sách tài liệu theo project
     GET_BY_PROJECT: (projectCode: string) => buildInputDocumentEndpoint(`/project/${projectCode}`),
+    // GET  /api/InputDocument/{documentCode}
+    GET_BY_CODE:    (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
     // DELETE /api/InputDocument/{documentCode} — Xóa tài liệu
     DELETE:         (documentCode: string) => buildInputDocumentEndpoint(`/${documentCode}`),
   },
@@ -87,6 +93,8 @@ export const API_ENDPOINTS = {
   VIDEO: {
     // POST /api/Video/generate — Tạo video từ slide đã chỉnh sửa
     GENERATE: '/api/Video/generate',
+    // GET  /api/Video/project/{projectCode}
+    GET_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}`,
     // GET  /api/Video/project/{projectCode}/latest
     GET_LATEST_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}/latest`,
     // DELETE /api/Video/{productVideoCode}
@@ -130,6 +138,9 @@ export const API_ENDPOINTS = {
     GET_MY:   '/api/material/my',
     UPDATE:   (code: string) => `/api/material/${code}`,
     DELETE:   (code: string) => `/api/material/${code}`,
+    GET_PENDING: '/api/material/pending',
+    GET_REVIEW_DETAIL: (code: string) => `/api/material/review/${code}`,
+    REVIEW: (code: string) => `/api/material/${code}/review`,
     // Teacher-facing
     GET_BY_CODE: (code: string) => `/api/material/${code}`,
     BROWSE:      '/api/material/browse',
@@ -139,8 +150,12 @@ export const API_ENDPOINTS = {
 
   // Curriculum Ingestion
   CURRICULUM: {
+    // POST /api/curriculum-ingestion
+    UPLOAD: buildCurriculumEndpoint(''),
     // GET /api/curriculum-ingestion
     GET_ALL: buildCurriculumEndpoint(''),
+    // GET /api/curriculum-ingestion/{documentCode}
+    GET_BY_CODE: (documentCode: string) => buildCurriculumEndpoint(`/${documentCode}`),
   },
 
   // Admin
@@ -159,6 +174,24 @@ export const API_ENDPOINTS = {
 
     PLANS: buildAdminEndpoint('/plans'),
     PLAN_BY_ID: (planId: number) => buildAdminEndpoint(`/plans/${planId}`),
+  },
+
+  // Staff
+  STAFF: {
+    VERIFICATION_PENDING: buildStaffEndpoint('/verifications/pending'),
+    VERIFICATION_DETAIL: (code: string) => buildStaffEndpoint(`/verifications/${code}`),
+    VERIFICATION_FILE: (code: string) => buildStaffEndpoint(`/verifications/${code}/file`),
+    REVIEW_VERIFICATION: (code: string) => buildStaffEndpoint(`/verifications/${code}/review`),
+  },
+
+  // Payment
+  PAYMENT: {
+    PLANS: buildPaymentEndpoint('/plans'),
+    WALLET: buildPaymentEndpoint('/wallet'),
+    TOP_UP: buildPaymentEndpoint('/top-up'),
+    VERIFY_TOP_UP: (orderCode: number) => buildPaymentEndpoint(`/top-up/verify/${orderCode}`),
+    BUY_SUBSCRIPTION: buildPaymentEndpoint('/buy-subscription'),
+    TRANSACTIONS: buildPaymentEndpoint('/transactions'),
   },
 
 } as const;
