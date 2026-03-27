@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingVerifications, useReviewVerification } from '@/hooks/useStaffApi';
-import { getVerificationDetail } from '@/services/staffServices';
+import { downloadVerificationFile } from '@/services/staffServices';
 
 export default function StaffVerificationsPage() {
   const { data = [], isLoading, isError } = usePendingVerifications();
   const reviewVerification = useReviewVerification();
 
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [loadingDetail, setLoadingDetail] = useState<string | null>(null);
+  const [downloadingCode, setDownloadingCode] = useState<string | null>(null);
 
   const handleDecision = (verificationCode: string, approved: boolean) => {
     reviewVerification.mutate({
@@ -22,20 +22,23 @@ export default function StaffVerificationsPage() {
     });
   };
 
-  const handleOpenDetail = async (verificationCode: string, fallbackUrl?: string | null) => {
-    if (fallbackUrl) {
-      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
+  const handleDownloadFile = async (verificationCode: string) => {
     try {
-      setLoadingDetail(verificationCode);
-      const detail = await getVerificationDetail(verificationCode);
-      if (detail.signedUrl) {
-        window.open(detail.signedUrl, '_blank', 'noopener,noreferrer');
-      }
+      setDownloadingCode(verificationCode);
+      const { blob, fileName } = await downloadVerificationFile(verificationCode);
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.alert('Không thể tải file lúc này. Vui lòng thử lại.');
     } finally {
-      setLoadingDetail(null);
+      setDownloadingCode(null);
     }
   };
 
@@ -68,11 +71,11 @@ export default function StaffVerificationsPage() {
                     </div>
 
                     <button
-                      onClick={() => handleOpenDetail(item.verificationCode, item.signedUrl)}
-                      disabled={loadingDetail === item.verificationCode}
+                      onClick={() => handleDownloadFile(item.verificationCode)}
+                      disabled={downloadingCode === item.verificationCode}
                       className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                     >
-                      {loadingDetail === item.verificationCode ? 'Đang mở...' : 'Xem file'}
+                      {downloadingCode === item.verificationCode ? 'Đang tải...' : 'Tải file'}
                     </button>
                   </div>
 

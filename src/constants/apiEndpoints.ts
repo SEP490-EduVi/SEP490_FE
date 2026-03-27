@@ -180,6 +180,7 @@ export const API_ENDPOINTS = {
   STAFF: {
     VERIFICATION_PENDING: buildStaffEndpoint('/verifications/pending'),
     VERIFICATION_DETAIL: (code: string) => buildStaffEndpoint(`/verifications/${code}`),
+    VERIFICATION_FILE: (code: string) => buildStaffEndpoint(`/verifications/${code}/file`),
     REVIEW_VERIFICATION: (code: string) => buildStaffEndpoint(`/verifications/${code}/review`),
   },
 

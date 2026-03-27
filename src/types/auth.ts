@@ -17,7 +17,7 @@ export interface RegisterInput {
   email: string;
   fullName: string;       // 0–100 chars
   phoneNumber?: string | null;
-  roleId: number;         // 3 = Teacher, 4 = Expert
+  roleId: number;         // 3 = Expert, 4 = Teacher
   avatarUrl?: string | null;
 }
 
