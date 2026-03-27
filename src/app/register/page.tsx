@@ -13,8 +13,8 @@ type RegisterForm = RegisterInput & { confirmPassword: string };
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const ROLES = [
-  { id: 3, label: 'Giáo viên' },
-  { id: 4, label: 'Chuyên gia' },
+  { id: 3, label: 'Chuyên gia' },
+  { id: 4, label: 'Giáo viên' },
 ] as const;
 
 export default function RegisterPage() {
