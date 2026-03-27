@@ -65,7 +65,6 @@ export default function PipelinePage() {
   const [videoStarted, setVideoStarted] = useState(false);
   const [videoCompleted, setVideoCompleted] = useState(false);
   const [videoData, setVideoData] = useState<VideoProductDto | null>(null);
-  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
 
   // ── Hooks ──
   const lessonAnalysis = useLessonAnalysis();
@@ -79,8 +78,6 @@ export default function PipelinePage() {
 
   // ── Effects ──
   useEffect(() => { setAccessToken(localStorage.getItem('accessToken')); }, []);
-
-  useEffect(() => { if (videoData) setShowVideoPlayer(true); }, [videoData]);
 
   // Persist document→product link so [id] page can group products under their source document
   useEffect(() => {
@@ -317,9 +314,6 @@ export default function PipelinePage() {
               projectCode={projectCode}
               videoCompleted={videoCompleted}
               videoData={videoData}
-              showPlayer={showVideoPlayer}
-              onShowPlayer={() => setShowVideoPlayer(true)}
-              onClosePlayer={() => setShowVideoPlayer(false)}
               onBackToProject={() => router.push(`/teacher/${projectCode}`)}
             />
           )}

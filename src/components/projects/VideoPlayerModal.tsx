@@ -13,6 +13,7 @@ import { getVideoSignedUrl, getLatestVideoByProject } from '@/services/videoServ
 interface VideoPlayerModalProps {
   video: VideoProductDto;
   projectCode?: string;
+  inline?: boolean;
   onClose: () => void;
 }
 
@@ -331,7 +332,7 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
 
 // ─── Main Modal ────────────────────────────────────────────────────────────
 
-export default function VideoPlayerModal({ video, projectCode, onClose }: VideoPlayerModalProps) {
+export default function VideoPlayerModal({ video, projectCode, inline = false, onClose }: VideoPlayerModalProps) {
   const [signedUrl, setSignedUrl]   = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(true);
   const [urlError, setUrlError]     = useState<string | null>(null);
@@ -481,23 +482,12 @@ export default function VideoPlayerModal({ video, projectCode, onClose }: VideoP
   const progressPct  = duration > 0 ? (currentTime / duration) * 100 : 0;
   const interactions = video.interactions ?? [];
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        key="video-modal-backdrop"
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={() => { if (!activeQuiz && !isFullscreen) onClose(); }}
-      >
-        <motion.div
-          className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl"
-          initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-          onClick={(e) => e.stopPropagation()}
-        >
+  const playerPanel = (
+    <div className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full">
+
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 bg-gray-900/80 border-b border-white/10">
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                 <Film className="w-4 h-4 text-white" />
               </div>
@@ -511,9 +501,11 @@ export default function VideoPlayerModal({ video, projectCode, onClose }: VideoP
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors ml-4 flex-shrink-0">
-              <X className="w-5 h-5" />
-            </button>
+            {!inline && (
+              <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors ml-4 flex-shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           {/* Video container — fullscreen target */}
@@ -656,6 +648,26 @@ export default function VideoPlayerModal({ video, projectCode, onClose }: VideoP
               </div>
             </div>
           )}
+    </div>
+  );
+
+  if (inline) return playerPanel;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="video-modal-backdrop"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={() => { if (!activeQuiz && !isFullscreen) onClose(); }}
+      >
+        <motion.div
+          className="w-full max-w-4xl"
+          initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {playerPanel}
         </motion.div>
       </motion.div>
     </AnimatePresence>
