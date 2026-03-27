@@ -59,7 +59,7 @@ export default function LoginPage() {
         { idToken },
         {
           onSuccess: handleLoginSuccess,
-          onError: (err) => {
+          onError: (_err) => {
             setErrorMsg(
                 'Đăng nhập Google thất bại, vui lòng thử lại.'
             );
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
     login(form, {
       onSuccess: handleLoginSuccess,
-      onError: (err) => {
+      onError: (_err) => {
         setErrorMsg(
           // (err.response?.data as { message?: string })?.message ??
             'Sai tên đăng nhập hoặc mật khẩu. Vui lòng thử lại.'

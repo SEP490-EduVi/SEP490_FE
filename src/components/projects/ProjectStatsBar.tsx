@@ -21,12 +21,6 @@ export default function ProjectStatsBar({ projects, products = [] }: ProjectStat
       color: 'bg-blue-50 text-blue-600',
     },
     {
-      label: 'Sản phẩm AI',
-      value: products.length,
-      icon: Package,
-      color: 'bg-purple-50 text-purple-600',
-    },
-    {
       label: 'Hoạt động',
       value: projects.filter((p) => p.status === 0).length,
       icon: Clock,

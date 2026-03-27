@@ -91,6 +91,8 @@ export const API_ENDPOINTS = {
 
   // Video generation
   VIDEO: {
+    // GET  /api/Video — Lấy tất cả video của user hiện tại
+    GET_ALL: '/api/Video',
     // POST /api/Video/generate — Tạo video từ slide đã chỉnh sửa
     GENERATE: '/api/Video/generate',
     // GET  /api/Video/project/{projectCode}

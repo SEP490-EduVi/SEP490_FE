@@ -1,10 +1,10 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User, Shield, ShieldCheck, ArrowLeft, CheckCircle,
+  User, ShieldCheck, CheckCircle,
   Eye, EyeOff, Loader2, AlertCircle, Camera,
   Upload, Trash2, FileText, Clock, CheckCircle2, XCircle,
   Mail, Phone, BadgeCheck, Activity, KeyRound, LockKeyhole, Wallet, CreditCard,
@@ -57,7 +57,6 @@ function CertStatusBadge({ status }: { status: string }) {
 
 // ── Inner page (needs Suspense because of useSearchParams) ───────────────
 function ProfilePageInner() {
-  const router          = useRouter();
   const searchParams    = useSearchParams();
   const { user, role, setUser } = useAuthStore();
 
@@ -876,7 +875,7 @@ function InfoField({
 function PasswordInput({
   value, onChange, show, onToggle, placeholder,
 }: {
-  value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void; placeholder?: string;
+  value: string; onChange: (val: string) => void; show: boolean; onToggle: () => void; placeholder?: string;
 }) {
   return (
     <div className="relative">

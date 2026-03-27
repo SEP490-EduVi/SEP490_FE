@@ -103,6 +103,15 @@ export function usePipelineTaskStatus(taskId?: string, enabled = true) {
   });
 }
 
+// ─── GET all videos for current user ────────────────────────────────────────
+export function useAllVideos() {
+  return useQuery({
+    queryKey: ['video', 'all'],
+    queryFn: videoService.getAllVideos,
+    staleTime: 30_000,
+  });
+}
+
 // ─── DELETE video ──────────────────────────────────────────────────────────
 export function useDeleteVideo(projectCode: string) {
   const qc = useQueryClient();

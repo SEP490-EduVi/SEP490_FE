@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Layers, AlertCircle, Loader2, ChevronRight,
+  ArrowLeft, AlertCircle, Loader2, ChevronRight,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
@@ -12,7 +12,6 @@ import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoB
 import { useInputDocumentsByProject } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentTree from '@/components/projects/DocumentTree';
-import ProductTreeItem from '@/components/projects/ProductTreeItem';
 import EvaluationModal from '@/components/projects/EvaluationModal';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
@@ -29,7 +28,7 @@ export default function ProjectDetailPage() {
   const projectCode = params.id as string;
 
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
-  const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useProductsByProject(projectCode);
+  const { data: products = [], refetch: refetchProducts } = useProductsByProject(projectCode);
   const { data: inputDocuments = [] } = useInputDocumentsByProject(projectCode);
   const deleteProduct = useDeleteProduct();
   const lessonAnalysis = useLessonAnalysis();
@@ -202,40 +201,24 @@ export default function ProjectDetailPage() {
         </div>
         <h2 className="text-lg font-semibold text-gray-700 mb-1">Không tìm thấy dự án</h2>
         <p className="text-sm text-gray-500 mb-6">Dự án không tồn tại hoặc đã bị xóa.</p>
-        <button onClick={() => router.push('/teacher')} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium">
+        <button onClick={() => router.push('/teacher/projects')} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium">
           <ArrowLeft className="w-4 h-4" /> Quay về danh sách
         </button>
       </div>
     );
   }
 
-  const allLinkedProductCodes = new Set(Object.values(docProductMap).flat());
-  const unlinkedProducts = products.filter(p => !allLinkedProductCodes.has(p.productCode));
-
-  const sharedProductProps = {
-    latestVideo, viewSlideLoading, videoLoadingCode,
-    confirmDeleteCode: confirmDeleteProductCode,
-    onViewSlide: handleViewSlide,
-    onViewEvaluation: handleViewEvaluation,
-    onGenerateSlides: handleGenerateSlides,
-    onGenerateVideo: handleGenerateVideo,
-    onDeleteProduct: (code: string) => { deleteProduct.mutate(code); setConfirmDeleteProductCode(null); },
-    onSetConfirmDelete: setConfirmDeleteProductCode,
-    onWatchVideo: setViewingVideo,
-    onDeleteVideo: (productVideoCode: string) => deleteVideo.mutate(productVideoCode),
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-            <button onClick={() => router.push('/teacher')} className="hover:text-blue-600 transition-colors">Dự án</button>
+            <button onClick={() => router.push('/teacher/projects')} className="hover:text-blue-600 transition-colors">Dự án</button>
             <ChevronRight className="w-3.5 h-3.5" />
             <span className="text-gray-900 font-medium">{project.projectName}</span>
           </div>
           <div className="flex items-start gap-4">
-            <button onClick={() => router.push('/teacher')} className="mt-1 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button onClick={() => router.push('/teacher/projects')} className="mt-1 p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div className="flex items-center gap-3 mt-1">

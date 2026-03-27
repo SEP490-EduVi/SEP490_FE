@@ -40,3 +40,12 @@ export function useDeleteProduct() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [QUERY_KEY] }),
   });
 }
+
+// ─── GET all products for current user ────────────────────────────────────
+export function useAllProducts() {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'all'],
+    queryFn: productService.getAllProducts,
+    staleTime: 30_000,
+  });
+}

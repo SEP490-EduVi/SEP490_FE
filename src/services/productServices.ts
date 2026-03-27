@@ -84,3 +84,9 @@ export async function getProductEditedSlide(
     slideEditedAt: result.slideEditedAt,
   };
 }
+
+// ─── GET all products for current user ────────────────────────────────────
+export async function getAllProducts(): Promise<ProductDto[]> {
+  const { data } = await api.get<ApiResponse<ProductDto[]>>(API_ENDPOINTS.PRODUCT.GET_ALL);
+  return data.result;
+}

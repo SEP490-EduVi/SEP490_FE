@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
-import { BookOpen, Upload, Search, ShieldCheck, Loader2, AlertCircle, FolderOpen, Home, Grid3X3, List, DollarSign } from 'lucide-react';
+import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign } from 'lucide-react';
 
 import { useMyMaterials, useUploadMaterial, useUpdateMaterial, useDeleteMaterial } from '@/hooks/useExpertApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';

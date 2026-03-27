@@ -1,286 +1,151 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
-import {
-  Plus,
-  FolderOpen,
-  Search,
-  Grid3X3,
-  List,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { FolderKanban, Layers, Film, ArrowRight, Loader2 } from 'lucide-react';
 
-import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
 import AppHeader from '@/components/sidebar/AppHeader';
-import { usePipelineHub } from '@/hooks/usePipelineHub';
-import type { PipelineProgress } from '@/types/api';
-import ProjectCard from '@/components/projects/ProjectCard';
-import ProjectListTable from '@/components/projects/ProjectListTable';
-import ProjectStatsBar from '@/components/projects/ProjectStatsBar';
-import CreateProjectModal from '@/components/projects/CreateProjectModal';
-import EditProjectModal from '@/components/projects/EditProjectModal';
-import type { ProjectDto, UpdateProjectInput } from '@/types/api';
+import { useProjects } from '@/hooks/useProjectApi';
+import { useAllProducts } from '@/hooks/useProductApi';
+import { useAllVideos } from '@/hooks/usePipelineApi';
+import { useAuthStore } from '@/store/useAuthStore';
 
-export default function TeacherPage() {
+export default function TeacherDashboard() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  const [editTarget, setEditTarget] = useState<ProjectDto | null>(null);
-  const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
+  const { data: allProducts = [], isLoading: productsLoading } = useAllProducts();
+  const { data: allVideos = [], isLoading: videosLoading } = useAllVideos();
 
-  // ── Đọc token sau khi mount (tránh SSR hydration error) ────────────────────────
-  useEffect(() => {
-    setAccessToken(localStorage.getItem('accessToken'));
-  }, []);
+  const displayName =
+    (user && 'fullName' in user && (user as any).fullName) ||
+    (user && 'email' in user && (user as any).email) ||
+    'Giáo viên';
 
-  usePipelineHub({
-    accessToken,
-    onProgress: (event) => {
-      console.log('[Pipeline]', event.step, event.progress + '%', event.detail);
-      setPipelineProgress(event);
-      if (event.status === 'completed' || event.status === 'failed') {
-        setTimeout(() => setPipelineProgress(null), 3000);
-      }
+  const isLoading = projectsLoading || productsLoading || videosLoading;
+
+  const stats = {
+    projects: projects.length,
+    activeProjects: projects.filter((p) => p.status === 0).length,
+    slides: allProducts.filter((p) => p.hasSlide).length,
+    videos: allVideos.filter((v) => v.status === 'completed').length,
+  };
+
+  const sections = [
+    {
+      href: '/teacher/projects',
+      icon: FolderKanban,
+      label: 'Dự án',
+      description: 'Quản lý dự án bài giảng. Tạo mới, upload tài liệu và bắt đầu tạo nội dung AI.',
+      count: stats.projects,
+      countLabel: 'dự án',
+      gradient: 'from-blue-500 to-indigo-600',
     },
-  });
-
-  // ── API hooks ────────────────────────────────────────────────────────────
-  const { data: projects = [], isLoading, isError, error } = useProjects();
-  const createProject = useCreateProject();
-  const deleteProject = useDeleteProject();
-  const updateProject = useUpdateProject();
-
-  // ── Filter ───────────────────────────────────────────────────────────────
-  const filteredProjects = projects.filter((p) =>
-    p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.projectCode.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-
-  const handleCreate = (data: { projectName: string }) => {
-    // Auto-generate project code: P-1, P-2, ... using max existing number
-    const maxNum = projects.reduce((max, p) => {
-      const match = p.projectCode?.match(/^P-(\d+)$/);
-      return match ? Math.max(max, parseInt(match[1], 10)) : max;
-    }, 0);
-    const projectCode = `P-${maxNum + 1}`;
-    createProject.mutate({ projectCode, projectName: data.projectName }, {
-      onSuccess: () => setShowCreateModal(false),
-    });
-  };
-
-  const handleDelete = (projectCode: string) => {
-    deleteProject.mutate(projectCode);
-    setMenuOpen(null);
-  };
-
-  const handleEdit = (project: ProjectDto) => {
-    setEditTarget(project);
-    setMenuOpen(null);
-  };
-
-  const handleUpdateProject = (projectCode: string, input: UpdateProjectInput) => {
-    updateProject.mutate(
-      { projectCode, input },
-      { onSuccess: () => setEditTarget(null) },
-    );
-  };
+    {
+      href: '/teacher/slides',
+      icon: Layers,
+      label: 'Slide',
+      description: 'Xem và chỉnh sửa các bộ slide AI đã tạo từ tài liệu của bạn.',
+      count: stats.slides,
+      countLabel: 'bộ slide',
+      gradient: 'from-violet-500 to-purple-600',
+    },
+    {
+      href: '/teacher/videos',
+      icon: Film,
+      label: 'Video',
+      description: 'Xem lại video bài giảng đã tạo, hoàn chỉnh với tương tác quiz.',
+      count: stats.videos,
+      countLabel: 'video',
+      gradient: 'from-rose-500 to-orange-500',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <AppHeader />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* ── Filters Bar ── */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm dự án theo tên hoặc mã..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
-            />
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* ── Welcome Banner ── */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-600/20"
+        >
+          <div className="relative z-10">
+            <p className="text-blue-100 text-sm mb-1">Chào mừng trở lại</p>
+            <h2 className="text-2xl font-bold">{displayName}</h2>
+            <p className="text-blue-200 text-sm mt-1">
+              Tạo bài giảng thông minh với AI — từ tài liệu đến video chỉ trong vài bước.
+            </p>
           </div>
+          <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+          <div className="absolute right-12 bottom-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 pointer-events-none" />
+        </motion.div>
 
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all shadow-lg shadow-blue-600/25 font-medium text-sm whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo dự án mới
-          </button>
-
-          <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2.5 transition-colors ${
-                viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'
-              }`}
-              title="Lưới"
+        {/* ── Stat pills ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: 'Tổng dự án',      value: stats.projects,       color: 'text-blue-600   bg-blue-50'   },
+            { label: 'Đang hoạt động',  value: stats.activeProjects,  color: 'text-emerald-600 bg-emerald-50' },
+            { label: 'Bộ slide',         value: stats.slides,          color: 'text-violet-600 bg-violet-50' },
+            { label: 'Video đã tạo',    value: stats.videos,          color: 'text-rose-600   bg-rose-50'   },
+          ].map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3"
             >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2.5 transition-colors ${
-                viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'
-              }`}
-              title="Danh sách"
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold ${s.color}`}>
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : s.value}
+              </div>
+              <p className="text-xs text-gray-500 leading-tight">{s.label}</p>
+            </motion.div>
+          ))}
         </div>
 
-        {/* ── Stats ── */}
-        <ProjectStatsBar projects={projects} />
-
-        {/* ── Loading ── */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
-            <p className="text-sm text-gray-500">Đang tải danh sách dự án...</p>
-          </div>
-        )}
-
-        {/* ── Error ── */}
-        {isError && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
-              <AlertCircle className="w-8 h-8 text-red-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-1">Không thể tải dữ liệu</h3>
-            <p className="text-sm text-gray-500">
-              {(error as Error)?.message || 'Đã xảy ra lỗi khi kết nối đến server.'}
-            </p>
-          </div>
-        )}
-
-        {/* ── Empty ── */}
-        {!isLoading && !isError && filteredProjects.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <FolderOpen className="w-10 h-10 text-gray-300" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-1">
-              {searchQuery ? 'Không tìm thấy dự án' : 'Chưa có dự án nào'}
-            </h3>
-            <p className="text-sm text-gray-500 mb-6">
-              {searchQuery ? 'Thử thay đổi từ khóa tìm kiếm' : 'Hãy tạo dự án đầu tiên để bắt đầu!'}
-            </p>
-            {!searchQuery && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
+        {/* ── Section cards ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {sections.map((section, i) => {
+            const Icon = section.icon;
+            return (
+              <motion.button
+                key={section.href}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.08 }}
+                onClick={() => router.push(section.href)}
+                className="group text-left bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all overflow-hidden"
               >
-                <Plus className="w-4 h-4" />
-                Tạo dự án mới
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Grid View ── */}
-        {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <AnimatePresence mode="popLayout">
-              {filteredProjects.map((project, idx) => (
-                <ProjectCard
-                  key={project.projectCode}
-                  project={project}
-                  index={idx}
-                  menuOpen={menuOpen !== null && menuOpen === project.projectCode}
-                  onMenuToggle={() =>
-                    setMenuOpen(menuOpen === project.projectCode ? null : project.projectCode)
-                  }
-                  onClick={() => router.push(`/teacher/${project.projectCode}`)}
-                  onEdit={() => handleEdit(project)}
-                  onDelete={() => handleDelete(project.projectCode)}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* ── List View ── */}
-        {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'list' && (
-          <ProjectListTable
-            projects={filteredProjects}
-            onClickProject={(code) => router.push(`/teacher/${code}`)}
-            onDelete={handleDelete}
-            isDeleting={deleteProject.isPending ? (deleteProject.variables as string) : null}
-          />
-        )}
-      </main>
-
-      {/* ── Modals ── */}
-      <CreateProjectModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreate={handleCreate}
-        isLoading={createProject.isPending}
-      />
-
-      <EditProjectModal
-        open={!!editTarget}
-        project={editTarget}
-        onClose={() => setEditTarget(null)}
-        onSave={handleUpdateProject}
-        isLoading={updateProject.isPending}
-      />
-
-      {/* Close menu on outside click */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
-      )}
-
-      {/* ── Pipeline Progress Banner ── */}
-      {pipelineProgress && (
-        <div className="fixed bottom-6 right-6 z-50 w-80 bg-white border border-slate-200 rounded-xl shadow-xl p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-800">
-              {pipelineProgress.status === 'completed' && '✅ Hoàn thành!'}
-              {pipelineProgress.status === 'failed' && '❌ Có lỗi xảy ra'}
-              {(pipelineProgress.status === 'queued' || pipelineProgress.status === 'processing') && '⚙️ Đang xử lý...'}
-            </p>
-            <button
-              onClick={() => setPipelineProgress(null)}
-              className="text-slate-400 hover:text-slate-600 text-xs"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-full bg-slate-100 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                pipelineProgress.status === 'failed' ? 'bg-red-500' : 'bg-indigo-500'
-              }`}
-              style={{ width: `${pipelineProgress.progress}%` }}
-            />
-          </div>
-
-          {pipelineProgress.detail && (
-            <p className="text-xs text-slate-500">{pipelineProgress.detail}</p>
-          )}
-          {pipelineProgress.status === 'failed' && pipelineProgress.error && (
-            <p className="text-xs text-red-500">{pipelineProgress.error}</p>
-          )}
-          {pipelineProgress.status === 'completed' && (
-            <p className="text-xs text-slate-400">
-              Dữ liệu đã sẵn sàng, hãy mở sản phẩm để xem kết quả.
-            </p>
-          )}
+                <div className={`h-1.5 bg-gradient-to-r ${section.gradient}`} />
+                <div className="p-6">
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${section.gradient} flex items-center justify-center mb-4 shadow-sm`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1.5 group-hover:text-blue-600 transition-colors">
+                    {section.label}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-5 leading-relaxed">{section.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-bold text-gray-900">
+                      {isLoading ? '…' : section.count}
+                      <span className="text-sm font-normal text-gray-400 ml-1">{section.countLabel}</span>
+                    </span>
+                    <span className="flex items-center gap-1 text-sm text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      Xem ngay <ArrowRight className="w-4 h-4" />
+                    </span>
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
-      )}
+      </main>
     </div>
   );
 }
+

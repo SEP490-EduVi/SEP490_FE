@@ -201,7 +201,7 @@ export default function PipelinePage() {
           <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
           <p className="text-sm text-gray-600">Thiếu thông tin dự án.</p>
           <button
-            onClick={() => router.push('/teacher')}
+            onClick={() => router.push('/teacher/projects')}
             className="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700"
           >
             Quay lại
@@ -222,7 +222,7 @@ export default function PipelinePage() {
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <button
-              onClick={() => router.push('/teacher')}
+              onClick={() => router.push('/teacher/projects')}
               className="hover:text-blue-600 transition-colors"
             >
               Dự án

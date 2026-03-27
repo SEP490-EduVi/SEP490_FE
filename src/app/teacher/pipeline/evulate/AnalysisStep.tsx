@@ -19,8 +19,8 @@ interface AnalysisStepProps {
   evalData: ProductEvaluationResponse | undefined;
   evalLoading: boolean;
   slidePending: boolean;
-  onCurriculumChange: (v: string) => void;
-  onProductNameChange: (v: string) => void;
+  onCurriculumChange: (value: string) => void;
+  onProductNameChange: (value: string) => void;
   onStartAnalysis: () => void;
   onStartSlides: () => void;
   onCancel: () => void;

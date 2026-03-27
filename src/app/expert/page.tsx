@@ -19,10 +19,8 @@ import {
   FileText,
   Upload,
   ArrowRight,
-  Home,
   DollarSign,
   Package,
-  Star,
 } from 'lucide-react';
 
 import { useVerifications, useMyMaterials } from '@/hooks/useExpertApi';
