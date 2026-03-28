@@ -11,6 +11,7 @@ import { useSubjects, useGrades, useLessons } from '@/hooks/useMetadataApi';
 import ProductTreeItem from './ProductTreeItem';
 import { formatDate } from './ProductTreeItem';
 import type { ProductDto, VideoProductDto } from '@/types/api';
+import { notify } from '@/components/common';
 
 // ─── File-type helpers ────────────────────────────────────────────────────────
 
@@ -110,10 +111,12 @@ export default function DocumentTree({
       { File: uploadFile, Title: uploadTitle, ProjectCode: projectCode, SubjectCode: uploadSubjectCode, GradeCode: uploadGradeCode, LessonCode: uploadLessonCode },
       {
         onSuccess: () => {
+          notify.success(`Tải lên “${uploadTitle}” thành công!`);
           setUploadFile(null); setUploadTitle('');
           setUploadSubjectCode(''); setUploadGradeCode(''); setUploadLessonCode('');
           setShowUploadArea(false);
         },
+        onError: () => notify.error('Tải lên tài liệu thất bại. Vui lòng thử lại.'),
       },
     );
   };
@@ -258,7 +261,7 @@ export default function DocumentTree({
                     </button>
                     {confirmDeleteDocCode === doc.documentCode ? (
                       <>
-                        <button onClick={() => { deleteDoc.mutate(doc.documentCode); setConfirmDeleteDocCode(null); }} className="px-2 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Xóa</button>
+                        <button onClick={() => { deleteDoc.mutate(doc.documentCode, { onSuccess: () => notify.success('Đã xóa tài liệu thành công'), onError: () => notify.error('Không thể xóa tài liệu. Vui lòng thử lại.') }); setConfirmDeleteDocCode(null); }} className="px-2 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Xóa</button>
                         <button onClick={() => setConfirmDeleteDocCode(null)} className="px-2 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Hủy</button>
                       </>
                     ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -15,6 +15,7 @@ import {
 
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
 import AppHeader from '@/components/sidebar/AppHeader';
+import { Breadcrumb, notify } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import type { PipelineProgress } from '@/types/api';
@@ -27,11 +28,20 @@ import type { ProjectDto, UpdateProjectInput } from '@/types/api';
 
 export default function TeacherProjectsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 6;
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Auto-open create modal when navigated with ?create=1
+  useEffect(() => {
+    if (searchParams.get('create') === '1') {
+      setShowCreateModal(true);
+      router.replace('/teacher/projects', { scroll: false });
+    }
+  }, [searchParams, router]);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<ProjectDto | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
@@ -71,12 +81,15 @@ export default function TeacherProjectsPage() {
     const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
     const projectCode = `P-${ts}${rand}`;
     createProject.mutate({ projectCode, projectName: data.projectName }, {
-      onSuccess: () => setShowCreateModal(false),
+      onSuccess: () => { setShowCreateModal(false); notify.success(`Dự án "${data.projectName}" đã được tạo thành công!`); },
+      onError: () => notify.error('Tạo dự án thất bại. Vui lòng thử lại.'),
     });
   };
 
   const handleDelete = (projectCode: string) => {
-    deleteProject.mutate(projectCode);
+    deleteProject.mutate(projectCode, {
+      onSuccess: () => notify.success('Đã xóa dự án thành công'),
+    });
     setMenuOpen(null);
   };
 
@@ -88,7 +101,7 @@ export default function TeacherProjectsPage() {
   const handleUpdateProject = (projectCode: string, input: UpdateProjectInput) => {
     updateProject.mutate(
       { projectCode, input },
-      { onSuccess: () => setEditTarget(null) },
+      { onSuccess: () => { setEditTarget(null); notify.success('Cập nhật dự án thành công!'); } },
     );
   };
 
@@ -97,6 +110,8 @@ export default function TeacherProjectsPage() {
       <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        <Breadcrumb items={[{ label: 'Dự án' }]} />
+
         {/* ── Filters Bar ── */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
           <div className="relative flex-1">

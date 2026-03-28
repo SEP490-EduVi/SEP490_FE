@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Film, Search, Loader2, Play, FolderOpen, Clock } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
+import { Breadcrumb } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import { useAllVideos } from '@/hooks/usePipelineApi';
@@ -48,8 +50,15 @@ export default function TeacherVideosPage() {
       <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        <Breadcrumb items={[{ label: 'Video' }]} />
+
         {/* Page header */}
-        <div className="flex items-center gap-3 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center gap-3 mb-6"
+        >
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center">
             <Film className="w-5 h-5 text-white" />
           </div>
@@ -59,10 +68,15 @@ export default function TeacherVideosPage() {
               {isLoading ? '…' : `${completed.length} video đã hoàn thành`}
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Search */}
-        <div className="relative mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+          className="relative mb-6"
+        >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -71,38 +85,67 @@ export default function TeacherVideosPage() {
             placeholder="Tìm kiếm theo tên video..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
           />
-        </div>
+        </motion.div>
 
         {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 className="w-7 h-7 animate-spin text-rose-500 mr-2" />
-            <span className="text-sm text-gray-500">Đang tải video...</span>
-          </div>
-        )}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center py-24"
+            >
+              <Loader2 className="w-7 h-7 animate-spin text-rose-500 mr-2" />
+              <span className="text-sm text-gray-500">Đang tải video...</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Empty */}
-        {!isLoading && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <FolderOpen className="w-10 h-10 text-gray-300" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-1">
-              {searchQuery ? 'Không tìm thấy video' : 'Chưa có video nào'}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {searchQuery ? 'Thử thay đổi từ khóa tìm kiếm' : 'Tạo video từ trang Dự án → Pipeline'}
-            </p>
-          </div>
-        )}
+        <AnimatePresence>
+          {!isLoading && filtered.length === 0 && (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col items-center justify-center py-24 text-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <FolderOpen className="w-10 h-10 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                {searchQuery ? 'Không tìm thấy video' : 'Chưa có video nào'}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {searchQuery ? 'Thử thay đổi từ khóa tìm kiếm' : 'Tạo video từ trang Dự án → Pipeline'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Video grid */}
         {!isLoading && paged.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.07 } },
+              }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
               {paged.map((video) => (
-                <div
+                <motion.div
                   key={video.productVideoCode}
+                  variants={{
+                    hidden:  { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+                  }}
                   className="bg-white rounded-2xl border border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all overflow-hidden cursor-pointer group"
                   onClick={() => setPlayingVideo(video)}
                 >
@@ -138,9 +181,9 @@ export default function TeacherVideosPage() {
                       {formatDate(video.completedAt)}
                     </span>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>

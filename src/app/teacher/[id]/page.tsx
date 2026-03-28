@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -20,6 +20,7 @@ import VideoConfirmModal from '@/components/projects/VideoConfirmModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
+import { notify } from '@/components/common';
 import type { PipelineProgress, VideoProductDto } from '@/types/api';
 
 export default function ProjectDetailPage() {
@@ -122,6 +123,7 @@ export default function ProjectDetailPage() {
       { documentCode: docCode, projectCode, productName, curriculumYear: year },
       {
         onSuccess: async () => {
+          notify.info('Đang phân tích tài liệu...');
           setPipelineType('evaluation'); setShowPipelineModal(true);
           try {
             const result = await refetchProducts();
@@ -141,7 +143,7 @@ export default function ProjectDetailPage() {
   const handleGenerateSlides = (productCode: string) => {
     generateSlides.mutate(
       { productCode, slideRange: 'short' },
-      { onSuccess: () => { startGeneration(productCode, projectCode); router.push('/teacher/editor'); } },
+      { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); router.push('/teacher/editor'); } },
     );
   };
 
@@ -154,12 +156,12 @@ export default function ProjectDetailPage() {
     try {
       setVideoLoadingCode(productCode);
       const url = await getEditedSlideGcsUrl(productCode);
-      if (!url) { setVideoLoadingCode(null); return; }
+      if (!url) { setVideoLoadingCode(null); notify.error('Không thể lấy đường dẫn slide. Vui lòng thử lại.'); return; }
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url },
-        { onSuccess: () => { setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
+        { onSuccess: () => { notify.info('Yêu cầu tạo video đã được gửi'); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
       );
-    } catch { setVideoLoadingCode(null); }
+    } catch { setVideoLoadingCode(null); notify.error('Đã xảy ra lỗi khi tạo video. Vui lòng thử lại.'); }
   };
 
   const handleViewEvaluation = (productCode: string) => {
@@ -181,7 +183,8 @@ export default function ProjectDetailPage() {
       }
       setDocument(slideDoc, productCode, projectCode, product?.hasEditedSlide ?? false);
       router.push('/teacher/editor');
-    } finally { setViewSlideLoading(null); }
+    } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
+    finally { setViewSlideLoading(null); }
   };
 
   if (isProjectLoading) {
@@ -250,10 +253,13 @@ export default function ProjectDetailPage() {
           onViewEvaluation={handleViewEvaluation}
           onGenerateSlides={handleGenerateSlides}
           onGenerateVideo={handleGenerateVideo}
-          onDeleteProduct={(code) => { deleteProduct.mutate(code); setConfirmDeleteProductCode(null); }}
+          onDeleteProduct={(code) => { deleteProduct.mutate(code, { onSuccess: () => notify.success('Đã xóa sản phẩm thành công') }); setConfirmDeleteProductCode(null); }}
           onSetConfirmDeleteProduct={setConfirmDeleteProductCode}
           onWatchVideo={setViewingVideo}
-          onDeleteVideo={(productVideoCode) => deleteVideo.mutate(productVideoCode)}
+          onDeleteVideo={(productVideoCode) => deleteVideo.mutate(productVideoCode, {
+            onSuccess: () => notify.success('Đã xóa video thành công'),
+            onError: () => notify.error('Không thể xóa video. Vui lòng thử lại.'),
+          })}
         />
 
 

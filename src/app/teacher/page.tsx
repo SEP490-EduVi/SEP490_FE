@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FolderKanban, Layers, Film, ArrowRight, Loader2 } from 'lucide-react';
+import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import { useProjects } from '@/hooks/useProjectApi';
@@ -80,6 +80,13 @@ export default function TeacherDashboard() {
             <p className="text-blue-200 text-sm mt-1">
               Tạo bài giảng thông minh với AI — từ tài liệu đến video chỉ trong vài bước.
             </p>
+            <button
+              onClick={() => router.push('/teacher/projects?create=1')}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-medium transition-colors backdrop-blur-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Tạo dự án mới
+            </button>
           </div>
           <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
           <div className="absolute right-12 bottom-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 pointer-events-none" />

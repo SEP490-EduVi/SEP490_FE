@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingVerifications, useReviewVerification } from '@/hooks/useStaffApi';
 import { downloadVerificationFile } from '@/services/staffServices';
+import { notify } from '@/components/common';
 
 export default function StaffVerificationsPage() {
   const { data = [], isLoading, isError } = usePendingVerifications();
@@ -13,13 +14,19 @@ export default function StaffVerificationsPage() {
   const [downloadingCode, setDownloadingCode] = useState<string | null>(null);
 
   const handleDecision = (verificationCode: string, approved: boolean) => {
-    reviewVerification.mutate({
-      verificationCode,
-      input: {
-        approved,
-        rejectionReason: approved ? undefined : (reasons[verificationCode] || '').trim() || undefined,
+    reviewVerification.mutate(
+      {
+        verificationCode,
+        input: {
+          approved,
+          rejectionReason: approved ? undefined : (reasons[verificationCode] || '').trim() || undefined,
+        },
       },
-    });
+      {
+        onSuccess: () => notify.success(approved ? 'Dạyật hồ sơ xác minh thành công' : 'Đã từ chối hồ sơ xác minh'),
+        onError: () => notify.error('Thao tác thất bại. Vui lòng thử lại.'),
+      },
+    );
   };
 
   const handleDownloadFile = async (verificationCode: string) => {
@@ -36,7 +43,7 @@ export default function StaffVerificationsPage() {
       window.document.body.removeChild(link);
       URL.revokeObjectURL(objectUrl);
     } catch {
-      window.alert('Không thể tải file lúc này. Vui lòng thử lại.');
+      notify.error('Không thể tải file lúc này. Vui lòng thử lại.');
     } finally {
       setDownloadingCode(null);
     }

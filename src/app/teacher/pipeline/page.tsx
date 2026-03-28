@@ -16,6 +16,7 @@ import VideoStep from './video/VideoStep';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import * as videoService from '@/services/videoServices';
+import { notify } from '@/components/common';
 import type { PipelineProgress, VideoProductDto } from '@/types/api';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -118,6 +119,7 @@ export default function PipelinePage() {
     if (event.step === 'completed') {
       setAnalysisCompleted(true);
       setShowPipelineModal(false);
+      notify.success('Phân tích tài liệu hoàn thành!');
       if (event.result && typeof event.result === 'object' && 'productCode' in event.result) {
         setProductCode(event.result.productCode as string);
       }
@@ -127,6 +129,7 @@ export default function PipelinePage() {
     if (event.step === 'video_completed') {
       setVideoCompleted(true);
       setShowPipelineModal(false);
+      notify.success('Video đã tạo xong!');
       // Retry polling until backend writes videoUrl
       (async () => {
         for (let i = 0; i < 8; i++) {
@@ -159,7 +162,7 @@ export default function PipelinePage() {
           });
           if (result?.length > 0) setProductCode(result[result.length - 1].productCode);
         },
-        onError: () => setShowPipelineModal(false),
+        onError: () => { setShowPipelineModal(false); notify.error('Không thể bắt đầu phân tích. Vui lòng thử lại.'); },
       }
     );
   };
@@ -168,7 +171,7 @@ export default function PipelinePage() {
     if (!productCode) return;
     generateSlides.mutate(
       { productCode, slideRange: 'short' },
-      { onSuccess: () => { startGeneration(productCode, projectCode); router.push('/teacher/editor'); } }
+      { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); router.push('/teacher/editor'); } }
     );
   };
 
@@ -179,7 +182,7 @@ export default function PipelinePage() {
     setPipelineProgress(null);
     try {
       const url = await getEditedSlideGcsUrl(code);
-      if (!url) { setShowPipelineModal(false); setVideoStarted(false); return; }
+      if (!url) { setShowPipelineModal(false); setVideoStarted(false); notify.error('Không thể lấy đường dẫn slide. Vui lòng thử lại.'); return; }
       generateVideo.mutate(
         { productCode: code, slideEditedDocumentUrl: url },
         { onError: () => { setShowPipelineModal(false); setVideoStarted(false); } }
@@ -187,6 +190,7 @@ export default function PipelinePage() {
     } catch {
       setShowPipelineModal(false);
       setVideoStarted(false);
+      notify.error('Đã xảy ra lỗi khi tạo video. Vui lòng thử lại.');
     }
   };
 

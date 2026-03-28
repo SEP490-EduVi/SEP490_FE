@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore, type AppRole } from '@/store/useAuthStore';
 import { useLogoutService } from '@/services/authServices';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ── Role nav config ────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export default function AppHeader() {
   const pathname = usePathname();
   const { user, role, logout } = useAuthStore();
   const logoutService = useLogoutService();
+  const queryClient = useQueryClient();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -78,6 +80,7 @@ export default function AppHeader() {
   const handleLogout = () => {
     logoutService.mutate(undefined, {
       onSettled: () => {
+        queryClient.clear();
         logout();
         router.push('/login');
       },

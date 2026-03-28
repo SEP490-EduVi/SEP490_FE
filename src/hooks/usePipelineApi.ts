@@ -118,8 +118,13 @@ export function useDeleteVideo(projectCode: string) {
   return useMutation({
     mutationFn: (productVideoCode: string) => videoService.deleteVideo(productVideoCode),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['video', 'latest', projectCode] });
+      // Set cache to null immediately so the UI reflects deletion without a
+      // refetch race-condition (a GET fired right after DELETE may race against
+      // the backend and return the old record before it is fully removed).
+      qc.setQueryData(['video', 'latest', projectCode], null);
+      // Invalidate the products list (used for status badges / other views).
       qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['video', 'all'] });
     },
   });
 }

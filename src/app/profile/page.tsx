@@ -14,6 +14,7 @@ import { useGetMeService, useChangePasswordService } from '@/services/authServic
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
 import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
 import AppHeader from '@/components/sidebar/AppHeader';
+import { notify } from '@/components/common';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Tab = 'profile' | 'security' | 'payment' | 'certificate';
@@ -97,6 +98,7 @@ function ProfilePageInner() {
       { currentPassword: currentPw, newPassword: newPw, confirmPassword: confirmPw },
       {
         onSuccess: () => {
+          notify.success('Đổi mật khẩu thành công!');
           setPwSuccess(true);
           setCurrentPw(''); setNewPw(''); setConfirmPw('');
           setTimeout(() => setPwSuccess(false), 4000);
@@ -197,7 +199,9 @@ function ProfilePageInner() {
 
     buySubscription.mutate(planId, {
       onSuccess: (res) => {
+        notify.success(`Mua gói ${res.planName} thành công!`);
         setPaymentMessage(`Mua gói ${res.planName} thành công. Số dư còn lại: ${res.walletBalanceAfter.toLocaleString('vi-VN')} EduCoin.`);
+        void refetchWallet();
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -212,6 +216,7 @@ function ProfilePageInner() {
       { file: certFile, fileType: certFileType, description: certDesc || undefined },
       {
         onSuccess: () => {
+          notify.success('Nộp hồ sơ thành công! Đang chờ phê duyệt.');
           setCertFile(null); setCertDesc(''); setCertFileType('degree');
           setShowCertForm(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
@@ -221,7 +226,9 @@ function ProfilePageInner() {
   };
 
   const handleCertDelete = (code: string) => {
-    deleteVerification.mutate(code, { onSuccess: () => setConfirmDelete(null) });
+    deleteVerification.mutate(code, {
+      onSuccess: () => { setConfirmDelete(null); notify.success('Đã xóa hồ sơ thành công'); },
+    });
   };
 
   // ── Derived ───────────────────────────────────────────────────────────────
