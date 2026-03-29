@@ -16,6 +16,8 @@ import type { StoreGet, StoreSet } from '../types';
 const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
 const PROJECT_CODE_KEY = 'eduvi_project_code';
+const IS_GENERATING_KEY = 'eduvi_is_generating';
+const GENERATING_PRODUCT_CODE_KEY = 'eduvi_generating_product_code';
 
 export function createGenerationActions(set: StoreSet, get: StoreGet) {
   return {
@@ -28,7 +30,17 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
       if (projectCode !== undefined) {
         try { sessionStorage.setItem(PROJECT_CODE_KEY, projectCode); } catch { /* ignore */ }
       }
-      try { sessionStorage.setItem('eduvi_is_newly_generated', 'true'); } catch { /* ignore */ }
+      try {
+        sessionStorage.setItem('eduvi_is_newly_generated', 'true');
+        // Mark as generating so a page reload can restore the overlay instead
+        // of showing the editor with a stale document.
+        sessionStorage.setItem(IS_GENERATING_KEY, 'true');
+        sessionStorage.setItem(GENERATING_PRODUCT_CODE_KEY, productCode);
+        // Remove any cached slide document from a previous session so it
+        // cannot be picked up by loadDocument on reload.
+        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(PRODUCT_CODE_KEY);
+      } catch { /* ignore */ }
       set({
         isGenerating: true,
         generationStep: 'started',
@@ -62,12 +74,15 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
         try { return sessionStorage.getItem(PROJECT_CODE_KEY) || null; } catch { return null; }
       })();
 
-      // Persist so the editor survives a page reload
+      // Persist so the editor survives a page reload after generation finishes
       try {
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(doc));
         if (productCode) {
           sessionStorage.setItem(PRODUCT_CODE_KEY, productCode);
         }
+        // Generation is done — clear the in-progress flag
+        sessionStorage.removeItem(IS_GENERATING_KEY);
+        sessionStorage.removeItem(GENERATING_PRODUCT_CODE_KEY);
       } catch {
         // quota exceeded – ignore
       }
@@ -89,6 +104,10 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
 
     /** Abort / dismiss the generation overlay. */
     cancelGeneration: () => {
+      try {
+        sessionStorage.removeItem(IS_GENERATING_KEY);
+        sessionStorage.removeItem(GENERATING_PRODUCT_CODE_KEY);
+      } catch { /* ignore */ }
       set({
         isGenerating: false,
         generationStep: null,

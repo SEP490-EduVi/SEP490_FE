@@ -291,8 +291,21 @@ export default function AnalysisStep({
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center py-20">
-              <p className="text-sm text-gray-500">Không có dữ liệu đánh giá.</p>
+            // Analysis just completed but backend hasn't written eval data yet.
+            // The parent's polling will update the cache; show a loading state while waiting.
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                  <BarChart3 className="w-7 h-7 text-blue-400" />
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                </span>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700">Đang tải kết quả phân tích...</p>
+                <p className="text-xs text-gray-400 mt-1">Kết quả sẽ hiện ra sau vài giây</p>
+              </div>
             </div>
           )}
         </div>

@@ -18,6 +18,7 @@ import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
 import VideoConfirmModal from '@/components/projects/VideoConfirmModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { notify } from '@/components/common';
@@ -42,14 +43,89 @@ export default function ProjectDetailPage() {
   const startGeneration = useDocumentStore((state) => state.startGeneration);
   const queryClient = useQueryClient();
 
+  const hydrateTaskStore = usePipelineTaskStore((s) => s.hydrate);
+  const saveTask = usePipelineTaskStore((s) => s.saveTask);
+  const clearTask = usePipelineTaskStore((s) => s.clearTask);
+  const getTaskId = usePipelineTaskStore((s) => s.getTaskId);
+
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides' | 'video'>('evaluation');
   const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => { setAccessToken(localStorage.getItem('accessToken')); }, []);
+  useEffect(() => {
+    hydrateTaskStore();
+    // Restore modal for any tasks that were active when the page was last visited
+    const allTasks = usePipelineTaskStore.getState().getAllTasks();
+    if (allTasks.length > 0) {
+      const videoTask = allTasks.find((t) => t.key.startsWith('video:'));
+      const slidesTask = allTasks.find((t) => t.key.startsWith('slides:'));
+      const evalTask = allTasks.find((t) => t.key.startsWith('eval:'));
+      if (videoTask) setPipelineType('video');
+      else if (slidesTask) setPipelineType('slides');
+      else if (evalTask) setPipelineType('evaluation');
+      setShowPipelineModal(true);
+    }
+  }, [hydrateTaskStore]); // eslint-disable-line
+
+  /**
+   * When a mutation fires we store the expected {type, productCode} here.
+   * The first PipelineProgress event for that task will carry the taskId,
+   * at which point we persist it to the store and clear this pending ref.
+   */
+  const pendingTaskRef = useRef<{ type: PipelineTaskType; productCode: string } | null>(null);
 
   const handlePipelineProgress = useCallback((event: PipelineProgress) => {
+    // Determine which task type this event belongs to
+    const resolveType = (e: PipelineProgress): PipelineTaskType | null => {
+      if (e.step === 'video_completed') return 'video';
+      if (e.step === 'completed') return 'eval';
+      if (
+        e.step?.includes('slide') ||
+        e.step?.includes('generating') ||
+        e.detail?.toLowerCase().includes('slide')
+      ) return 'slides';
+      return null;
+    };
+
+    if (event.taskId) {
+      // Pair an incoming taskId with the pending mutation we just fired
+      if (
+        pendingTaskRef.current &&
+        (event.status === 'queued' || event.status === 'processing')
+      ) {
+        const { type, productCode: pCode } = pendingTaskRef.current;
+        saveTask(type, pCode, event.taskId);
+        pendingTaskRef.current = null;
+      }
+
+      // Auto-show modal when SignalR reconnect brings back a live task status
+      if (event.status === 'queued' || event.status === 'processing') {
+        // Determine type from the store (most reliable)
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const storedTask = allTasks.find((t) => t.taskId === event.taskId);
+        if (storedTask) {
+          if (storedTask.key.startsWith('video:')) setPipelineType('video');
+          else if (storedTask.key.startsWith('slides:')) setPipelineType('slides');
+          else setPipelineType('evaluation');
+        }
+        setShowPipelineModal(true);
+      }
+
+      // Clear on completion / failure (look up by taskId in the store)
+      if (event.status === 'completed' || event.status === 'failed') {
+        const taskType = resolveType(event);
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const stored = allTasks.find(({ taskId }) => taskId === event.taskId);
+        if (stored) {
+          const pCode = stored.key.split(':').slice(1).join(':');
+          if (taskType) clearTask(taskType, pCode);
+          else (['eval', 'slides', 'video'] as PipelineTaskType[]).forEach((t) => clearTask(t, pCode));
+        }
+      }
+    }
+
     setPipelineProgress(event);
     if (event.status === 'completed' || event.status === 'failed') {
       refetchProducts();
@@ -57,7 +133,7 @@ export default function ProjectDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['video', 'latest', projectCode] });
       }
     }
-  }, [refetchProducts, queryClient, projectCode]);
+  }, [saveTask, clearTask, refetchProducts, queryClient, projectCode]);
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
@@ -116,6 +192,16 @@ export default function ProjectDetailPage() {
 
   const handleConfirmAnalysis = async (productName: string, year: number) => {
     if (!analysisDocCode) return;
+
+    // Check if any eval task is already running for this project's products
+    const runningEval = products.find((p) => !!getTaskId('eval', p.productCode));
+    if (runningEval) {
+      setPipelineType('evaluation');
+      setShowPipelineModal(true);
+      setShowAnalysisForm(false); setAnalysisDocCode(null);
+      return;
+    }
+
     prevProductCodesRef.current = new Set(products.map(p => p.productCode));
     const docCode = analysisDocCode;
     setShowAnalysisForm(false); setAnalysisDocCode(null);
@@ -141,6 +227,12 @@ export default function ProjectDetailPage() {
   };
 
   const handleGenerateSlides = (productCode: string) => {
+    if (getTaskId('slides', productCode)) {
+      setPipelineType('slides');
+      setShowPipelineModal(true);
+      return;
+    }
+    pendingTaskRef.current = { type: 'slides', productCode };
     generateSlides.mutate(
       { productCode, slideRange: 'short' },
       { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); router.push('/teacher/editor'); } },
@@ -153,10 +245,18 @@ export default function ProjectDetailPage() {
     if (!pendingVideoProductCode) return;
     const productCode = pendingVideoProductCode;
     setShowVideoConfirm(false); setPendingVideoProductCode(null);
+
+    if (getTaskId('video', productCode)) {
+      setPipelineType('video');
+      setShowPipelineModal(true);
+      return;
+    }
+
     try {
       setVideoLoadingCode(productCode);
       const url = await getEditedSlideGcsUrl(productCode);
       if (!url) { setVideoLoadingCode(null); notify.error('Không thể lấy đường dẫn slide. Vui lòng thử lại.'); return; }
+      pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url },
         { onSuccess: () => { notify.info('Yêu cầu tạo video đã được gửi'); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },

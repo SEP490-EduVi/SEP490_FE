@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
@@ -9,6 +9,7 @@ import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useCurricula } 
 import { useProductEvaluation } from '@/hooks/useProductApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
 import { useProject } from '@/hooks/useProjectApi';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import AnalysisStep from './evulate/AnalysisStep';
@@ -77,8 +78,62 @@ export default function PipelinePage() {
   );
   const startGeneration = useDocumentStore((s) => s.startGeneration);
 
+  const hydrateTaskStore = usePipelineTaskStore((s) => s.hydrate);
+  const saveTask = usePipelineTaskStore((s) => s.saveTask);
+  const clearTask = usePipelineTaskStore((s) => s.clearTask);
+  const getTaskId = usePipelineTaskStore((s) => s.getTaskId);
+
+  /** Pending {type, productCode} set just before a mutation fires — paired with taskId on first SignalR event */
+  const pendingTaskRef = useRef<{ type: PipelineTaskType; productCode: string } | null>(null);
+
   // ── Effects ──
   useEffect(() => { setAccessToken(localStorage.getItem('accessToken')); }, []);
+
+  // Hydrate task store + restore UI state after page reload
+  useEffect(() => {
+    hydrateTaskStore();
+    const allTasks = usePipelineTaskStore.getState().getAllTasks();
+
+    const evalTask   = allTasks.find((t) => t.key.startsWith('eval:'));
+    const slidesTask = allTasks.find((t) => t.key.startsWith('slides:'));
+    const videoTask  = allTasks.find((t) => t.key.startsWith('video:'));
+
+    if (evalTask) {
+      // Analysis was running — show the waiting modal
+      setPipelineType('evaluation');
+      setShowPipelineModal(true);
+    } else if (slidesTask) {
+      // Slides were being generated — restore productCode and show modal
+      const pCode = slidesTask.key.split(':').slice(1).join(':');
+      if (!pCode.startsWith('doc-')) setProductCode(pCode);
+      setPipelineType('slides');
+      setShowPipelineModal(true);
+      setAnalysisCompleted(true);
+    } else if (videoTask && stepParam !== 'video') {
+      // Video was generating (pipeline flow, not direct ?step=video navigation)
+      const pCode = videoTask.key.split(':').slice(1).join(':');
+      if (!pCode.startsWith('doc-')) setProductCode(pCode);
+      setPipelineType('video');
+      setShowPipelineModal(true);
+      setVideoStarted(true);
+      setAnalysisCompleted(true); // analysis must have been done before video
+      setCurrentStep('video');     // make sure the correct step is shown when modal closes
+    }
+
+    // Restore analysis-completion state from sessionStorage
+    if (!evalTask && !slidesTask && !videoTask && documentCode) {
+      try {
+        const saved = sessionStorage.getItem(`ppl-${projectCode}-${documentCode}`);
+        if (saved) {
+          const data = JSON.parse(saved) as { productCode?: string };
+          if (data.productCode) {
+            setProductCode(data.productCode);
+            setAnalysisCompleted(true);
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }, [hydrateTaskStore]); // eslint-disable-line
 
   // Persist document→product link so [id] page can group products under their source document
   useEffect(() => {
@@ -113,6 +168,62 @@ export default function PipelinePage() {
 
   // ── SignalR ──
   const handlePipelineProgress = useCallback((event: PipelineProgress) => {
+    // Determine task type from step
+    const resolveType = (e: PipelineProgress): PipelineTaskType | null => {
+      if (e.step === 'video_completed') return 'video';
+      if (e.step === 'completed') return 'eval';
+      if (
+        e.step?.includes('slide') ||
+        e.step?.includes('generating') ||
+        e.detail?.toLowerCase().includes('slide')
+      ) return 'slides';
+      return null;
+    };
+
+    if (event.taskId) {
+      // Pair incoming taskId with the pending mutation we just fired
+      if (
+        pendingTaskRef.current &&
+        (event.status === 'queued' || event.status === 'processing')
+      ) {
+        const { type, productCode: pCode } = pendingTaskRef.current;
+        saveTask(type, pCode, event.taskId);
+        pendingTaskRef.current = null;
+      } else if (event.status === 'queued' || event.status === 'processing') {
+        // Eval task started from this page: productCode is not known yet.
+        // Save with a temporary "doc-" key so checkStoredTasks can resume it on reconnect.
+        const alreadyStored = usePipelineTaskStore.getState().getAllTasks()
+          .some((t) => t.taskId === event.taskId);
+        if (!alreadyStored && documentCode) {
+          saveTask('eval', `doc-${documentCode}`, event.taskId);
+        }
+      }
+
+      // Auto-show the modal when SignalR reconnect brings back a live status
+      if (event.status === 'queued' || event.status === 'processing') {
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const storedTask = allTasks.find((t) => t.taskId === event.taskId);
+        if (storedTask) {
+          if (storedTask.key.startsWith('video:')) setPipelineType('video');
+          else if (storedTask.key.startsWith('slides:')) setPipelineType('slides');
+          else setPipelineType('evaluation');
+        }
+        setShowPipelineModal(true);
+      }
+
+      // Clear on completion / failure (look up by taskId in the store)
+      if (event.status === 'completed' || event.status === 'failed') {
+        const taskType = resolveType(event);
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const stored = allTasks.find(({ taskId }) => taskId === event.taskId);
+        if (stored) {
+          const pCode = stored.key.split(':').slice(1).join(':');
+          if (taskType) clearTask(taskType, pCode);
+          else (['eval', 'slides', 'video'] as PipelineTaskType[]).forEach((t) => clearTask(t, pCode));
+        }
+      }
+    }
+
     setPipelineProgress(event);
     if (event.status !== 'completed') return;
 
@@ -120,14 +231,59 @@ export default function PipelinePage() {
       setAnalysisCompleted(true);
       setShowPipelineModal(false);
       notify.success('Phân tích tài liệu hoàn thành!');
-      if (event.result && typeof event.result === 'object' && 'productCode' in event.result) {
-        setProductCode(event.result.productCode as string);
-      }
+
+      const codeFromResult =
+        event.result && typeof event.result === 'object' && 'productCode' in event.result
+          ? (event.result.productCode as string)
+          : null;
+
+      // Resolve productCode then poll until evaluation data is available in DB
+      (async () => {
+        let resolvedCode = codeFromResult;
+
+        // Fallback: fetch the products list to find the newest product
+        if (!resolvedCode) {
+          try {
+            const prods = await queryClient.fetchQuery({
+              queryKey: ['products', 'project', projectCode],
+              queryFn: () => productService.getProductsByProject(projectCode),
+              staleTime: 0,
+            });
+            if (prods?.length) resolvedCode = prods[prods.length - 1].productCode;
+          } catch { /* ignore */ }
+        }
+
+        if (!resolvedCode) return;
+
+        setProductCode(resolvedCode);
+        try {
+          sessionStorage.setItem(
+            `ppl-${projectCode}-${documentCode}`,
+            JSON.stringify({ productCode: resolvedCode }),
+          );
+        } catch { /* ignore */ }
+
+        // Poll the eval endpoint — backend may have a brief write lag after SignalR fires
+        for (let i = 0; i < 8; i++) {
+          if (i > 0) await new Promise<void>((r) => setTimeout(r, 2500));
+          try {
+            const evalResult = await queryClient.fetchQuery({
+              queryKey: ['products', resolvedCode, 'evaluation'],
+              queryFn: () => productService.getProductEvaluation(resolvedCode!),
+              staleTime: 0,
+            });
+            if (evalResult?.evaluationResult?.evaluation) break;
+          } catch { /* retry */ }
+        }
+      })();
+
       queryClient.invalidateQueries({ queryKey: ['products'] });
     }
 
     if (event.step === 'video_completed') {
       setVideoCompleted(true);
+      setVideoStarted(true);
+      setCurrentStep('video');
       setShowPipelineModal(false);
       notify.success('Video đã tạo xong!');
       // Retry polling until backend writes videoUrl
@@ -142,13 +298,26 @@ export default function PipelinePage() {
       })();
       queryClient.invalidateQueries({ queryKey: ['video', 'products'] });
     }
-  }, [queryClient, projectCode]);
+  }, [saveTask, clearTask, queryClient, projectCode, documentCode]);
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
   // ── Handlers ──
   const handleStartAnalysis = () => {
     if (!productName.trim() || !curriculumYear) return;
+
+    // Check if an eval task is already running
+    // On the pipeline page, we don't yet know the productCode before analysis starts,
+    // so we check all stored eval keys that match this projectCode.
+    // (keys are formatted as "eval:{productCode}" — we look at the entire store)
+    const allTasks = usePipelineTaskStore.getState().getAllTasks();
+    const runningEval = allTasks.find(({ key }) => key.startsWith('eval:'));
+    if (runningEval) {
+      setPipelineType('evaluation');
+      setShowPipelineModal(true);
+      return;
+    }
+
     setPipelineType('evaluation');
     setShowPipelineModal(true);
     setPipelineProgress(null);
@@ -169,6 +338,12 @@ export default function PipelinePage() {
 
   const handleStartSlides = () => {
     if (!productCode) return;
+    if (getTaskId('slides', productCode)) {
+      setPipelineType('slides');
+      setShowPipelineModal(true);
+      return;
+    }
+    pendingTaskRef.current = { type: 'slides', productCode };
     generateSlides.mutate(
       { productCode, slideRange: 'short' },
       { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); router.push('/teacher/editor'); } }
@@ -176,6 +351,13 @@ export default function PipelinePage() {
   };
 
   const startVideoGeneration = async (code: string) => {
+    if (getTaskId('video', code)) {
+      // Task already running — just show the modal
+      setPipelineType('video');
+      setShowPipelineModal(true);
+      setVideoStarted(true);
+      return;
+    }
     setVideoStarted(true);
     setPipelineType('video');
     setShowPipelineModal(true);
@@ -183,6 +365,7 @@ export default function PipelinePage() {
     try {
       const url = await getEditedSlideGcsUrl(code);
       if (!url) { setShowPipelineModal(false); setVideoStarted(false); notify.error('Không thể lấy đường dẫn slide. Vui lòng thử lại.'); return; }
+      pendingTaskRef.current = { type: 'video', productCode: code };
       generateVideo.mutate(
         { productCode: code, slideEditedDocumentUrl: url },
         { onError: () => { setShowPipelineModal(false); setVideoStarted(false); } }
