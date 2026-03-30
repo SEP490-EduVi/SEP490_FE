@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { IMaterial, WidgetType, MaterialCategory, IBlockStyles } from '@/types';
+import { IMaterial, WidgetType, MaterialCategory } from '@/types';
 
 /**
  * Mock materials data

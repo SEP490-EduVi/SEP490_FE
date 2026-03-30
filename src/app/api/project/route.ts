@@ -32,7 +32,7 @@ import { IDocument } from '@/types';
  * Fetches the current document/project data.
  * In production, this would fetch from a database.
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // Simulate network latency for realistic testing
   await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
  * 
  * Handle CORS preflight requests
  */
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: {

@@ -28,7 +28,7 @@
  * - PRESENT: Full-screen presentation with slide navigation
  */
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,

@@ -24,10 +24,12 @@ import {
   Edit3,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function HomePage() {
   const router = useRouter();
   const { user, role, isHydrated, hydrate, logout } = useAuthStore();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     hydrate();
@@ -50,6 +52,7 @@ export default function HomePage() {
   };
 
   const handleLogout = () => {
+    queryClient.clear();
     logout();
     router.push('/login');
   };

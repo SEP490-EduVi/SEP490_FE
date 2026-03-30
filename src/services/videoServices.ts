@@ -4,6 +4,12 @@ import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type { GenerateVideoInput, VideoProductDto, ApiResponse } from '@/types/api';
 
+// ─── GET all videos for current user ────────────────────────────────────────
+export async function getAllVideos(): Promise<VideoProductDto[]> {
+  const res = await api.get<ApiResponse<VideoProductDto[]>>(API_ENDPOINTS.VIDEO.GET_ALL);
+  return res.data.result ?? [];
+}
+
 // ─── POST generate video ───────────────────────────────────────────────────
 export async function generateVideo(input: GenerateVideoInput): Promise<void> {
   await api.post(API_ENDPOINTS.VIDEO.GENERATE, input);

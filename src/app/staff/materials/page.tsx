@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingMaterials, useReviewMaterial } from '@/hooks/useStaffApi';
 import { getMaterialReviewDetail } from '@/services/staffServices';
+import { notify } from '@/components/common';
 
 export default function StaffMaterialsPage() {
   const { data = [], isLoading, isError } = usePendingMaterials();
@@ -31,13 +32,19 @@ export default function StaffMaterialsPage() {
   };
 
   const handleReview = (materialCode: string, approved: boolean) => {
-    reviewMaterial.mutate({
-      materialCode,
-      input: {
-        approved,
-        rejectionReason: approved ? undefined : (reasons[materialCode] || '').trim() || undefined,
+    reviewMaterial.mutate(
+      {
+        materialCode,
+        input: {
+          approved,
+          rejectionReason: approved ? undefined : (reasons[materialCode] || '').trim() || undefined,
+        },
       },
-    });
+      {
+        onSuccess: () => notify.success(approved ? 'Dạyật học liệu thành công' : 'Đã từ chối học liệu'),
+        onError: () => notify.error('Thao tác thất bại. Vui lòng thử lại.'),
+      },
+    );
   };
 
   return (

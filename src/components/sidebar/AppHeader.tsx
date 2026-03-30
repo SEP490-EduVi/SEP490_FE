@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   BookOpen, User, LogOut, ChevronDown, Settings,
-  FolderKanban, ShieldCheck, FileText,
+  FolderKanban, ShieldCheck, FileText, Layers, Film,
   LayoutDashboard, Users, Package, ShoppingCart, Wallet,
 } from 'lucide-react';
 import { useAuthStore, type AppRole } from '@/store/useAuthStore';
 import { useLogoutService } from '@/services/authServices';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ── Role nav config ────────────────────────────────────────────────────────
 
@@ -21,7 +22,10 @@ interface NavItem {
 
 const ROLE_NAV: Record<AppRole, NavItem[]> = {
   teacher: [
-    { href: '/teacher', label: 'Dự án của tôi', icon: FolderKanban },
+    { href: '/teacher',          label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/teacher/projects', label: 'Dự án',     icon: FolderKanban    },
+    { href: '/teacher/slides',   label: 'Slide',      icon: Layers          },
+    { href: '/teacher/videos',   label: 'Video',      icon: Film            },
   ],
   expert: [
     { href: '/expert',             label: 'Tổng quan',  icon: LayoutDashboard },
@@ -58,6 +62,7 @@ export default function AppHeader() {
   const pathname = usePathname();
   const { user, role, logout } = useAuthStore();
   const logoutService = useLogoutService();
+  const queryClient = useQueryClient();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -75,6 +80,7 @@ export default function AppHeader() {
   const handleLogout = () => {
     logoutService.mutate(undefined, {
       onSettled: () => {
+        queryClient.clear();
         logout();
         router.push('/login');
       },

@@ -10,7 +10,7 @@
  * Useful for UI development and testing without a live backend.
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,

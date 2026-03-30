@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
-import { BookOpen, Upload, Search, ShieldCheck, Loader2, AlertCircle, FolderOpen, Home, Grid3X3, List, DollarSign } from 'lucide-react';
+import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign } from 'lucide-react';
 
 import { useMyMaterials, useUploadMaterial, useUpdateMaterial, useDeleteMaterial } from '@/hooks/useExpertApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import type { MaterialDto, UpdateMaterialInput } from '@/types/api';
 import { MaterialCard, MaterialListItem, EditMaterialModal, UploadMaterialForm } from '@/components/expert';
 import { AppHeader } from '@/components';
+import { notify } from '@/components/common';
 
 export default function MaterialPage() {
   const { data: materials = [], isLoading, isError, error } = useMyMaterials();
@@ -32,11 +32,20 @@ export default function MaterialPage() {
   );
 
   const handleUpdate = (code: string, input: UpdateMaterialInput) => {
-    updateMaterial.mutate({ materialCode: code, input }, { onSuccess: () => setEditTarget(null) });
+    updateMaterial.mutate(
+      { materialCode: code, input },
+      {
+        onSuccess: () => { setEditTarget(null); notify.success('Cập nhật tài liệu thành công!'); },
+        onError: () => notify.error('Không thể cập nhật tài liệu. Vui lòng thử lại.'),
+      },
+    );
   };
 
   const handleDelete = (code: string) => {
-    deleteMaterial.mutate(code, { onSuccess: () => setConfirmDelete(null) });
+    deleteMaterial.mutate(code, {
+      onSuccess: () => { setConfirmDelete(null); notify.success('Đã xóa tài liệu thành công'); },
+      onError: () => notify.error('Không thể xóa tài liệu. Vui lòng thử lại.'),
+    });
   };
 
   const cardProps = (m: MaterialDto) => ({
@@ -61,7 +70,10 @@ export default function MaterialPage() {
             subjectsLoading={subjectsLoading}
             gradesLoading={gradesLoading}
             isUploading={uploadMaterial.isPending}
-            onUpload={(data) => uploadMaterial.mutate(data, { onSuccess: () => setShowForm(false) })}
+            onUpload={(data) => uploadMaterial.mutate(data, {
+              onSuccess: () => { setShowForm(false); notify.success('Tải lên tài liệu thành công!'); },
+              onError: () => notify.error('Tải lên thất bại. Vui lòng thử lại.'),
+            })}
             onCancel={() => setShowForm(false)}
           />
         )}

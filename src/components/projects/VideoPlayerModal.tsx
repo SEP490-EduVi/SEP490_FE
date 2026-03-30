@@ -8,10 +8,12 @@ import {
   BookOpen, PenLine,
 } from 'lucide-react';
 import type { VideoProductDto, VideoInteraction } from '@/types/api';
-import { getVideoSignedUrl } from '@/services/videoServices';
+import { getVideoSignedUrl, getLatestVideoByProject } from '@/services/videoServices';
 
 interface VideoPlayerModalProps {
   video: VideoProductDto;
+  projectCode?: string;
+  inline?: boolean;
   onClose: () => void;
 }
 
@@ -330,10 +332,11 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
 
 // ─── Main Modal ────────────────────────────────────────────────────────────
 
-export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalProps) {
+export default function VideoPlayerModal({ video, projectCode, inline = false, onClose }: VideoPlayerModalProps) {
   const [signedUrl, setSignedUrl]   = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(true);
   const [urlError, setUrlError]     = useState<string | null>(null);
+  const [liveVideoUrl, setLiveVideoUrl] = useState<string | null>(video.videoUrl);
 
   const videoRef     = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -351,14 +354,46 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
   const triggeredRef = useRef<Set<number>>(new Set());
   const [answered, setAnswered]     = useState<ReadonlyArray<number>>([]);
 
-  // URL fetch
+  // Poll for videoUrl if it's not ready yet (backend race condition)
   useEffect(() => {
-    if (!video.videoUrl) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); return; }
+    if (video.videoUrl) { setLiveVideoUrl(video.videoUrl); return; }
+    if (!projectCode) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); return; }
+
+    let cancelled = false;
+    let attempt = 0;
+    const MAX = 8;
+    const DELAY = 3000;
+
+    const poll = async () => {
+      while (attempt < MAX && !cancelled) {
+        attempt++;
+        await new Promise(r => setTimeout(r, DELAY));
+        if (cancelled) break;
+        try {
+          const fresh = await getLatestVideoByProject(projectCode);
+          if (fresh?.videoUrl && !cancelled) {
+            setLiveVideoUrl(fresh.videoUrl);
+            return;
+          }
+        } catch { /* keep polling */ }
+      }
+      if (!cancelled) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); }
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video.videoUrl, projectCode]);
+
+  // Fetch signed URL once we have liveVideoUrl
+  useEffect(() => {
+    if (!liveVideoUrl) return;
     setLoadingUrl(true);
-    getVideoSignedUrl(video.videoUrl)
+    setUrlError(null);
+    getVideoSignedUrl(liveVideoUrl)
       .then((url) => { setSignedUrl(url); setLoadingUrl(false); })
       .catch(() => { setUrlError('Không thể tải video. Vui lòng thử lại.'); setLoadingUrl(false); });
-  }, [video.videoUrl]);
+  }, [liveVideoUrl]);
 
   // Fullscreen change
   useEffect(() => {
@@ -447,23 +482,12 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
   const progressPct  = duration > 0 ? (currentTime / duration) * 100 : 0;
   const interactions = video.interactions ?? [];
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        key="video-modal-backdrop"
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={() => { if (!activeQuiz && !isFullscreen) onClose(); }}
-      >
-        <motion.div
-          className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl"
-          initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-          onClick={(e) => e.stopPropagation()}
-        >
+  const playerPanel = (
+    <div className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full">
+
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 bg-gray-900/80 border-b border-white/10">
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                 <Film className="w-4 h-4 text-white" />
               </div>
@@ -477,9 +501,11 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors ml-4 flex-shrink-0">
-              <X className="w-5 h-5" />
-            </button>
+            {!inline && (
+              <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors ml-4 flex-shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           {/* Video container — fullscreen target */}
@@ -491,7 +517,7 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
             {loadingUrl && (
               <div className="flex flex-col items-center gap-3 text-gray-400">
                 <Loader2 className="w-8 h-8 animate-spin" />
-                <span className="text-sm">Đang tải video...</span>
+                <span className="text-sm">{liveVideoUrl ? 'Đang tải video...' : 'Đang chờ video từ server...'}</span>
               </div>
             )}
             {!loadingUrl && urlError && (
@@ -622,6 +648,26 @@ export default function VideoPlayerModal({ video, onClose }: VideoPlayerModalPro
               </div>
             </div>
           )}
+    </div>
+  );
+
+  if (inline) return playerPanel;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="video-modal-backdrop"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={() => { if (!activeQuiz && !isFullscreen) onClose(); }}
+      >
+        <motion.div
+          className="w-full max-w-4xl"
+          initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {playerPanel}
         </motion.div>
       </motion.div>
     </AnimatePresence>
