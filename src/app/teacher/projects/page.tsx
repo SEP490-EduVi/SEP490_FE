@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import {
@@ -11,6 +11,7 @@ import {
   List,
   Loader2,
   AlertCircle,
+  FolderKanban,
 } from 'lucide-react';
 
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
@@ -21,28 +22,45 @@ import { Pagination } from '@/components/paging';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import type { PipelineProgress } from '@/types/api';
 import ProjectCard from '@/components/projects/ProjectCard';
+import FolderTile from '@/components/projects/FolderTile';
 import ProjectListTable from '@/components/projects/ProjectListTable';
-import ProjectStatsBar from '@/components/projects/ProjectStatsBar';
 import CreateProjectModal from '@/components/projects/CreateProjectModal';
 import EditProjectModal from '@/components/projects/EditProjectModal';
+import Modal from '@/components/common/Modal';
 import type { ProjectDto, UpdateProjectInput } from '@/types/api';
+
+const GRADE_PICKER_TONE = [
+  {
+    border: 'border-blue-300',
+    bg: 'bg-blue-50/70',
+    chip: 'bg-blue-100 text-blue-700',
+  },
+  {
+    border: 'border-indigo-300',
+    bg: 'bg-indigo-50/70',
+    chip: 'bg-indigo-100 text-indigo-700',
+  },
+  {
+    border: 'border-emerald-300',
+    bg: 'bg-emerald-50/70',
+    chip: 'bg-emerald-100 text-emerald-700',
+  },
+] as const;
 
 export default function TeacherProjectsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const selectedSubjectCode = searchParams.get('subjectCode') ?? '';
+  const selectedGradeCode = searchParams.get('gradeCode') ?? '';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 10;
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [gradePickerSubjectCode, setGradePickerSubjectCode] = useState<string | null>(null);
+  const [showEmptySubjects, setShowEmptySubjects] = useState(false);
 
-  // Auto-open create modal when navigated with ?create=1
-  useEffect(() => {
-    if (searchParams.get('create') === '1') {
-      setShowCreateModal(true);
-      router.replace('/teacher/projects', { scroll: false });
-    }
-  }, [searchParams, router]);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<ProjectDto | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
@@ -69,17 +87,147 @@ export default function TeacherProjectsPage() {
   const deleteProject = useDeleteProject();
   const updateProject = useUpdateProject();
 
-  // ── Filter & paginate ─────────────────────────────────────────────────────
-  const filteredProjects = projects.filter((p) =>
-    p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.projectCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.subjectName ?? p.subjectCode ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.gradeName ?? p.gradeCode ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
+  const highSchoolGrades = useMemo(() => {
+    const hs = grades.filter((g) => /(10|11|12)/.test(`${g.gradeName} ${g.gradeCode}`));
+    return hs.length > 0 ? hs : grades;
+  }, [grades]);
+
+  const selectedSubject = subjects.find((s) => s.subjectCode === selectedSubjectCode);
+  const selectedGrade = highSchoolGrades.find((g) => g.gradeCode === selectedGradeCode);
+  const selectedSubjectForPicker = subjects.find((s) => s.subjectCode === gradePickerSubjectCode);
+
+  const level: 'subject' | 'project' = selectedSubjectCode && selectedGradeCode ? 'project' : 'subject';
+
+  const buildProjectsPath = (subjectCode?: string, gradeCode?: string, create?: string) => {
+    const params = new URLSearchParams();
+    if (subjectCode) params.set('subjectCode', subjectCode);
+    if (gradeCode) params.set('gradeCode', gradeCode);
+    if (create) params.set('create', create);
+    const query = params.toString();
+    return query ? `/teacher/projects?${query}` : '/teacher/projects';
+  };
+
+  // Auto-open create modal only when subject+grade are already selected
+  useEffect(() => {
+    if (searchParams.get('create') === '1' && selectedSubjectCode && selectedGradeCode) {
+      setShowCreateModal(true);
+      router.replace(buildProjectsPath(selectedSubjectCode, selectedGradeCode), { scroll: false });
+    }
+  }, [searchParams, selectedSubjectCode, selectedGradeCode, router]);
+
+  useEffect(() => {
+    setSearchQuery('');
+  }, [selectedSubjectCode, selectedGradeCode]);
+
+  useEffect(() => {
+    setShowEmptySubjects(false);
+  }, [searchQuery]);
+
+  // ── Filter by each navigation level ───────────────────────────────────────
+  const filteredSubjects = subjects.filter((s) =>
+    s.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.subjectCode.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const scopedProjects = projects.filter((p) =>
+    p.subjectCode === selectedSubjectCode && p.gradeCode === selectedGradeCode,
+  );
+
+  const filteredProjects = scopedProjects.filter((p) =>
+    p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.projectCode.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   const totalPages = Math.ceil(filteredProjects.length / PAGE_SIZE);
   const pagedProjects = filteredProjects.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [searchQuery]);
+  const subjectStats = useMemo(() => {
+    const stats: Record<string, { total: number; active: number }> = {};
+    for (const p of projects) {
+      if (!p.subjectCode) continue;
+      if (!stats[p.subjectCode]) stats[p.subjectCode] = { total: 0, active: 0 };
+      stats[p.subjectCode].total += 1;
+      if (p.status === 0) stats[p.subjectCode].active += 1;
+    }
+    return stats;
+  }, [projects]);
+
+  const sortedSubjects = useMemo(() => {
+    return [...filteredSubjects].sort((a, b) => {
+      const aStats = subjectStats[a.subjectCode] ?? { total: 0, active: 0 };
+      const bStats = subjectStats[b.subjectCode] ?? { total: 0, active: 0 };
+      if (bStats.total !== aStats.total) return bStats.total - aStats.total;
+      if (bStats.active !== aStats.active) return bStats.active - aStats.active;
+      return a.subjectName.localeCompare(b.subjectName, 'vi');
+    });
+  }, [filteredSubjects, subjectStats]);
+
+  const activeSubjects = sortedSubjects.filter((subject) => {
+    const stats = subjectStats[subject.subjectCode] ?? { total: 0, active: 0 };
+    return stats.total > 0;
+  });
+
+  const emptySubjects = sortedSubjects.filter((subject) => {
+    const stats = subjectStats[subject.subjectCode] ?? { total: 0, active: 0 };
+    return stats.total === 0;
+  });
+
+  const subjectGradeProjectCount = useMemo(() => {
+    const stats: Record<string, number> = {};
+    for (const p of projects) {
+      if (!p.subjectCode || !p.gradeCode) continue;
+      const key = `${p.subjectCode}:${p.gradeCode}`;
+      stats[key] = (stats[key] ?? 0) + 1;
+    }
+    return stats;
+  }, [projects]);
+
+  // If a deep link contains only subjectCode, always open grade picker.
+  useEffect(() => {
+    if (!selectedSubjectCode || selectedGradeCode) return;
+    setGradePickerSubjectCode(selectedSubjectCode);
+  }, [selectedSubjectCode, selectedGradeCode]);
+
+  const gradePickerRows = useMemo(() => {
+    if (!gradePickerSubjectCode) return [] as Array<{ gradeCode: string; gradeName: string; count: number }>;
+
+    return highSchoolGrades
+      .map((grade) => ({
+        gradeCode: grade.gradeCode,
+        gradeName: grade.gradeName,
+        count: subjectGradeProjectCount[`${gradePickerSubjectCode}:${grade.gradeCode}`] ?? 0,
+      }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.gradeName.localeCompare(b.gradeName, 'vi');
+      });
+  }, [gradePickerSubjectCode, highSchoolGrades, subjectGradeProjectCount]);
+
+  const subjectPickerColorIndex = useMemo(() => {
+    if (!gradePickerSubjectCode) return 0;
+    const idx = sortedSubjects.findIndex((s) => s.subjectCode === gradePickerSubjectCode);
+    return idx < 0 ? 0 : idx;
+  }, [gradePickerSubjectCode, sortedSubjects]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, level]);
+
+  const openGradePicker = (subjectCode: string) => {
+    setGradePickerSubjectCode(subjectCode);
+  };
+
+  const closeGradePicker = () => {
+    setGradePickerSubjectCode(null);
+    if (selectedSubjectCode && !selectedGradeCode) {
+      router.replace('/teacher/projects', { scroll: false });
+    }
+  };
+
+  const handleSelectGrade = (gradeCode: string) => {
+    if (!gradePickerSubjectCode) return;
+    const subjectCode = gradePickerSubjectCode;
+    setGradePickerSubjectCode(null);
+    router.push(buildProjectsPath(subjectCode, gradeCode));
+  };
 
   const handleCreate = (data: { projectName: string; subjectCode: string; gradeCode: string }) => {
     const ts = Date.now().toString(36).toUpperCase();
@@ -115,12 +263,27 @@ export default function TeacherProjectsPage() {
     );
   };
 
+  const breadcrumbItems = [
+    { label: 'Dự án', href: level === 'project' ? '/teacher/projects' : undefined },
+    ...(level === 'project' && selectedSubject ? [{ label: selectedSubject.subjectName }] : []),
+    ...(level === 'project' && selectedGrade ? [{ label: selectedGrade.gradeName }] : []),
+  ];
+
+  const searchPlaceholder =
+    level === 'subject'
+      ? 'Tìm môn học...'
+      : 'Tìm kiếm dự án theo tên hoặc mã...';
+
+  const projectCountLabel = level === 'subject'
+    ? `${sortedSubjects.length}/${subjects.length} môn học`
+    : `${scopedProjects.length} dự án`;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <Breadcrumb items={[{ label: 'Dự án' }]} />
+        <Breadcrumb items={breadcrumbItems} />
 
         {/* ── Filters Bar ── */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -130,49 +293,69 @@ export default function TeacherProjectsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm dự án theo tên hoặc mã..."
+              placeholder={searchPlaceholder}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
             />
           </div>
 
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all shadow-lg shadow-blue-600/25 font-medium text-sm whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo dự án mới
-          </button>
+          {level === 'project' ? (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all shadow-lg shadow-blue-600/25 font-medium text-sm whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              Tạo dự án mới
+            </button>
+          ) : (
+            <div className="flex items-center px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-500 whitespace-nowrap">
+              {projectCountLabel}
+            </div>
+          )}
 
-          <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2.5 transition-colors ${
-                viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'
-              }`}
-              title="Lưới"
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2.5 transition-colors ${
-                viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'
-              }`}
-              title="Danh sách"
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
+          {level === 'project' && (
+            <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2.5 transition-colors ${
+                  viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                }`}
+                title="Lưới"
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2.5 transition-colors ${
+                  viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                }`}
+                title="Danh sách"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ── Stats ── */}
-        <ProjectStatsBar projects={projects} />
+        {/* ── Project context row ── */}
+        {level === 'project' && (
+          <div className="mb-5 flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+              {scopedProjects.length} dự án
+            </span>
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
+              {scopedProjects.filter((p) => p.status === 0).length} hoạt động
+            </span>
+            <span className="text-xs text-slate-500">
+              {selectedSubject?.subjectName} • {selectedGrade?.gradeName}
+            </span>
+          </div>
+        )}
 
         {/* ── Loading ── */}
-        {isLoading && (
+        {(isLoading || (level === 'subject' && subjectsLoading)) && (
           <div className="flex flex-col items-center justify-center py-24">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
-            <p className="text-sm text-gray-500">Đang tải danh sách dự án...</p>
+            <p className="text-sm text-gray-500">Đang tải dữ liệu...</p>
           </div>
         )}
 
@@ -190,7 +373,7 @@ export default function TeacherProjectsPage() {
         )}
 
         {/* ── Empty ── */}
-        {!isLoading && !isError && filteredProjects.length === 0 && (
+        {!isLoading && !isError && level === 'project' && filteredProjects.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
               <FolderOpen className="w-10 h-10 text-gray-300" />
@@ -213,10 +396,104 @@ export default function TeacherProjectsPage() {
           </div>
         )}
 
+        {/* ── Subject folders (level 1) ── */}
+        {!isLoading && !isError && level === 'subject' && (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-slate-600">
+                Chọn môn để bật nhanh lựa chọn lớp ngay tại chỗ, không cần qua màn hình trung gian.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-800">
+                Đang hoạt động ({activeSubjects.length})
+              </p>
+              {activeSubjects.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                  {activeSubjects.map((subject, idx) => {
+                    const stats = subjectStats[subject.subjectCode] ?? { total: 0, active: 0 };
+                    return (
+                      <FolderTile
+                        key={subject.subjectCode}
+                        label={subject.subjectName}
+                        index={idx}
+                        subtitle={`${stats.active} đang hoạt động`}
+                        badge={`${stats.total} dự án`}
+                        variant="compact"
+                        tone="color"
+                        colorKey={subject.subjectCode}
+                        onClick={() => openGradePicker(subject.subjectCode)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center">
+                  <p className="text-sm text-slate-600">Không có môn nào có dự án trong bộ lọc hiện tại.</p>
+                </div>
+              )}
+            </div>
+
+            {emptySubjects.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEmptySubjects((v) => !v)}
+                  className="text-sm font-semibold text-slate-700 hover:text-slate-900"
+                >
+                  {showEmptySubjects
+                    ? 'Thu gọn danh sách môn chưa có dự án'
+                    : `Hiển thị ${emptySubjects.length} môn chưa có dự án`}
+                </button>
+
+                {!showEmptySubjects && (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3.5">
+                    <p className="text-sm text-slate-700 font-medium">Bạn đang dạy thêm môn khác?</p>
+                    <p className="text-xs text-slate-500 mt-1">Chọn 1 trong các môn chưa có dự án để bắt đầu nhanh:</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {emptySubjects.slice(0, 3).map((subject) => (
+                        <button
+                          key={subject.subjectCode}
+                          type="button"
+                          onClick={() => openGradePicker(subject.subjectCode)}
+                          className="px-2.5 py-1 rounded-full text-xs border border-slate-300 text-slate-700 hover:border-blue-300 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                        >
+                          {subject.subjectName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {showEmptySubjects && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                    {emptySubjects.map((subject, idx) => {
+                      const colorShift = idx + activeSubjects.length;
+                      return (
+                        <FolderTile
+                          key={subject.subjectCode}
+                          label={subject.subjectName}
+                          index={colorShift}
+                          subtitle="Chưa có hoạt động"
+                          badge="0 dự án"
+                          variant="compact"
+                          tone="neutral"
+                          onClick={() => openGradePicker(subject.subjectCode)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Grid View ── */}
-        {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'grid' && (
+        {!isLoading && !isError && level === 'project' && filteredProjects.length > 0 && viewMode === 'grid' && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
               <AnimatePresence mode="popLayout">
                 {pagedProjects.map((project, idx) => (
                   <ProjectCard
@@ -227,26 +504,32 @@ export default function TeacherProjectsPage() {
                     onMenuToggle={() =>
                       setMenuOpen(menuOpen === project.projectCode ? null : project.projectCode)
                     }
-                    onClick={() => router.push(`/teacher/${project.projectCode}`)}
+                    onClick={() =>
+                      router.push(
+                        `/teacher/${project.projectCode}?subjectCode=${encodeURIComponent(selectedSubjectCode)}&gradeCode=${encodeURIComponent(selectedGradeCode)}`,
+                      )
+                    }
                     onEdit={() => handleEdit(project)}
                     onDelete={() => handleDelete(project.projectCode)}
                   />
                 ))}
               </AnimatePresence>
             </div>
+            <p className="text-center text-xs text-slate-500 mt-4">Trang {page}/{totalPages}</p>
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}
 
         {/* ── List View ── */}
-        {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'list' && (
+        {!isLoading && !isError && level === 'project' && filteredProjects.length > 0 && viewMode === 'list' && (
           <>
             <ProjectListTable
               projects={pagedProjects}
-              onClickProject={(code) => router.push(`/teacher/${code}`)}
+              onClickProject={(code) => router.push(`/teacher/${code}?subjectCode=${encodeURIComponent(selectedSubjectCode)}&gradeCode=${encodeURIComponent(selectedGradeCode)}`)}
               onDelete={handleDelete}
               isDeleting={deleteProject.isPending ? (deleteProject.variables as string) : null}
             />
+            <p className="text-center text-xs text-slate-500 mt-4">Trang {page}/{totalPages}</p>
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}
@@ -257,9 +540,13 @@ export default function TeacherProjectsPage() {
         onClose={() => setShowCreateModal(false)}
         onCreate={handleCreate}
         subjects={subjects}
-        grades={grades}
+        grades={highSchoolGrades}
         subjectsLoading={subjectsLoading}
         gradesLoading={gradesLoading}
+        presetSubjectCode={selectedSubjectCode || undefined}
+        presetSubjectName={selectedSubject?.subjectName}
+        presetGradeCode={selectedGradeCode || undefined}
+        presetGradeName={selectedGrade?.gradeName}
         isLoading={createProject.isPending}
       />
 
@@ -270,6 +557,71 @@ export default function TeacherProjectsPage() {
         onSave={handleUpdateProject}
         isLoading={updateProject.isPending}
       />
+
+      <Modal
+        isOpen={!!gradePickerSubjectCode}
+        onClose={closeGradePicker}
+        title={`Chọn lớp cho môn ${selectedSubjectForPicker?.subjectName ?? ''}`}
+        size="full"
+        className="max-w-4xl"
+        bodyClassName="px-6 py-5"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+              <FolderKanban
+                className={`w-4 h-4 ${
+                  subjectPickerColorIndex % 3 === 0
+                    ? 'text-blue-600'
+                    : subjectPickerColorIndex % 3 === 1
+                      ? 'text-indigo-600'
+                      : 'text-emerald-600'
+                }`}
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">
+                {selectedSubjectForPicker?.subjectName ?? 'Môn học'}
+              </p>
+              <p className="text-xs text-slate-500">Bạn có thể chọn mọi lớp để tiếp tục hoặc tạo dự án mới.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {gradePickerRows.map((grade, idx) => {
+              const tone = GRADE_PICKER_TONE[idx % GRADE_PICKER_TONE.length];
+              const hasData = grade.count > 0;
+
+              return (
+                <button
+                  key={grade.gradeCode}
+                  type="button"
+                  onClick={() => handleSelectGrade(grade.gradeCode)}
+                  className={`text-left px-4 py-3.5 rounded-xl border transition-all hover:shadow-sm ${
+                    hasData
+                      ? `${tone.border} ${tone.bg} hover:translate-y-[-1px]`
+                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${hasData ? 'text-slate-800' : 'text-slate-500'}`}>{grade.gradeName}</p>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <p className="text-xs text-slate-500 whitespace-nowrap">{grade.count} dự án</p>
+                    {hasData ? (
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${tone.chip}`}>
+                        Ưu tiên
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap bg-slate-200 text-slate-600">
+                        Tạo mới
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
 
       {menuOpen && (
         <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />

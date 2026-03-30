@@ -15,6 +15,10 @@ interface CreateProjectModalProps {
   grades: GradeDto[];
   subjectsLoading?: boolean;
   gradesLoading?: boolean;
+  presetSubjectCode?: string;
+  presetSubjectName?: string;
+  presetGradeCode?: string;
+  presetGradeName?: string;
   isLoading?: boolean;
 }
 
@@ -26,18 +30,26 @@ export default function CreateProjectModal({
   grades,
   subjectsLoading = false,
   gradesLoading = false,
+  presetSubjectCode,
+  presetSubjectName,
+  presetGradeCode,
+  presetGradeName,
   isLoading = false,
 }: CreateProjectModalProps) {
   const [projectName, setProjectName] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [gradeCode, setGradeCode] = useState('');
 
+  const resolvedSubjectCode = presetSubjectCode ?? subjectCode;
+  const resolvedGradeCode = presetGradeCode ?? gradeCode;
+  const hasPresetContext = !!presetSubjectCode && !!presetGradeCode;
+
   const handleSubmit = () => {
-    if (!projectName.trim() || !subjectCode || !gradeCode) return;
+    if (!projectName.trim() || !resolvedSubjectCode || !resolvedGradeCode) return;
     onCreate({
       projectName: projectName.trim(),
-      subjectCode,
-      gradeCode,
+      subjectCode: resolvedSubjectCode,
+      gradeCode: resolvedGradeCode,
     });
   };
 
@@ -109,45 +121,62 @@ export default function CreateProjectModal({
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Môn học <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={subjectCode}
-                    onChange={(e) => setSubjectCode(e.target.value)}
-                    disabled={isLoading || subjectsLoading}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
-                  >
-                    <option value="">{subjectsLoading ? 'Đang tải môn học...' : '-- Chọn môn học --'}</option>
-                    {subjects.map((s) => (
-                      <option key={s.subjectCode} value={s.subjectCode}>
-                        {s.subjectName}
-                      </option>
-                    ))}
-                  </select>
+              {hasPresetContext ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Môn học</label>
+                    <div className="w-full px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 font-medium">
+                      {presetSubjectName || presetSubjectCode}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Khối lớp</label>
+                    <div className="w-full px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700 font-medium">
+                      {presetGradeName || presetGradeCode}
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Môn học <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={subjectCode}
+                      onChange={(e) => setSubjectCode(e.target.value)}
+                      disabled={isLoading || subjectsLoading}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+                    >
+                      <option value="">{subjectsLoading ? 'Đang tải môn học...' : '-- Chọn môn học --'}</option>
+                      {subjects.map((s) => (
+                        <option key={s.subjectCode} value={s.subjectCode}>
+                          {s.subjectName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Khối lớp <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={gradeCode}
-                    onChange={(e) => setGradeCode(e.target.value)}
-                    disabled={isLoading || gradesLoading}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
-                  >
-                    <option value="">{gradesLoading ? 'Đang tải khối lớp...' : '-- Chọn khối lớp --'}</option>
-                    {grades.map((g) => (
-                      <option key={g.gradeCode} value={g.gradeCode}>
-                        {g.gradeName}
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Khối lớp <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={gradeCode}
+                      onChange={(e) => setGradeCode(e.target.value)}
+                      disabled={isLoading || gradesLoading}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+                    >
+                      <option value="">{gradesLoading ? 'Đang tải khối lớp...' : '-- Chọn khối lớp --'}</option>
+                      {grades.map((g) => (
+                        <option key={g.gradeCode} value={g.gradeCode}>
+                          {g.gradeName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -161,7 +190,7 @@ export default function CreateProjectModal({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!projectName.trim() || !subjectCode || !gradeCode || isLoading}
+                disabled={!projectName.trim() || !resolvedSubjectCode || !resolvedGradeCode || isLoading}
                 className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors shadow-sm"
               >
                 {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}

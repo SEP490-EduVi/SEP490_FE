@@ -51,6 +51,7 @@ export default function PipelinePage() {
   const [productCode, setProductCode] = useState<string | null>(
     stepParam === 'video' && productCodeParam ? productCodeParam : null
   );
+  const [resolvedVideoDocumentCode, setResolvedVideoDocumentCode] = useState<string>(documentCode);
   const [productName, setProductName] = useState('');
   const [curriculumYear, setCurriculumYear] = useState<string>('');
 
@@ -85,14 +86,63 @@ export default function PipelinePage() {
 
   /** Pending {type, productCode} set just before a mutation fires — paired with taskId on first SignalR event */
   const pendingTaskRef = useRef<{ type: PipelineTaskType; productCode: string } | null>(null);
+  const effectiveDocumentCode = stepParam === 'video'
+    ? (resolvedVideoDocumentCode || documentCode)
+    : documentCode;
 
   // ── Effects ──
   useEffect(() => { setAccessToken(localStorage.getItem('accessToken')); }, []);
+
+  // In video-only flow (opened from editor), resolve documentCode from product when URL does not include it.
+  useEffect(() => {
+    if (stepParam !== 'video') return;
+    if (documentCode) {
+      setResolvedVideoDocumentCode(documentCode);
+      return;
+    }
+    if (!productCodeParam || resolvedVideoDocumentCode) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const detail = await productService.getProductByCode(productCodeParam);
+        if (!cancelled && detail.documentCode) {
+          setResolvedVideoDocumentCode(detail.documentCode);
+        }
+      } catch {
+        // Continue video generation without preloading existing video state.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stepParam, documentCode, productCodeParam, resolvedVideoDocumentCode]);
 
   // Hydrate task store + restore UI state after page reload
   useEffect(() => {
     hydrateTaskStore();
     const allTasks = usePipelineTaskStore.getState().getAllTasks();
+
+    if (stepParam === 'video') {
+      // In direct video flow, restore only the matching video task (if any),
+      // and ignore stale eval/slides tasks from previous sessions.
+      const matchingVideoTask = productCodeParam
+        ? allTasks.find((t) => t.key === `video:${productCodeParam}`)
+        : allTasks.find((t) => t.key.startsWith('video:'));
+
+      if (matchingVideoTask) {
+        const pCode = matchingVideoTask.key.split(':').slice(1).join(':');
+        setProductCode(pCode);
+        setPipelineType('video');
+        setShowPipelineModal(true);
+        setVideoStarted(true);
+        setAnalysisCompleted(true);
+        setCurrentStep('video');
+      }
+
+      return;
+    }
 
     const evalTask   = allTasks.find((t) => t.key.startsWith('eval:'));
     const slidesTask = allTasks.find((t) => t.key.startsWith('slides:'));
@@ -133,7 +183,7 @@ export default function PipelinePage() {
         }
       } catch { /* ignore */ }
     }
-  }, [hydrateTaskStore]); // eslint-disable-line
+  }, [hydrateTaskStore, stepParam, productCodeParam]);
 
   // Persist document→product link so [id] page can group products under their source document
   useEffect(() => {
@@ -150,21 +200,28 @@ export default function PipelinePage() {
 
   // Load or generate video when landing on step=video
   useEffect(() => {
-    if (stepParam !== 'video' || !productCodeParam || !documentCode || videoStarted || !accessToken) return;
+    if (stepParam !== 'video' || !productCodeParam || videoStarted || !accessToken) return;
     let cancelled = false;
     (async () => {
-      try {
-        const existing = await videoService.getLatestVideoByDocument(documentCode);
-        if (cancelled) return;
-        if (existing?.status === 'completed') {
-          setVideoData(existing); setVideoCompleted(true); setCurrentStep('video'); return;
+      if (effectiveDocumentCode) {
+        try {
+          const existing = await videoService.getLatestVideoByDocument(effectiveDocumentCode);
+          if (cancelled) return;
+          if (existing?.status === 'completed') {
+            setVideoData(existing);
+            setVideoCompleted(true);
+            setCurrentStep('video');
+            return;
+          }
+        } catch {
+          // No existing completed video found, continue with generation.
         }
-      } catch { /* no existing video */ }
+      }
       if (!cancelled) startVideoGeneration(productCodeParam);
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
+  }, [accessToken, stepParam, productCodeParam, videoStarted, effectiveDocumentCode]);
 
   // ── SignalR ──
   const handlePipelineProgress = useCallback((event: PipelineProgress) => {
@@ -181,6 +238,29 @@ export default function PipelinePage() {
     };
 
     if (event.taskId) {
+      const allTasksAtEventStart = usePipelineTaskStore.getState().getAllTasks();
+      const storedTaskAtEventStart = allTasksAtEventStart.find(({ taskId }) => taskId === event.taskId);
+
+      // In direct video flow, ignore events that are not for the current video task.
+      if (stepParam === 'video') {
+        const isPendingCurrentVideo =
+          !!pendingTaskRef.current &&
+          pendingTaskRef.current.type === 'video' &&
+          (event.status === 'queued' || event.status === 'processing');
+
+        const isStoredVideoTask =
+          !!storedTaskAtEventStart &&
+          storedTaskAtEventStart.key.startsWith('video:') &&
+          (!productCodeParam || storedTaskAtEventStart.key === `video:${productCodeParam}`);
+
+        const inferredTaskType = resolveType(event);
+        const isInferredVideo = inferredTaskType === 'video' || event.step === 'video_completed';
+
+        if (!isPendingCurrentVideo && !isStoredVideoTask && !isInferredVideo) {
+          return;
+        }
+      }
+
       // Pair incoming taskId with the pending mutation we just fired
       if (
         pendingTaskRef.current &&
@@ -288,10 +368,23 @@ export default function PipelinePage() {
       notify.success('Video đã tạo xong!');
       // Retry polling until backend writes videoUrl
       (async () => {
-        if (!documentCode) return;
+        let docCode = effectiveDocumentCode;
+        if (!docCode) {
+          const codeToResolve = productCode ?? productCodeParam;
+          if (codeToResolve) {
+            try {
+              const detail = await productService.getProductByCode(codeToResolve);
+              docCode = detail.documentCode ?? '';
+              if (docCode) setResolvedVideoDocumentCode(docCode);
+            } catch {
+              // Keep silent: no polling fallback available without documentCode.
+            }
+          }
+        }
+        if (!docCode) return;
         for (let i = 0; i < 8; i++) {
           try {
-            const v = await videoService.getLatestVideoByDocument(documentCode);
+            const v = await videoService.getLatestVideoByDocument(docCode);
             if (v) { setVideoData(v); if (v.videoUrl) return; }
           } catch { /* retry */ }
           await new Promise(r => setTimeout(r, 3000));
@@ -299,7 +392,7 @@ export default function PipelinePage() {
       })();
       queryClient.invalidateQueries({ queryKey: ['video', 'products'] });
     }
-  }, [saveTask, clearTask, queryClient, projectCode, documentCode]);
+  }, [saveTask, clearTask, queryClient, projectCode, documentCode, effectiveDocumentCode, stepParam, productCodeParam, productCode]);
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
@@ -499,7 +592,7 @@ export default function PipelinePage() {
           {currentStep === 'video' && (
             <VideoStep
               key="video"
-              documentCode={documentCode}
+              documentCode={effectiveDocumentCode}
               videoCompleted={videoCompleted}
               videoData={videoData}
               onBackToProject={() => router.push(`/teacher/${projectCode}`)}
