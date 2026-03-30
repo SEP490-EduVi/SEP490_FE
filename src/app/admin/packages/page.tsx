@@ -4,14 +4,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Pagination from '@/components/admin/Pagination';
-import StatusToast from '@/components/admin/StatusToast';
+import { notify } from '@/components/common';
 import { adminServices } from '@/services/adminServices';
 import { CreatePlanRequest, PagedResponse, PlanResponse, UpdatePlanRequest } from '@/types/admin';
-
-type ToastState = {
-  kind: 'success' | 'error';
-  message: string;
-} | null;
 
 interface PlanFormState {
   planName: string;
@@ -57,7 +52,6 @@ export default function AdminPlansPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [fetchError, setFetchError] = useState<string>('');
-  const [toast, setToast] = useState<ToastState>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
@@ -149,7 +143,7 @@ export default function AdminPlansPage() {
           quotaAmount,
         };
         await adminServices.updatePlan(editingPlan.planId, payload);
-        setToast({ kind: 'success', message: 'Cập nhật gói cước thành công.' });
+        notify.success('Cập nhật gói cước thành công.');
       } else {
         const payload: CreatePlanRequest = {
           planName: form.planName.trim(),
@@ -159,7 +153,7 @@ export default function AdminPlansPage() {
           quotaAmount,
         };
         await adminServices.createPlan(payload);
-        setToast({ kind: 'success', message: 'Tạo gói cước thành công.' });
+        notify.success('Tạo gói cước thành công.');
       }
 
       setIsFormOpen(false);
@@ -177,16 +171,14 @@ export default function AdminPlansPage() {
     setSubmitting(true);
     try {
       await adminServices.softDeletePlan(deletingPlan.planId);
-      setToast({ kind: 'success', message: `Đã ngưng kích hoạt gói ${deletingPlan.planName}.` });
+      notify.success(`Đã ngưng kích hoạt gói ${deletingPlan.planName}.`);
       setDeletingPlan(null);
       await loadPlans(page);
     } catch (err) {
-      setToast({
-        kind: 'error',
-        message:
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      notify.error(
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
           'Không thể xóa gói cước.',
-      });
+      );
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +191,6 @@ export default function AdminPlansPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
-      {toast && <StatusToast kind={toast.kind} message={toast.message} onClose={() => setToast(null)} />}
 
       <div className="flex items-center justify-between">
         <div>

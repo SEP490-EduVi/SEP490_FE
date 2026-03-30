@@ -40,8 +40,7 @@ const SELECT_CLS = 'w-full px-3 py-2 border border-gray-200 rounded-xl text-sm f
 interface DocumentTreeProps {
   projectCode: string;
   products: ProductDto[];
-  latestVideo: VideoProductDto | null;
-  docProductMap: Record<string, string[]>;
+  videos: VideoProductDto[];
   expandedDocCodes: Set<string>;
   expandedProductCodes: Set<string>;
   viewSlideLoading: string | null;
@@ -63,7 +62,7 @@ interface DocumentTreeProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DocumentTree({
-  projectCode, products, latestVideo, docProductMap,
+  projectCode, products, videos,
   expandedDocCodes, expandedProductCodes,
   viewSlideLoading, videoLoadingCode, confirmDeleteProductCode,
   onToggleDoc, onToggleProduct, onAnalyze,
@@ -227,8 +226,7 @@ export default function DocumentTree({
         <div className="border-t border-gray-100 divide-y divide-gray-50">
           {inputDocuments.map((doc) => {
             const isDocExpanded = expandedDocCodes.has(doc.documentCode);
-            const linkedProdCodes = docProductMap[doc.documentCode] ?? [];
-            const linkedProducts = products.filter(p => linkedProdCodes.includes(p.productCode));
+            const linkedProducts = products.filter(p => p.documentCode === doc.documentCode);
             const ftConfig = FILE_TYPE_CONFIG[getFileType(doc.filePath)] ?? FILE_TYPE_CONFIG.docx;
             const Icon = ftConfig.icon;
             return (
@@ -293,7 +291,7 @@ export default function DocumentTree({
                             <ProductTreeItem
                               key={product.productCode}
                               product={product}
-                              latestVideo={latestVideo?.productCode === product.productCode ? latestVideo : null}
+                              latestVideo={videos.find(v => v.productCode === product.productCode) ?? null}
                               isExpanded={expandedProductCodes.has(product.productCode)}
                               onToggle={() => onToggleProduct(product.productCode)}
                               viewSlideLoading={viewSlideLoading}

@@ -150,11 +150,11 @@ export default function PipelinePage() {
 
   // Load or generate video when landing on step=video
   useEffect(() => {
-    if (stepParam !== 'video' || !productCodeParam || videoStarted || !accessToken) return;
+    if (stepParam !== 'video' || !productCodeParam || !documentCode || videoStarted || !accessToken) return;
     let cancelled = false;
     (async () => {
       try {
-        const existing = await videoService.getLatestVideoByProject(projectCode);
+        const existing = await videoService.getLatestVideoByDocument(documentCode);
         if (cancelled) return;
         if (existing?.status === 'completed') {
           setVideoData(existing); setVideoCompleted(true); setCurrentStep('video'); return;
@@ -288,9 +288,10 @@ export default function PipelinePage() {
       notify.success('Video đã tạo xong!');
       // Retry polling until backend writes videoUrl
       (async () => {
+        if (!documentCode) return;
         for (let i = 0; i < 8; i++) {
           try {
-            const v = await videoService.getLatestVideoByProject(projectCode);
+            const v = await videoService.getLatestVideoByDocument(documentCode);
             if (v) { setVideoData(v); if (v.videoUrl) return; }
           } catch { /* retry */ }
           await new Promise(r => setTimeout(r, 3000));
@@ -498,7 +499,7 @@ export default function PipelinePage() {
           {currentStep === 'video' && (
             <VideoStep
               key="video"
-              projectCode={projectCode}
+              documentCode={documentCode}
               videoCompleted={videoCompleted}
               videoData={videoData}
               onBackToProject={() => router.push(`/teacher/${projectCode}`)}

@@ -51,7 +51,7 @@ export function UploadMaterialForm({
     setForm((p) => ({ ...p, [key]: value }));
 
   const handleSubmit = () => {
-    if (!file || !form.title) return;
+    if (!file || !previewFile || !form.title) return;
     onUpload({
       File: file,
       PreviewFile: previewFile ?? undefined,
@@ -61,16 +61,6 @@ export function UploadMaterialForm({
       Price: form.price || undefined,
       SubjectCode: form.subjectCode || undefined,
       GradeCode: form.gradeCode || undefined,
-    });
-    console.log('Submitting upload with data:', {
-      File: file.name,
-      PreviewFile: previewFile?.name,
-        Title: form.title, 
-        Description: form.description,
-        Type: form.type,
-        Price: form.price,
-        SubjectCode: form.subjectCode,
-        GradeCode: form.gradeCode,
     });
   };
 
@@ -113,7 +103,9 @@ export function UploadMaterialForm({
 
             {/* Preview */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh xem trước</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ảnh xem trước <span className="text-red-500">*</span>
+              </label>
               <input
                 ref={previewInputRef}
                 type="file"
@@ -193,7 +185,7 @@ export function UploadMaterialForm({
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={handleSubmit}
-              disabled={!file || !form.title || isUploading}
+              disabled={!file || !previewFile || !form.title || isUploading}
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}

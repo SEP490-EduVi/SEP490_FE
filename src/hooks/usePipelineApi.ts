@@ -71,12 +71,12 @@ export function useGenerateVideo() {
   });
 }
 
-// ─── GET latest video by project ──────────────────────────────────────────
-export function useLatestVideoByProject(projectCode: string) {
+// ─── GET latest video by document ──────────────────────────────────────────
+export function useLatestVideoByDocument(documentCode: string) {
   return useQuery({
-    queryKey: ['video', 'latest', projectCode],
-    queryFn: () => videoService.getLatestVideoByProject(projectCode),
-    enabled: !!projectCode,
+    queryKey: ['video', 'latest', 'doc', documentCode],
+    queryFn: () => videoService.getLatestVideoByDocument(documentCode),
+    enabled: !!documentCode,
     staleTime: 30_000,
     retry: false,
   });

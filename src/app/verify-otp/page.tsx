@@ -4,6 +4,7 @@
 
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useVerifyOtpService, useResendOtpService } from '@/services/authServices';
 
 function VerifyOtpForm() {
@@ -200,10 +201,7 @@ function VerifyOtpForm() {
           >
             {isPending ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Đang xác minh...
               </span>
             ) : (
@@ -249,7 +247,7 @@ export default function VerifyOtpPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100">
-          <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
         </div>
       }
     >

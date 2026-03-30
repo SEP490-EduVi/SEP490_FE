@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
-import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
+import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useVideosByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
 import { useInputDocumentsByProject } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentTree from '@/components/projects/DocumentTree';
@@ -36,7 +36,7 @@ export default function ProjectDetailPage() {
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
   const generateVideo = useGenerateVideo();
-  const { data: latestVideo = null } = useLatestVideoByProject(projectCode);
+  const { data: projectVideos = [] } = useVideosByProject(projectCode);
   const deleteVideo = useDeleteVideo(projectCode);
   const { data: curricula = [] } = useCurricula();
   const setDocument = useDocumentStore((state) => state.setDocument);
@@ -139,12 +139,6 @@ export default function ProjectDetailPage() {
 
   const [expandedDocCodes, setExpandedDocCodes] = useState<Set<string>>(new Set());
   const [expandedProductCodes, setExpandedProductCodes] = useState<Set<string>>(new Set());
-  const [docProductMap, setDocProductMap] = useState<Record<string, string[]>>(() => {
-    try {
-      const saved = sessionStorage.getItem(`dpm-${projectCode}`);
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
 
   const [evalProductCode, setEvalProductCode] = useState<string | null>(null);
   const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
@@ -158,27 +152,6 @@ export default function ProjectDetailPage() {
   const [analysisDocCode, setAnalysisDocCode] = useState<string | null>(null);
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
-
-  // Auto-assign unlinked products to their document when only 1 document exists
-  useEffect(() => {
-    if (products.length === 0 || inputDocuments.length !== 1) return;
-    const doc = inputDocuments[0];
-    const allLinked = new Set(Object.values(docProductMap).flat());
-    const unlinked = products.filter(p => !allLinked.has(p.productCode));
-    if (unlinked.length === 0) return;
-    setDocProductMap(prev => {
-      const next = {
-        ...prev,
-        [doc.documentCode]: [
-          ...(prev[doc.documentCode] ?? []),
-          ...unlinked.map(p => p.productCode).filter(c => !(prev[doc.documentCode] ?? []).includes(c)),
-        ],
-      };
-      try { sessionStorage.setItem(`dpm-${projectCode}`, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, inputDocuments]);
 
   const toggleDoc = (docCode: string) =>
     setExpandedDocCodes(prev => { const n = new Set(prev); n.has(docCode) ? n.delete(docCode) : n.add(docCode); return n; });
@@ -215,9 +188,6 @@ export default function ProjectDetailPage() {
             const result = await refetchProducts();
             const newProds = (result.data ?? []).filter(p => !prevProductCodesRef.current.has(p.productCode));
             if (newProds.length > 0) {
-              const newMap = { ...docProductMap, [docCode]: [...(docProductMap[docCode] ?? []), ...newProds.map(p => p.productCode)] };
-              setDocProductMap(newMap);
-              sessionStorage.setItem(`dpm-${projectCode}`, JSON.stringify(newMap));
               setExpandedDocCodes(prev => { const n = new Set(prev); n.add(docCode); return n; });
             }
           } catch { /* ignore */ }
@@ -339,8 +309,7 @@ export default function ProjectDetailPage() {
         <DocumentTree
           projectCode={projectCode}
           products={products}
-          latestVideo={latestVideo}
-          docProductMap={docProductMap}
+          videos={projectVideos}
           expandedDocCodes={expandedDocCodes}
           expandedProductCodes={expandedProductCodes}
           viewSlideLoading={viewSlideLoading}
@@ -365,7 +334,7 @@ export default function ProjectDetailPage() {
 
       </main>
 
-      {viewingVideo && <VideoPlayerModal video={viewingVideo} projectCode={projectCode} onClose={() => setViewingVideo(null)} />}
+      {viewingVideo && <VideoPlayerModal video={viewingVideo} onClose={() => setViewingVideo(null)} />}
 
       <EvaluationModal
         open={!!evalProductCode}

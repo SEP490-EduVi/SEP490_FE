@@ -9,7 +9,7 @@ import type { VideoProductDto } from '@/types/api';
 // ─── Props ────────────────────────────────────────────────────────────────
 
 interface VideoStepProps {
-  projectCode: string;
+  documentCode: string;
   videoCompleted: boolean;
   videoData: VideoProductDto | null;
   onBackToProject: () => void;
@@ -18,7 +18,7 @@ interface VideoStepProps {
 // ─── Component ────────────────────────────────────────────────────────────
 
 export default function VideoStep({
-  projectCode,
+  documentCode,
   videoCompleted,
   videoData,
   onBackToProject,
@@ -54,7 +54,7 @@ export default function VideoStep({
         {/* Inline video player */}
         <VideoPlayerModal
           video={videoData}
-          projectCode={projectCode}
+          documentCode={documentCode}
           inline
           onClose={() => {}}
         />

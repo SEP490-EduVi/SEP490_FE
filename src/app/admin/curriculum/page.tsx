@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '@/components/common/Modal';
-import StatusToast from '@/components/admin/StatusToast';
+import { notify } from '@/components/common';
 import { adminServices } from '@/services/adminServices';
 import {
   AdminGradeResponse,
@@ -17,7 +17,6 @@ import {
 } from '@/types/admin';
 
 type TabKey = 'grade' | 'subject' | 'lesson';
-type ToastState = { kind: 'success' | 'error'; message: string } | null;
 
 type EditState =
   | { type: 'grade'; originalCode: string; data: CreateGradeRequest }
@@ -30,7 +29,6 @@ export default function AdminCurriculumPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<ToastState>(null);
 
   const [grades, setGrades] = useState<AdminGradeResponse[]>([]);
   const [subjects, setSubjects] = useState<AdminSubjectResponse[]>([]);
@@ -74,7 +72,7 @@ export default function AdminCurriculumPage() {
 
   const handleCreateGrade = async () => {
     if (!gradeForm.gradeCode.trim() || !gradeForm.gradeName.trim()) {
-      setToast({ kind: 'error', message: 'Vui lòng nhập đầy đủ mã và tên khối lớp.' });
+      notify.error('Vui lòng nhập đầy đủ mã và tên khối lớp.');
       return;
     }
 
@@ -82,10 +80,10 @@ export default function AdminCurriculumPage() {
     try {
       await adminServices.createGrade({ gradeCode: gradeForm.gradeCode.trim(), gradeName: gradeForm.gradeName.trim() });
       setGradeForm({ gradeCode: '', gradeName: '' });
-      setToast({ kind: 'success', message: 'Tạo khối lớp thành công.' });
+      notify.success('Tạo khối lớp thành công.');
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể tạo khối lớp.') });
+      notify.error(parseErrorMessage(err, 'Không thể tạo khối lớp.'));
     } finally {
       setBusy(false);
     }
@@ -93,7 +91,7 @@ export default function AdminCurriculumPage() {
 
   const handleCreateSubject = async () => {
     if (!subjectForm.subjectCode.trim() || !subjectForm.subjectName.trim()) {
-      setToast({ kind: 'error', message: 'Vui lòng nhập đầy đủ mã và tên môn học.' });
+      notify.error('Vui lòng nhập đầy đủ mã và tên môn học.');
       return;
     }
 
@@ -101,10 +99,10 @@ export default function AdminCurriculumPage() {
     try {
       await adminServices.createSubject({ subjectCode: subjectForm.subjectCode.trim(), subjectName: subjectForm.subjectName.trim() });
       setSubjectForm({ subjectCode: '', subjectName: '' });
-      setToast({ kind: 'success', message: 'Tạo môn học thành công.' });
+      notify.success('Tạo môn học thành công.');
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể tạo môn học.') });
+      notify.error(parseErrorMessage(err, 'Không thể tạo môn học.'));
     } finally {
       setBusy(false);
     }
@@ -112,7 +110,7 @@ export default function AdminCurriculumPage() {
 
   const handleCreateLesson = async () => {
     if (!lessonForm.lessonCode.trim() || !lessonForm.lessonName.trim() || !lessonForm.subjectCode.trim()) {
-      setToast({ kind: 'error', message: 'Vui lòng nhập đầy đủ mã bài học, tên bài học và môn học.' });
+      notify.error('Vui lòng nhập đầy đủ mã bài học, tên bài học và môn học.');
       return;
     }
 
@@ -124,10 +122,10 @@ export default function AdminCurriculumPage() {
         subjectCode: lessonForm.subjectCode,
       });
       setLessonForm({ lessonCode: '', lessonName: '', subjectCode: '' });
-      setToast({ kind: 'success', message: 'Tạo bài học thành công.' });
+      notify.success('Tạo bài học thành công.');
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể tạo bài học.') });
+      notify.error(parseErrorMessage(err, 'Không thể tạo bài học.'));
     } finally {
       setBusy(false);
     }
@@ -139,10 +137,10 @@ export default function AdminCurriculumPage() {
     setBusy(true);
     try {
       await adminServices.deleteGrade(gradeCode);
-      setToast({ kind: 'success', message: 'Xóa khối lớp thành công.' });
+      notify.success('Xóa khối lớp thành công.');
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể xóa khối lớp.') });
+      notify.error(parseErrorMessage(err, 'Không thể xóa khối lớp.'));
     } finally {
       setBusy(false);
     }
@@ -154,13 +152,13 @@ export default function AdminCurriculumPage() {
     setBusy(true);
     try {
       await adminServices.deleteSubject(subjectCode);
-      setToast({ kind: 'success', message: 'Xóa môn học thành công.' });
+      notify.success('Xóa môn học thành công.');
       if (lessonFilterSubjectCode === subjectCode) {
         setLessonFilterSubjectCode('');
       }
       await loadAll(lessonFilterSubjectCode === subjectCode ? undefined : lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể xóa môn học.') });
+      notify.error(parseErrorMessage(err, 'Không thể xóa môn học.'));
     } finally {
       setBusy(false);
     }
@@ -172,10 +170,10 @@ export default function AdminCurriculumPage() {
     setBusy(true);
     try {
       await adminServices.deleteLesson(lessonCode);
-      setToast({ kind: 'success', message: 'Xóa bài học thành công.' });
+      notify.success('Xóa bài học thành công.');
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể xóa bài học.') });
+      notify.error(parseErrorMessage(err, 'Không thể xóa bài học.'));
     } finally {
       setBusy(false);
     }
@@ -192,7 +190,7 @@ export default function AdminCurriculumPage() {
           gradeName: editState.data.gradeName.trim(),
         };
         await adminServices.updateGrade(editState.originalCode, payload);
-        setToast({ kind: 'success', message: 'Cập nhật khối lớp thành công.' });
+        notify.success('Cập nhật khối lớp thành công.');
       }
 
       if (editState.type === 'subject') {
@@ -201,7 +199,7 @@ export default function AdminCurriculumPage() {
           subjectName: editState.data.subjectName.trim(),
         };
         await adminServices.updateSubject(editState.originalCode, payload);
-        setToast({ kind: 'success', message: 'Cập nhật môn học thành công.' });
+        notify.success('Cập nhật môn học thành công.');
       }
 
       if (editState.type === 'lesson') {
@@ -211,13 +209,13 @@ export default function AdminCurriculumPage() {
           subjectCode: editState.data.subjectCode,
         };
         await adminServices.updateLesson(editState.originalCode, payload);
-        setToast({ kind: 'success', message: 'Cập nhật bài học thành công.' });
+        notify.success('Cập nhật bài học thành công.');
       }
 
       setEditState(null);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể cập nhật dữ liệu.') });
+      notify.error(parseErrorMessage(err, 'Không thể cập nhật dữ liệu.'));
     } finally {
       setBusy(false);
     }
@@ -225,8 +223,6 @@ export default function AdminCurriculumPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
-      {toast && <StatusToast kind={toast.kind} message={toast.message} onClose={() => setToast(null)} />}
-
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Quản lý Grade, Subject, Lesson</h1>
         <p className="mt-1 text-sm text-gray-500">Quản trị chương trình học theo mã code từ</p>

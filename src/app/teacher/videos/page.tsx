@@ -193,7 +193,6 @@ export default function TeacherVideosPage() {
       {playingVideo && (
         <VideoPlayerModal
           video={playingVideo}
-          projectCode={playingVideo.productCode}
           onClose={() => setPlayingVideo(null)}
         />
       )}

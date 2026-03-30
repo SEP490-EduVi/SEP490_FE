@@ -56,7 +56,7 @@ export function MainStage() {
       <main className="flex-1 bg-surface-tertiary flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading presentation...</p>
+          <p className="text-gray-500">Đang tải bài trình chiếu...</p>
         </div>
       </main>
     );

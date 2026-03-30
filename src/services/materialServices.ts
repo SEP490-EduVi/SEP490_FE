@@ -1,6 +1,6 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
-import type { ApiResponse, MaterialDto, UpdateMaterialInput } from '@/types/api';
+import type { ApiResponse, MaterialDto, UpdateMaterialInput, MaterialBrowseParams, PurchasedMaterialDto } from '@/types/api';
 
 export async function uploadMaterial(form: {
   File: File;
@@ -47,4 +47,24 @@ export async function updateMaterial(materialCode: string, input: UpdateMaterial
 
 export async function deleteMaterial(materialCode: string): Promise<void> {
   await api.delete(API_ENDPOINTS.MATERIAL.DELETE(materialCode));
+}
+
+export async function browseMaterials(params?: MaterialBrowseParams): Promise<MaterialDto[]> {
+  const { data } = await api.get<ApiResponse<MaterialDto[]>>(API_ENDPOINTS.MATERIAL.BROWSE, { params });
+  return data.result;
+}
+
+export async function purchaseMaterial(materialCode: string): Promise<PurchasedMaterialDto> {
+  const { data } = await api.post<ApiResponse<PurchasedMaterialDto>>(API_ENDPOINTS.MATERIAL.PURCHASE(materialCode));
+  return data.result;
+}
+
+export async function getPurchasedMaterials(): Promise<PurchasedMaterialDto[]> {
+  const { data } = await api.get<ApiResponse<PurchasedMaterialDto[]>>(API_ENDPOINTS.MATERIAL.GET_PURCHASED);
+  return data.result;
+}
+
+export async function getMaterialByCode(materialCode: string): Promise<MaterialDto> {
+  const { data } = await api.get<ApiResponse<MaterialDto>>(API_ENDPOINTS.MATERIAL.GET_BY_CODE(materialCode));
+  return data.result;
 }

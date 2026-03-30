@@ -12,3 +12,4 @@ export { Breadcrumb } from './Breadcrumb';
 export type { BreadcrumbItem } from './Breadcrumb';
 
 export { ToastProvider, notify } from './ToastProvider';
+export { GcsImage, resolveGcsUrl } from './GcsImage';

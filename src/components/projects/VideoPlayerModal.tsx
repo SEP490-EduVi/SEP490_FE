@@ -8,11 +8,11 @@ import {
   BookOpen, PenLine,
 } from 'lucide-react';
 import type { VideoProductDto, VideoInteraction } from '@/types/api';
-import { getVideoSignedUrl, getLatestVideoByProject } from '@/services/videoServices';
+import { getVideoSignedUrl, getLatestVideoByDocument } from '@/services/videoServices';
 
 interface VideoPlayerModalProps {
   video: VideoProductDto;
-  projectCode?: string;
+  documentCode?: string;
   inline?: boolean;
   onClose: () => void;
 }
@@ -332,7 +332,7 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
 
 // ─── Main Modal ────────────────────────────────────────────────────────────
 
-export default function VideoPlayerModal({ video, projectCode, inline = false, onClose }: VideoPlayerModalProps) {
+export default function VideoPlayerModal({ video, documentCode, inline = false, onClose }: VideoPlayerModalProps) {
   const [signedUrl, setSignedUrl]   = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(true);
   const [urlError, setUrlError]     = useState<string | null>(null);
@@ -357,7 +357,7 @@ export default function VideoPlayerModal({ video, projectCode, inline = false, o
   // Poll for videoUrl if it's not ready yet (backend race condition)
   useEffect(() => {
     if (video.videoUrl) { setLiveVideoUrl(video.videoUrl); return; }
-    if (!projectCode) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); return; }
+    if (!documentCode) { setLoadingUrl(false); setUrlError('Không tìm thấy URL video.'); return; }
 
     let cancelled = false;
     let attempt = 0;
@@ -370,7 +370,7 @@ export default function VideoPlayerModal({ video, projectCode, inline = false, o
         await new Promise(r => setTimeout(r, DELAY));
         if (cancelled) break;
         try {
-          const fresh = await getLatestVideoByProject(projectCode);
+          const fresh = await getLatestVideoByDocument(documentCode);
           if (fresh?.videoUrl && !cancelled) {
             setLiveVideoUrl(fresh.videoUrl);
             return;
@@ -383,7 +383,7 @@ export default function VideoPlayerModal({ video, projectCode, inline = false, o
     poll();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [video.videoUrl, projectCode]);
+  }, [video.videoUrl, documentCode]);
 
   // Fetch signed URL once we have liveVideoUrl
   useEffect(() => {
