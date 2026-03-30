@@ -30,12 +30,31 @@ export interface PipelineProgress {
 export interface ProjectDto {
   projectCode: string;
   projectName: string;
+  subjectCode?: string;
+  subjectName?: string;
+  gradeCode?: string;
+  gradeName?: string;
   status: number;
+  createdAt?: string;
+}
+
+export interface ProjectGroupedGradeDto {
+  gradeCode: string;
+  gradeName: string;
+  projects: ProjectDto[];
+}
+
+export interface ProjectGroupedSubjectDto {
+  subjectCode: string;
+  subjectName: string;
+  grades: ProjectGroupedGradeDto[];
 }
 
 export interface CreateProjectInput {
   projectCode: string;
   projectName: string;
+  subjectCode: string;
+  gradeCode: string;
 }
 
 export interface UpdateProjectInput {

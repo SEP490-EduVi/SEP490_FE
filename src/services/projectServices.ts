@@ -5,16 +5,31 @@ import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type {
   ApiResponse,
   ProjectDto,
+  ProjectGroupedSubjectDto,
   CreateProjectInput,
   UpdateProjectInput,
 } from '@/types/api';
 
+function flattenGroupedProjects(groups: ProjectGroupedSubjectDto[]): ProjectDto[] {
+  return groups.flatMap((subject) =>
+    subject.grades.flatMap((grade) =>
+      grade.projects.map((project) => ({
+        ...project,
+        subjectCode: project.subjectCode ?? subject.subjectCode,
+        subjectName: project.subjectName ?? subject.subjectName,
+        gradeCode: project.gradeCode ?? grade.gradeCode,
+        gradeName: project.gradeName ?? grade.gradeName,
+      })),
+    ),
+  );
+}
+
 // ─── GET all projects ──────────────────────────────────────────────────────
 export async function getAllProjects(): Promise<ProjectDto[]> {
-  const { data } = await api.get<ApiResponse<ProjectDto[]>>(
+  const { data } = await api.get<ApiResponse<ProjectGroupedSubjectDto[]>>(
     API_ENDPOINTS.PROJECT.GET_ALL,
   );
-  return data.result;
+  return flattenGroupedProjects(data.result ?? []);
 }
 
 // ─── GET project by code ───────────────────────────────────────────────────

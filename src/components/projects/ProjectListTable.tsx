@@ -34,6 +34,12 @@ export default function ProjectListTable({
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
               Tên dự án
             </th>
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+              Môn học
+            </th>
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+              Khối lớp
+            </th>
             <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
               Trạng thái
             </th>
@@ -56,6 +62,16 @@ export default function ProjectListTable({
                 <p className="text-sm font-medium text-gray-900">
                   {project.projectName}
                 </p>
+              </td>
+              <td className="px-5 py-4">
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                  {project.subjectName || project.subjectCode || '-'}
+                </span>
+              </td>
+              <td className="px-5 py-4">
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                  {project.gradeName || project.gradeCode || '-'}
+                </span>
               </td>
               <td className="px-5 py-4 text-center">
                 <span

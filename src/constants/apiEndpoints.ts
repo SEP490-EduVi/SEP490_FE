@@ -45,8 +45,8 @@ export const API_ENDPOINTS = {
 
   // Project
   PROJECT: {
-    // GET    /api/Project
-    GET_ALL:   buildProjectEndpoint(""),
+    // GET    /api/Project/grouped
+    GET_ALL:   buildProjectEndpoint('/grouped'),
     // POST   /api/Project
     CREATE:    buildProjectEndpoint(""),
     // GET    /api/Project/{projectCode}

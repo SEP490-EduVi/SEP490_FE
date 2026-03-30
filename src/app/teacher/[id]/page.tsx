@@ -297,6 +297,12 @@ export default function ProjectDetailPage() {
             <div className="flex items-center gap-3 mt-1">
               <h1 className="text-2xl font-bold text-gray-900">{project.projectName}</h1>
               <span className="text-xs text-gray-400 font-mono">{project.projectCode}</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700">
+                {project.subjectName || project.subjectCode || 'Chưa có môn'}
+              </span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700">
+                {project.gradeName || project.gradeCode || 'Chưa có lớp'}
+              </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium ${project.status === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
                 {project.status === 0 ? 'Hoạt động' : 'Lưu trữ'}
               </span>
@@ -308,6 +314,10 @@ export default function ProjectDetailPage() {
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-4">
         <DocumentTree
           projectCode={projectCode}
+          projectSubjectCode={project.subjectCode}
+          projectSubjectName={project.subjectName}
+          projectGradeCode={project.gradeCode}
+          projectGradeName={project.gradeName}
           products={products}
           videos={projectVideos}
           expandedDocCodes={expandedDocCodes}

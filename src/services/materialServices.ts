@@ -1,6 +1,41 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type { ApiResponse, MaterialDto, UpdateMaterialInput, MaterialBrowseParams, PurchasedMaterialDto } from '@/types/api';
+import { uploadMaterialFilesToGcs } from './gcsServices';
+
+function getCurrentUserId(): string {
+  if (typeof window === 'undefined') return 'anonymous';
+
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return 'anonymous';
+
+    const user = JSON.parse(raw) as {
+      userId?: number | string;
+      userCode?: string | null;
+      expertId?: number | null;
+      teacherId?: number | null;
+      staffId?: number | null;
+      adminId?: number | null;
+    };
+
+    const candidate =
+      user.userId ??
+      user.userCode ??
+      user.expertId ??
+      user.teacherId ??
+      user.staffId ??
+      user.adminId;
+
+    if (candidate === undefined || candidate === null || String(candidate).trim() === '') {
+      return 'anonymous';
+    }
+
+    return String(candidate);
+  } catch {
+    return 'anonymous';
+  }
+}
 
 export async function uploadMaterial(form: {
   File: File;
@@ -12,20 +47,28 @@ export async function uploadMaterial(form: {
   SubjectCode?: string;
   GradeCode?: string;
 }): Promise<MaterialDto> {
-  const formData = new FormData();
-  formData.append('File', form.File);
-  if (form.PreviewFile) formData.append('PreviewFile', form.PreviewFile);
-  formData.append('Title', form.Title);
-  if (form.Description) formData.append('Description', form.Description);
-  formData.append('Type', form.Type);
-  if (form.Price !== undefined) formData.append('Price', String(form.Price));
-  if (form.SubjectCode) formData.append('SubjectCode', form.SubjectCode);
-  if (form.GradeCode) formData.append('GradeCode', form.GradeCode);
+  const userId = getCurrentUserId();
 
+  const { resourceUrl, previewUrl } = await uploadMaterialFilesToGcs({
+    file: form.File,
+    previewFile: form.PreviewFile,
+    prefix: form.SubjectCode ?? form.GradeCode ?? 'expert-material',
+    userId,
+  });
+
+  const payload = {
+    resourceUrl,
+    previewUrl: previewUrl ?? '',
+    title: form.Title,
+    description: form.Description ?? '',
+    type: form.Type,
+    price: form.Price ?? 0,
+    subjectCode: form.SubjectCode ?? '',
+    gradeCode: form.GradeCode ?? '',
+  };
   const { data } = await api.post<ApiResponse<MaterialDto>>(
     API_ENDPOINTS.MATERIAL.UPLOAD,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    payload,
   );
   return data.result;
 }

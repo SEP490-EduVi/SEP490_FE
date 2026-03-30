@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
+import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { Breadcrumb, notify } from '@/components/common';
 import { Pagination } from '@/components/paging';
@@ -32,7 +33,7 @@ export default function TeacherProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 6;
+  const PAGE_SIZE = 5;
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Auto-open create modal when navigated with ?create=1
@@ -62,6 +63,8 @@ export default function TeacherProjectsPage() {
   });
 
   const { data: projects = [], isLoading, isError, error } = useProjects();
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
+  const { data: grades = [], isLoading: gradesLoading } = useGrades();
   const createProject = useCreateProject();
   const deleteProject = useDeleteProject();
   const updateProject = useUpdateProject();
@@ -69,18 +72,25 @@ export default function TeacherProjectsPage() {
   // ── Filter & paginate ─────────────────────────────────────────────────────
   const filteredProjects = projects.filter((p) =>
     p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.projectCode.toLowerCase().includes(searchQuery.toLowerCase()),
+    p.projectCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.subjectName ?? p.subjectCode ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.gradeName ?? p.gradeCode ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
   );
   const totalPages = Math.ceil(filteredProjects.length / PAGE_SIZE);
   const pagedProjects = filteredProjects.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => { setPage(1); }, [searchQuery]);
 
-  const handleCreate = (data: { projectName: string }) => {
+  const handleCreate = (data: { projectName: string; subjectCode: string; gradeCode: string }) => {
     const ts = Date.now().toString(36).toUpperCase();
     const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
     const projectCode = `P-${ts}${rand}`;
-    createProject.mutate({ projectCode, projectName: data.projectName }, {
+    createProject.mutate({
+      projectCode,
+      projectName: data.projectName,
+      subjectCode: data.subjectCode,
+      gradeCode: data.gradeCode,
+    }, {
       onSuccess: () => { setShowCreateModal(false); notify.success(`Dự án "${data.projectName}" đã được tạo thành công!`); },
       onError: () => notify.error('Tạo dự án thất bại. Vui lòng thử lại.'),
     });
@@ -206,7 +216,7 @@ export default function TeacherProjectsPage() {
         {/* ── Grid View ── */}
         {!isLoading && !isError && filteredProjects.length > 0 && viewMode === 'grid' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
               <AnimatePresence mode="popLayout">
                 {pagedProjects.map((project, idx) => (
                   <ProjectCard
@@ -246,6 +256,10 @@ export default function TeacherProjectsPage() {
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreate={handleCreate}
+        subjects={subjects}
+        grades={grades}
+        subjectsLoading={subjectsLoading}
+        gradesLoading={gradesLoading}
         isLoading={createProject.isPending}
       />
 

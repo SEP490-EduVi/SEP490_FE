@@ -4,43 +4,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import {
-  MoreVertical,
-  Calendar,
-  FileText,
-  Package,
-  Trash2,
-  Edit3,
-} from 'lucide-react';
 import type { ProjectDto } from '@/types/api';
-
-// ── Subject colors ─────────────────────────────────────────────────────────
-const SUBJECT_COLORS: Record<string, { bg: string; text: string }> = {
-  'Toán học':   { bg: 'bg-blue-50',    text: 'text-blue-700' },
-  'Vật lý':    { bg: 'bg-amber-50',   text: 'text-amber-700' },
-  'Hóa học':   { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  'Sinh học':  { bg: 'bg-green-50',   text: 'text-green-700' },
-  'Ngữ văn':   { bg: 'bg-rose-50',    text: 'text-rose-700' },
-  'Lịch sử':  { bg: 'bg-purple-50',  text: 'text-purple-700' },
-  'Tiếng Anh': { bg: 'bg-cyan-50',    text: 'text-cyan-700' },
-};
-
-export function getSubjectColor(subject: string) {
-  return SUBJECT_COLORS[subject] ?? { bg: 'bg-gray-50', text: 'text-gray-700' };
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-export function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-function getStatusLabel(status: number) {
-  return status === 0 ? 'Hoạt động' : 'Lưu trữ';
-}
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface ProjectCardProps {
@@ -62,83 +26,65 @@ export default function ProjectCard({
   onEdit,
   onDelete,
 }: ProjectCardProps) {
-  const subjectColor = getSubjectColor(''); // Backend doesn't have subject yet
+  const palette = [
+    {
+      tab: 'from-red-400 to-red-500',
+      body: 'from-red-500 to-red-600',
+      border: 'border-red-700/50',
+    },
+    {
+      tab: 'from-orange-400 to-orange-500',
+      body: 'from-orange-500 to-orange-600',
+      border: 'border-orange-700/50',
+    },
+    {
+      tab: 'from-sky-400 to-sky-500',
+      body: 'from-sky-500 to-blue-600',
+      border: 'border-blue-700/50',
+    },
+    {
+      tab: 'from-violet-300 to-violet-400',
+      body: 'from-violet-400 to-violet-500',
+      border: 'border-violet-700/40',
+    },
+    {
+      tab: 'from-yellow-300 to-amber-400',
+      body: 'from-amber-400 to-yellow-500',
+      border: 'border-amber-700/40',
+    },
+  ] as const;
+
+  const color = palette[index % palette.length];
+
+  // Keep props for compatibility with parent callers in grid mode.
+  void menuOpen;
+  void onMenuToggle;
+  void onEdit;
+  void onDelete;
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.05 }}
-      onClick={onClick}
-      className="group relative bg-white rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-600/5 transition-all cursor-pointer overflow-hidden"
+      className="group relative"
     >
-      {/* Color accent top bar */}
-      <div className="h-1.5 bg-blue-400" />
-
-      <div className="p-5">
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-              {project.projectName}
-            </h3>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs text-gray-500 font-mono">{project.projectCode}</span>
-            </div>
-          </div>
-
-          {/* Context menu */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMenuToggle();
-              }}
-              className={`p-1.5 rounded-lg hover:bg-gray-100 transition-opacity ${menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-            >
-              <MoreVertical className="w-4 h-4 text-gray-400" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 top-8 w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-1 animate-fade-in">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  Chỉnh sửa
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa dự án
-                </button>
-              </div>
-            )}
-          </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full flex flex-col items-center gap-2 px-2 py-3 rounded-xl hover:bg-blue-50/60 transition-colors"
+      >
+        <div className="relative w-32 h-28 drop-shadow-sm group-hover:drop-shadow-md transition-all">
+          <div className={`absolute left-3 top-1 h-4 w-8 rounded-t-md bg-gradient-to-b ${color.tab} border ${color.border} border-b-0`} />
+          <div className={`absolute left-0 right-0 top-4 bottom-0 rounded-md bg-gradient-to-b ${color.body} border ${color.border}`} />
+          <div className="absolute left-2 right-2 top-5 h-[2px] rounded-full bg-white/45" />
         </div>
-
-        {/* Footer */}
-        <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            project.status === 0
-              ? 'bg-emerald-50 text-emerald-600'
-              : 'bg-gray-100 text-gray-500'
-          }`}>
-            {getStatusLabel(project.status)}
-          </span>
-        </div>
-      </div>
+        <p className="text-xs sm:text-sm font-medium text-gray-800 text-center line-clamp-2 min-h-[2.25rem]">
+          {project.projectName}
+        </p>
+      </button>
     </motion.div>
   );
 }

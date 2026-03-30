@@ -7,7 +7,7 @@ import {
   File, Image as ImageIcon, FileVideo,
 } from 'lucide-react';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
-import { useSubjects, useGrades, useLessons } from '@/hooks/useMetadataApi';
+import { useLessons } from '@/hooks/useMetadataApi';
 import ProductTreeItem from './ProductTreeItem';
 import { formatDate } from './ProductTreeItem';
 import type { ProductDto, VideoProductDto } from '@/types/api';
@@ -39,6 +39,10 @@ const SELECT_CLS = 'w-full px-3 py-2 border border-gray-200 rounded-xl text-sm f
 
 interface DocumentTreeProps {
   projectCode: string;
+  projectSubjectCode?: string;
+  projectSubjectName?: string;
+  projectGradeCode?: string;
+  projectGradeName?: string;
   products: ProductDto[];
   videos: VideoProductDto[];
   expandedDocCodes: Set<string>;
@@ -62,7 +66,13 @@ interface DocumentTreeProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DocumentTree({
-  projectCode, products, videos,
+  projectCode,
+  projectSubjectCode,
+  projectSubjectName,
+  projectGradeCode,
+  projectGradeName,
+  products,
+  videos,
   expandedDocCodes, expandedProductCodes,
   viewSlideLoading, videoLoadingCode, confirmDeleteProductCode,
   onToggleDoc, onToggleProduct, onAnalyze,
@@ -75,12 +85,8 @@ export default function DocumentTree({
   const uploadDoc = useUploadInputDocument();
 
   // ─ Metadata hooks (for upload form) ─
-  const [uploadSubjectCode, setUploadSubjectCode] = useState('');
-  const { data: subjects = [], isLoading: isSubjectsLoading } = useSubjects();
-  const [uploadGradeCode, setUploadGradeCode] = useState('');
-  const { data: grades = [], isLoading: isGradesLoading } = useGrades();
   const [uploadLessonCode, setUploadLessonCode] = useState('');
-  const { data: lessons = [], isLoading: isLessonsLoading } = useLessons(uploadSubjectCode || undefined);
+  const { data: lessons = [], isLoading: isLessonsLoading } = useLessons(projectSubjectCode || undefined);
 
   // ─ Upload form state ─
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,14 +111,21 @@ export default function DocumentTree({
   };
 
   const handleUpload = () => {
-    if (!uploadFile || !uploadTitle || !uploadSubjectCode || !uploadGradeCode || !uploadLessonCode) return;
+    if (!uploadFile || !uploadTitle || !projectSubjectCode || !projectGradeCode || !uploadLessonCode) return;
     uploadDoc.mutate(
-      { File: uploadFile, Title: uploadTitle, ProjectCode: projectCode, SubjectCode: uploadSubjectCode, GradeCode: uploadGradeCode, LessonCode: uploadLessonCode },
+      {
+        File: uploadFile,
+        Title: uploadTitle,
+        ProjectCode: projectCode,
+        SubjectCode: projectSubjectCode,
+        GradeCode: projectGradeCode,
+        LessonCode: uploadLessonCode,
+      },
       {
         onSuccess: () => {
           notify.success(`Tải lên “${uploadTitle}” thành công!`);
           setUploadFile(null); setUploadTitle('');
-          setUploadSubjectCode(''); setUploadGradeCode(''); setUploadLessonCode('');
+          setUploadLessonCode('');
           setShowUploadArea(false);
         },
         onError: () => notify.error('Tải lên tài liệu thất bại. Vui lòng thử lại.'),
@@ -175,31 +188,38 @@ export default function DocumentTree({
                     <input type="text" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} placeholder="VD: Giáo Án Địa Lí Bài 1"
                       className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Môn học *</label>
-                      <select value={uploadSubjectCode} onChange={(e) => { setUploadSubjectCode(e.target.value); setUploadLessonCode(''); }} disabled={isSubjectsLoading} className={SELECT_CLS}>
-                        <option value="">{isSubjectsLoading ? 'Đang tải...' : '-- Chọn môn --'}</option>
-                        {subjects.map(s => <option key={s.subjectCode} value={s.subjectCode}>{s.subjectName}</option>)}
-                      </select>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Môn học (từ dự án)</label>
+                      <input
+                        value={projectSubjectName || projectSubjectCode || 'Chưa cấu hình môn học'}
+                        disabled
+                        className={SELECT_CLS}
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Lớp *</label>
-                      <select value={uploadGradeCode} onChange={(e) => setUploadGradeCode(e.target.value)} disabled={isGradesLoading} className={SELECT_CLS}>
-                        <option value="">{isGradesLoading ? 'Đang tải...' : '-- Chọn lớp --'}</option>
-                        {grades.map(g => <option key={g.gradeCode} value={g.gradeCode}>{g.gradeName}</option>)}
-                      </select>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Khối lớp (từ dự án)</label>
+                      <input
+                        value={projectGradeName || projectGradeCode || 'Chưa cấu hình khối lớp'}
+                        disabled
+                        className={SELECT_CLS}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Bài học *</label>
-                      <select value={uploadLessonCode} onChange={(e) => setUploadLessonCode(e.target.value)} disabled={!uploadSubjectCode || isLessonsLoading} className={SELECT_CLS}>
-                        <option value="">{!uploadSubjectCode ? 'Chọn môn trước' : isLessonsLoading ? 'Đang tải...' : '-- Chọn bài --'}</option>
+                      <select value={uploadLessonCode} onChange={(e) => setUploadLessonCode(e.target.value)} disabled={!projectSubjectCode || isLessonsLoading} className={SELECT_CLS}>
+                        <option value="">{!projectSubjectCode ? 'Dự án chưa có môn học' : isLessonsLoading ? 'Đang tải...' : '-- Chọn bài --'}</option>
                         {lessons.map(l => <option key={l.lessonCode} value={l.lessonCode}>{l.lessonName}</option>)}
                       </select>
                     </div>
                   </div>
+                  {(!projectSubjectCode || !projectGradeCode) && (
+                    <p className="text-xs text-amber-600">
+                      Dự án này chưa có môn học hoặc khối lớp nên chưa thể tải tài liệu.
+                    </p>
+                  )}
                   <div className="flex justify-end">
-                    <button onClick={handleUpload} disabled={uploadDoc.isPending || !uploadTitle || !uploadSubjectCode || !uploadGradeCode || !uploadLessonCode}
+                    <button onClick={handleUpload} disabled={uploadDoc.isPending || !uploadTitle || !projectSubjectCode || !projectGradeCode || !uploadLessonCode}
                       className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
                       {uploadDoc.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                       {uploadDoc.isPending ? 'Đang tải...' : 'Tải lên'}
