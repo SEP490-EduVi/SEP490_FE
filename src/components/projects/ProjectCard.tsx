@@ -18,6 +18,26 @@ interface ProjectCardProps {
   onDelete: () => void;
 }
 
+export function formatDate(value?: string) {
+  if (!value) return 'Cập nhật gần đây';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Cập nhật gần đây';
+  return d.toLocaleDateString('vi-VN');
+}
+
+export function getSubjectColor(subjectCode?: string) {
+  const code = (subjectCode ?? '').toUpperCase();
+  if (code.startsWith('TOAN') || code.startsWith('MATH')) return 'blue';
+  if (code.startsWith('LY') || code.startsWith('PHYS')) return 'amber';
+  if (code.startsWith('HOA') || code.startsWith('CHEM')) return 'rose';
+  if (code.startsWith('SINH') || code.startsWith('BIO')) return 'emerald';
+  if (code.startsWith('VAN') || code.startsWith('LIT')) return 'violet';
+  if (code.startsWith('SU') || code.startsWith('HIS')) return 'orange';
+  if (code.startsWith('DIA') || code.startsWith('GEO')) return 'teal';
+  if (code.startsWith('ANH') || code.startsWith('ENG')) return 'indigo';
+  return 'slate';
+}
+
 export default function ProjectCard({
   project,
   index,
@@ -27,13 +47,6 @@ export default function ProjectCard({
   onEdit,
   onDelete,
 }: ProjectCardProps) {
-  const formatDate = (value?: string) => {
-    if (!value) return 'Cập nhật gần đây';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return 'Cập nhật gần đây';
-    return d.toLocaleDateString('vi-VN');
-  };
-
   const statusLabel = project.status === 0 ? null : project.status === 1 ? 'Lưu trữ' : 'Ngoại lệ';
 
   // Keep props for compatibility with parent callers in grid mode.
