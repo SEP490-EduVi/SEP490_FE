@@ -69,6 +69,7 @@ export function PresentationLayer() {
   const nextSlide = useDocumentStore((state) => state.nextSlide);
   const previousSlide = useDocumentStore((state) => state.previousSlide);
 
+
   const directionRef = React.useRef(0);
   const prevIndexRef = React.useRef(presentationSlideIndex);
 
@@ -106,6 +107,7 @@ export function PresentationLayer() {
       return () => window.removeEventListener('keydown', handleKeyDown, true);
     }
   }, [appMode, handleKeyDown]);
+
 
   // Don't render if not in presentation mode
   if (appMode !== 'PRESENT' || !document) return null;

@@ -767,3 +767,654 @@ Frontend định nghĩa **2 nhóm** templates. Backend **KHÔNG** cần validate
     }
   ]
 }
+
+```
+
+---
+
+## 🎮 Game Blueprint API (Mini-game)
+
+### Mục tiêu
+
+FE có một trang “Tạo & chơi mini-game” cho giáo viên:
+
+1) Teacher chọn loại game + cấu hình cơ bản
+2) FE gửi **GameConfigRequest** xuống Backend
+3) Backend trả về **PlayableGameResponse** (payload đã “flattened”) để FE render trực tiếp bằng MediaPipe engine
+
+> ✅ Ở giai đoạn hiện tại, FE **không yêu cầu persistence** (không lưu game). Backend có thể lưu hoặc không; miễn là trả về đúng payload để chơi.
+
+### Endpoint
+
+#### POST `/api/games/playable`
+
+- **Content-Type**: `application/json`
+- **Auth**: tuỳ hệ thống (khuyến nghị `Authorization: Bearer <token>`). Nếu chưa có auth, có thể để public trong giai đoạn mock.
+
+**Request**: `GameConfigRequest`
+
+**Response 200**: `PlayableGameResponse`
+
+**Errors** (gợi ý chuẩn hoá):
+
+- `400 Bad Request`: body không hợp lệ (missing field / sai kiểu / templateId không hỗ trợ)
+- `401 Unauthorized`: thiếu/invalid token (nếu bật auth)
+- `403 Forbidden`: user không có quyền với document/slide reference
+- `422 Unprocessable Entity`: reference hợp lệ nhưng không thể compile (thiếu asset/metadata)
+- `500 Internal Server Error`
+
+> FE hiện đang mock endpoint tương đương ở `POST /api/games/mock` (Next.js API route). Khi Backend thật có endpoint, FE chỉ đổi URL/BASE_URL.
+
+---
+
+## 📦 Data Contracts
+
+### 1) `GameConfigRequest` (FE → BE)
+
+```ts
+type GameBlueprintTemplateId = 'HOVER_SELECT' | 'DRAG_DROP';
+
+type SlideDataReferences = {
+  documentId?: string;
+  slideIds?: string[];
+  assetUrls?: string[];
+  note?: string;
+};
+
+type TeacherConfigs = {
+  timeLimitSec?: number;    // default 60
+  hoverHoldMs?: number;     // default 2000 (chỉ dùng cho HOVER_SELECT)
+  pinchThreshold?: number;  // default 0.045 (chỉ dùng cho DRAG_DROP)
+  enableSound?: boolean;
+};
+
+type GameConfigRequest = {
+  templateId: GameBlueprintTemplateId;
+  slideDataReferences: SlideDataReferences;
+  teacherConfigs: TeacherConfigs;
+};
+```
+
+**Validation rules** (khuyến nghị):
+
+- `templateId`: required, chỉ nhận `HOVER_SELECT` | `DRAG_DROP`
+- `slideDataReferences`: required object (có thể rỗng nếu BE chưa cần)
+- `teacherConfigs`: required object (có thể rỗng; BE tự default)
+
+---
+
+### 2) `PlayableGameResponse` (BE → FE)
+
+#### Common types
+
+```ts
+type NormalizedRect = { x: number; y: number; w: number; h: number }; // 0..1
+```
+
+**Coordinate system (CRITICAL)**
+
+- Tất cả tọa độ trong response đều là **normalized** theo canvas: $x,y,w,h \in [0,1]$
+- Gốc tọa độ: **top-left** (0,0)
+- `w`, `h` là kích thước tương đối theo canvas
+- Backend **không cần** xử lý mirroring; chỉ cần set `settings.mirror = true` (FE engine sẽ tự đồng bộ mirrored video/canvas)
+
+#### Response interface
+
+```ts
+type PlayableGameResponse = {
+  gameId: string;
+  templateId: 'HOVER_SELECT' | 'DRAG_DROP';
+  version: string; // khuyến nghị date/versioning, ví dụ "2026-03-31"
+  settings: {
+    mirror: true;          // BẮT BUỘC: luôn true
+    timeLimitSec: number;  // 5..600
+    hoverHoldMs: number;   // 250..5000
+    pinchThreshold: number; // 0.005..0.2
+  };
+  scene: {
+    title?: string;
+    backgroundUrl?: string;
+  };
+  // payload có thể là 1 câu (single) hoặc list nhiều câu (multi-round)
+  payload: HoverSelectPlayable | DragDropPlayable | Array<HoverSelectPlayable | DragDropPlayable>;
+};
+```
+
+**Multi-question rule (CRITICAL)**
+
+- Nếu `payload` là array thì đây là **nhiều round / nhiều câu** trong cùng 1 game.
+- `templateId` vẫn là **1 giá trị cố định** cho cả game.
+  - Nếu `templateId = HOVER_SELECT` → mọi phần tử trong array phải là `HoverSelectPlayable`
+  - Nếu `templateId = DRAG_DROP` → mọi phần tử trong array phải là `DragDropPlayable`
+
+---
+
+## 🧩 Blueprint Payloads
+
+### A) `HOVER_SELECT`
+
+```ts
+type HoverChoice = {
+  id: string;
+  text: string;
+  zone: NormalizedRect;
+};
+
+type HoverSelectPlayable = {
+  prompt: string;
+  choices: HoverChoice[];      // min 2
+  correctChoiceId: string;
+};
+```
+
+### B) `DRAG_DROP`
+
+```ts
+type DraggableItem = {
+  id: string;
+  label: string;
+  start: { x: number; y: number }; // 0..1 (center point)
+  size: { w: number; h: number };  // 0..1
+};
+
+type DropZone = {
+  id: string;
+  label: string;
+  zone: NormalizedRect;
+  acceptsItemId: string;
+};
+
+type DragDropPlayable = {
+  prompt: string;
+  items: DraggableItem[];
+  dropZones: DropZone[];
+};
+```
+
+---
+
+## 📤 Template Pack (nên gửi cho BE)
+
+BE đang hỏi “template” thì nên hiểu là: **templateId + payload schema** mà BE cần trả về để FE render.
+
+### 1) Template catalog
+
+- `HOVER_SELECT` → payload theo `HoverSelectPlayable`
+- `DRAG_DROP` → payload theo `DragDropPlayable`
+- Multi-question: `payload` có thể là array **nhiều round**, nhưng **không được mix loại** (tất cả phần tử phải cùng loại với `templateId`).
+
+### 2) JSON Schemas (copy/paste cho BE validator như AJV)
+
+> Đây là phiên bản JSON hoá (không phụ thuộc code FE). Nếu BE cần “source of truth”, xem trực tiếp file contract phía FE: `src/mediapipe-game/api-contracts.js`.
+
+#### `GameConfigRequestSchema`
+
+```json
+{
+  "$id": "GameConfigRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["templateId", "slideDataReferences", "teacherConfigs"],
+  "properties": {
+    "templateId": {
+      "type": "string",
+      "enum": ["HOVER_SELECT", "DRAG_DROP"]
+    },
+    "slideDataReferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": { "type": "string" },
+        "slideIds": { "type": "array", "items": { "type": "string" } },
+        "assetUrls": { "type": "array", "items": { "type": "string" } },
+        "note": { "type": "string" }
+      }
+    },
+    "teacherConfigs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeLimitSec": { "type": "number", "minimum": 5, "maximum": 600 },
+        "hoverHoldMs": { "type": "number", "minimum": 250, "maximum": 5000 },
+        "pinchThreshold": { "type": "number", "minimum": 0.005, "maximum": 0.2 },
+        "enableSound": { "type": "boolean" }
+      }
+    }
+  }
+}
+```
+
+#### `PlayableGameResponseSchema`
+
+```json
+{
+  "$id": "PlayableGameResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gameId", "templateId", "version", "settings", "scene", "payload"],
+  "properties": {
+    "gameId": { "type": "string" },
+    "templateId": {
+      "type": "string",
+      "enum": ["HOVER_SELECT", "DRAG_DROP"]
+    },
+    "version": { "type": "string" },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mirror", "timeLimitSec", "hoverHoldMs", "pinchThreshold"],
+      "properties": {
+        "mirror": { "const": true },
+        "timeLimitSec": { "type": "number", "minimum": 5, "maximum": 600 },
+        "hoverHoldMs": { "type": "number", "minimum": 250, "maximum": 5000 },
+        "pinchThreshold": { "type": "number", "minimum": 0.005, "maximum": 0.2 }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "backgroundUrl": { "type": "string" }
+      }
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prompt", "choices", "correctChoiceId"],
+          "properties": {
+            "prompt": { "type": "string" },
+            "correctChoiceId": { "type": "string" },
+            "choices": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "text", "zone"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "text": { "type": "string" },
+                  "zone": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x", "y", "w", "h"],
+                    "properties": {
+                      "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "w": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "h": { "type": "number", "minimum": 0, "maximum": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prompt", "items", "dropZones"],
+          "properties": {
+            "prompt": { "type": "string" },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label", "start", "size"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "label": { "type": "string" },
+                  "start": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x", "y"],
+                    "properties": {
+                      "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "y": { "type": "number", "minimum": 0, "maximum": 1 }
+                    }
+                  },
+                  "size": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["w", "h"],
+                    "properties": {
+                      "w": { "type": "number", "minimum": 0.01, "maximum": 1 },
+                      "h": { "type": "number", "minimum": 0.01, "maximum": 1 }
+                    }
+                  }
+                }
+              }
+            },
+            "dropZones": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label", "zone", "acceptsItemId"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "label": { "type": "string" },
+                  "acceptsItemId": { "type": "string" },
+                  "zone": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x", "y", "w", "h"],
+                    "properties": {
+                      "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "w": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "h": { "type": "number", "minimum": 0, "maximum": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["prompt", "choices", "correctChoiceId"],
+                "properties": {
+                  "prompt": { "type": "string" },
+                  "correctChoiceId": { "type": "string" },
+                  "choices": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["id", "text", "zone"],
+                      "properties": {
+                        "id": { "type": "string" },
+                        "text": { "type": "string" },
+                        "zone": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["x", "y", "w", "h"],
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "w": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "h": { "type": "number", "minimum": 0, "maximum": 1 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["prompt", "items", "dropZones"],
+                "properties": {
+                  "prompt": { "type": "string" },
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["id", "label", "start", "size"],
+                      "properties": {
+                        "id": { "type": "string" },
+                        "label": { "type": "string" },
+                        "start": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["x", "y"],
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 }
+                          }
+                        },
+                        "size": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["w", "h"],
+                          "properties": {
+                            "w": { "type": "number", "minimum": 0.01, "maximum": 1 },
+                            "h": { "type": "number", "minimum": 0.01, "maximum": 1 }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "dropZones": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["id", "label", "zone", "acceptsItemId"],
+                      "properties": {
+                        "id": { "type": "string" },
+                        "label": { "type": "string" },
+                        "acceptsItemId": { "type": "string" },
+                        "zone": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["x", "y", "w", "h"],
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "w": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "h": { "type": "number", "minimum": 0, "maximum": 1 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+## ✅ JSON Examples
+
+### Example 1 — Request: `HOVER_SELECT`
+
+```json
+{
+  "templateId": "HOVER_SELECT",
+  "slideDataReferences": {
+    "documentId": "doc-001",
+    "slideIds": ["card-001"],
+    "assetUrls": [],
+    "note": "Temp preview only (no persistence)"
+  },
+  "teacherConfigs": {
+    "timeLimitSec": 60,
+    "hoverHoldMs": 2000,
+    "pinchThreshold": 0.045,
+    "enableSound": false
+  }
+}
+```
+
+### Example 1 — Response: `HOVER_SELECT`
+
+```json
+{
+  "gameId": "game_7d4d8a0c-2bde-4f33-a4be-4a0e2f9b7b1b",
+  "templateId": "HOVER_SELECT",
+  "version": "2026-03-31",
+  "settings": {
+    "mirror": true,
+    "timeLimitSec": 60,
+    "hoverHoldMs": 2000,
+    "pinchThreshold": 0.045
+  },
+  "scene": {
+    "title": "Hover & Select"
+  },
+  "payload": {
+    "prompt": "Chọn đáp án đúng: 2 + 2 = ?",
+    "correctChoiceId": "c2",
+    "choices": [
+      { "id": "c1", "text": "3", "zone": { "x": 0.08, "y": 0.28, "w": 0.38, "h": 0.18 } },
+      { "id": "c2", "text": "4", "zone": { "x": 0.54, "y": 0.28, "w": 0.38, "h": 0.18 } },
+      { "id": "c3", "text": "5", "zone": { "x": 0.08, "y": 0.56, "w": 0.38, "h": 0.18 } },
+      { "id": "c4", "text": "6", "zone": { "x": 0.54, "y": 0.56, "w": 0.38, "h": 0.18 } }
+    ]
+  }
+}
+```
+
+---
+
+### Example 2 — Request: `DRAG_DROP`
+
+```json
+{
+  "templateId": "DRAG_DROP",
+  "slideDataReferences": {
+    "documentId": "doc-001",
+    "slideIds": ["card-002"],
+    "assetUrls": [],
+    "note": "Temp preview only (no persistence)"
+  },
+  "teacherConfigs": {
+    "timeLimitSec": 60,
+    "hoverHoldMs": 2000,
+    "pinchThreshold": 0.045,
+    "enableSound": false
+  }
+}
+```
+
+### Example 2 — Response: `DRAG_DROP`
+
+```json
+{
+  "gameId": "game_1c5e5dfc-0c50-4e2e-9c53-a97bf0434a44",
+  "templateId": "DRAG_DROP",
+  "version": "2026-03-31",
+  "settings": {
+    "mirror": true,
+    "timeLimitSec": 60,
+    "hoverHoldMs": 2000,
+    "pinchThreshold": 0.045
+  },
+  "scene": {
+    "title": "Drag & Drop"
+  },
+  "payload": {
+    "prompt": "Kéo đúng nhãn vào đúng ô:",
+    "items": [
+      {
+        "id": "item_cat",
+        "label": "Mèo",
+        "start": { "x": 0.15, "y": 0.75 },
+        "size": { "w": 0.18, "h": 0.12 }
+      },
+      {
+        "id": "item_dog",
+        "label": "Chó",
+        "start": { "x": 0.38, "y": 0.75 },
+        "size": { "w": 0.18, "h": 0.12 }
+      }
+    ],
+    "dropZones": [
+      {
+        "id": "zone_cat",
+        "label": "Ô Mèo",
+        "acceptsItemId": "item_cat",
+        "zone": { "x": 0.12, "y": 0.2, "w": 0.32, "h": 0.22 }
+      },
+      {
+        "id": "zone_dog",
+        "label": "Ô Chó",
+        "acceptsItemId": "item_dog",
+        "zone": { "x": 0.56, "y": 0.2, "w": 0.32, "h": 0.22 }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Example 3 — Response multi-question (payload list) — `HOVER_SELECT`
+
+```json
+{
+  "gameId": "game_multi_abc123",
+  "templateId": "HOVER_SELECT",
+  "version": "2026-03-31",
+  "settings": {
+    "mirror": true,
+    "timeLimitSec": 60,
+    "hoverHoldMs": 2000,
+    "pinchThreshold": 0.045
+  },
+  "scene": {
+    "title": "Hover & Select (3 câu)"
+  },
+  "payload": [
+    {
+      "prompt": "Câu 1: 2 + 2 = ?",
+      "correctChoiceId": "c0_2",
+      "choices": [
+        { "id": "c0_1", "text": "3", "zone": { "x": 0.08, "y": 0.28, "w": 0.38, "h": 0.18 } },
+        { "id": "c0_2", "text": "4", "zone": { "x": 0.54, "y": 0.28, "w": 0.38, "h": 0.18 } },
+        { "id": "c0_3", "text": "5", "zone": { "x": 0.08, "y": 0.56, "w": 0.38, "h": 0.18 } },
+        { "id": "c0_4", "text": "6", "zone": { "x": 0.54, "y": 0.56, "w": 0.38, "h": 0.18 } }
+      ]
+    },
+    {
+      "prompt": "Câu 2: 3 + 3 = ?",
+      "correctChoiceId": "c1_2",
+      "choices": [
+        { "id": "c1_1", "text": "5", "zone": { "x": 0.08, "y": 0.28, "w": 0.38, "h": 0.18 } },
+        { "id": "c1_2", "text": "6", "zone": { "x": 0.54, "y": 0.28, "w": 0.38, "h": 0.18 } },
+        { "id": "c1_3", "text": "7", "zone": { "x": 0.08, "y": 0.56, "w": 0.38, "h": 0.18 } },
+        { "id": "c1_4", "text": "8", "zone": { "x": 0.54, "y": 0.56, "w": 0.38, "h": 0.18 } }
+      ]
+    },
+    {
+      "prompt": "Câu 3: 4 + 4 = ?",
+      "correctChoiceId": "c2_2",
+      "choices": [
+        { "id": "c2_1", "text": "7", "zone": { "x": 0.08, "y": 0.28, "w": 0.38, "h": 0.18 } },
+        { "id": "c2_2", "text": "8", "zone": { "x": 0.54, "y": 0.28, "w": 0.38, "h": 0.18 } },
+        { "id": "c2_3", "text": "9", "zone": { "x": 0.08, "y": 0.56, "w": 0.38, "h": 0.18 } },
+        { "id": "c2_4", "text": "10", "zone": { "x": 0.54, "y": 0.56, "w": 0.38, "h": 0.18 } }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 🔒 Compatibility Notes (để FE không bị crash)
+
+- `settings.mirror` **bắt buộc** là `true` (schema phía FE đang yêu cầu `const: true`)
+- `payload` phải đúng shape theo `templateId`:
+  - `HOVER_SELECT` → có `choices[]` và `correctChoiceId`
+  - `DRAG_DROP` → có `items[]` và `dropZones[]`
+- Nếu `payload` là array thì các phần tử **phải cùng loại** với `templateId` (không mix)
+- Tất cả number trong `NormalizedRect`, `start`, `size` nên nằm trong [0..1] để tránh vẽ ngoài canvas
+
+> Nguồn contract chuẩn phía FE: `src/mediapipe-game/api-contracts.js` (có JSON Schemas để BE team copy sang validator như AJV).

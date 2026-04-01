@@ -348,6 +348,17 @@ export function Toolbar() {
           </button>
 
           <button
+            onClick={() => { window.location.href = '/teacher/game-maker'; }}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg',
+              'bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors'
+            )}
+            title="Tạo game"
+          >
+            Tạo game
+          </button>
+
+          <button
             onClick={saveSlide}
             disabled={!isDirty || !document || !currentProductCode || isSaving}
             className={cn(
