@@ -9,11 +9,11 @@
  *   - Click → opens file explorer → reads as data URL → saves to store
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { IImageContent, BlockType } from '@/types';
 import { useDocumentStore } from '@/store';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, Loader2 } from 'lucide-react';
 
 interface ImageBlockProps {
   id: string;
@@ -30,6 +30,37 @@ export function ImageBlock({
 }: ImageBlockProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
+
+  // Resolve gs:// URLs to signed download URLs
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(
+    content.src && !content.src.startsWith('gs://') ? content.src : null
+  );
+  const [loading, setLoading] = useState(
+    !!content.src && content.src.startsWith('gs://')
+  );
+
+  useEffect(() => {
+    if (!content.src) return;
+    if (!content.src.startsWith('gs://')) {
+      setResolvedSrc(content.src);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetch('/api/gcs/download-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcsUrl: content.src }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.signedUrl) setResolvedSrc(data.signedUrl);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [content.src]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,8 +87,25 @@ export function ImageBlock({
     fileInputRef.current?.click();
   };
 
+  // ── Loading state (resolving gs:// URL) ──────────────────────────────────
+  if (content.src && loading) {
+    return (
+      <figure
+        className={cn(
+          'relative rounded-lg overflow-hidden transition-all duration-200',
+          isSelected && 'ring-2 ring-primary-500 ring-offset-2'
+        )}
+      >
+        <div className="w-full h-96 flex items-center justify-center bg-gray-100 rounded-lg">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <span className="ml-2 text-sm text-gray-500">Đang tải hình ảnh…</span>
+        </div>
+      </figure>
+    );
+  }
+
   // ── Placeholder (no image yet) ──────────────────────────────────────────
-  if (!content.src) {
+  if (!resolvedSrc) {
     return (
       <figure
         className={cn(
@@ -119,7 +167,7 @@ export function ImageBlock({
       <div className="relative w-full aspect-video bg-gray-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={content.src}
+          src={resolvedSrc!}
           alt={content.alt}
           className="w-full h-full object-cover"
           loading="lazy"

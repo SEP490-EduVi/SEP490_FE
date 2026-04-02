@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/gcsClient';
 
 const bucketName = process.env.GCS_BUCKET_NAME ?? 'eduvi_folders';
-const folder = process.env.GCS_FOLDER_MATERIAL ?? 'material';
+const folder = process.env.GCS_FOLDER_MATERIAL ?? 'materials';
 
 const normalizeSegment = (value: string) =>
   value

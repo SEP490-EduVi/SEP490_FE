@@ -11,11 +11,11 @@
  *  - "Nhập link YouTube / Vimeo" → inline text input
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { IVideoContent, BlockType } from '@/types';
 import { useDocumentStore } from '@/store';
-import { VideoIcon as VideoPlus, Link2 } from 'lucide-react';
+import { VideoIcon as VideoPlus, Link2, Loader2 } from 'lucide-react';
 
 interface VideoBlockProps {
   id: string;
@@ -66,6 +66,36 @@ export function VideoBlock({
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
   const [urlMode, setUrlMode] = useState(false);
   const [urlValue, setUrlValue] = useState('');
+
+  // Resolve gs:// URLs to signed download URLs (only for direct provider)
+  const needsResolve = !!content.src && content.src.startsWith('gs://');
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(
+    content.src && !needsResolve ? content.src : null
+  );
+  const [gcsLoading, setGcsLoading] = useState(needsResolve);
+
+  useEffect(() => {
+    if (!content.src) return;
+    if (!content.src.startsWith('gs://')) {
+      setResolvedSrc(content.src);
+      setGcsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setGcsLoading(true);
+    fetch('/api/gcs/download-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcsUrl: content.src }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.signedUrl) setResolvedSrc(data.signedUrl);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setGcsLoading(false); });
+    return () => { cancelled = true; };
+  }, [content.src]);
 
   // ── Handle local file upload ──────────────────────────────────────────────
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,8 +202,29 @@ export function VideoBlock({
     );
   }
 
+  // ── Loading state (resolving gs:// URL) ────────────────────────────────
+  if (content.src && gcsLoading) {
+    return (
+      <div
+        className={cn(
+          'relative rounded-lg overflow-hidden transition-all duration-200',
+          isSelected && 'ring-2 ring-primary-500 ring-offset-2'
+        )}
+      >
+        <div className="w-full aspect-video flex items-center justify-center bg-gray-900 rounded-lg">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <span className="ml-2 text-sm text-gray-400">Đang tải video…</span>
+        </div>
+      </div>
+    );
+  }
+
   // ── Video player ──────────────────────────────────────────────────────────
-  const embedUrl = getEmbedUrl(content);
+  // Use resolvedSrc for direct/gs:// videos, original content for youtube/vimeo embeds
+  const effectiveContent: IVideoContent = resolvedSrc && content.provider === 'direct'
+    ? { ...content, src: resolvedSrc }
+    : content;
+  const embedUrl = getEmbedUrl(effectiveContent);
 
   return (
     <div

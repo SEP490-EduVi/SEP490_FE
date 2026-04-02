@@ -182,20 +182,20 @@ export const freeformCardTemplates: CardTemplateItem[] = [
     type: 'title-card',
     label: 'Thẻ tiêu đề',
     preview: (
-      <div className="w-full h-32 flex flex-col justify-between p-3 bg-indigo-600 rounded">
+      <div className="w-full h-32 flex flex-col justify-between p-3 bg-white border border-gray-200 rounded">
         <div className="flex items-center gap-1">
-          <LucideIcons.BookOpen className="w-2.5 h-2.5 text-indigo-200 flex-shrink-0" />
-          <div className="h-2 bg-indigo-400/60 rounded w-1/3" />
+          <LucideIcons.BookOpen className="w-2.5 h-2.5 text-indigo-400 flex-shrink-0" />
+          <div className="h-2 bg-indigo-200/60 rounded w-1/3" />
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="h-4 bg-white/80 rounded w-4/5" />
-          <div className="h-2.5 bg-indigo-300/70 rounded w-3/5" />
-          <div className="h-2 bg-indigo-400/50 rounded w-2/5" />
+          <div className="h-4 bg-gray-300 rounded w-4/5" />
+          <div className="h-2.5 bg-gray-200 rounded w-3/5" />
+          <div className="h-2 bg-gray-200 rounded w-2/5" />
         </div>
         <div className="flex justify-center gap-1">
-          <div className="h-1 w-6 bg-indigo-300/60 rounded-full" />
-          <div className="h-1 w-2 bg-indigo-400/40 rounded-full" />
-          <div className="h-1 w-2 bg-indigo-400/40 rounded-full" />
+          <div className="h-1 w-6 bg-indigo-200/60 rounded-full" />
+          <div className="h-1 w-2 bg-gray-200 rounded-full" />
+          <div className="h-1 w-2 bg-gray-200 rounded-full" />
         </div>
       </div>
     ),
@@ -247,10 +247,10 @@ export const freeformCardTemplates: CardTemplateItem[] = [
     type: 'quiz-card',
     label: 'Thẻ câu hỏi',
     preview: (
-      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-amber-50 border border-amber-200 rounded">
+      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-white border border-gray-200 rounded">
         <div className="flex items-center gap-1.5">
           <LucideIcons.HelpCircle className="w-3 h-3 text-amber-400 flex-shrink-0" />
-          <div className="h-3.5 bg-amber-200 rounded flex-1 w-2/3" />
+          <div className="h-3.5 bg-gray-300 rounded flex-1 w-2/3" />
         </div>
         <div className="flex items-center gap-1.5 pl-1">
           <div className="w-3 h-3 border border-gray-300 rounded-full flex-shrink-0" />
@@ -276,19 +276,19 @@ export const freeformCardTemplates: CardTemplateItem[] = [
     type: 'flashcard-card',
     label: 'Thẻ ghi nhớ',
     preview: (
-      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-violet-50 border border-violet-200 rounded">
+      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-white border border-gray-200 rounded">
         <div className="flex items-center gap-1.5">
           <LucideIcons.RotateCcw className="w-3 h-3 text-violet-400 flex-shrink-0" />
-          <div className="h-3.5 bg-violet-200 rounded flex-1 w-2/3" />
+          <div className="h-3.5 bg-gray-300 rounded flex-1 w-2/3" />
         </div>
-        <div className="flex-1 flex flex-col gap-1 bg-white border border-violet-200 rounded p-1.5">
+        <div className="flex-1 flex flex-col gap-1 bg-gray-50 border border-gray-200 rounded p-1.5">
           <div className="h-2.5 bg-violet-200 rounded w-3/4" />
-          <div className="h-2 bg-violet-100 rounded w-full" />
+          <div className="h-2 bg-gray-200 rounded w-full" />
         </div>
-        <div className="h-px bg-violet-200 mx-1" />
-        <div className="flex-1 flex flex-col gap-1 bg-violet-100/50 border border-violet-200 rounded p-1.5">
+        <div className="h-px bg-gray-200 mx-1" />
+        <div className="flex-1 flex flex-col gap-1 bg-gray-50 border border-gray-200 rounded p-1.5">
           <div className="h-2.5 bg-violet-200 rounded w-4/5" />
-          <div className="h-2 bg-violet-100 rounded w-3/5" />
+          <div className="h-2 bg-gray-200 rounded w-3/5" />
         </div>
       </div>
     ),
@@ -298,24 +298,24 @@ export const freeformCardTemplates: CardTemplateItem[] = [
     type: 'fill-blank-card',
     label: 'Thẻ điền từ',
     preview: (
-      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-emerald-50 border border-emerald-200 rounded">
+      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-white border border-gray-200 rounded">
         <div className="flex items-center gap-1.5">
           <LucideIcons.PenLine className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-          <div className="h-3.5 bg-emerald-200 rounded flex-1 w-2/3" />
+          <div className="h-3.5 bg-gray-300 rounded flex-1 w-2/3" />
         </div>
         <div className="flex items-center gap-1 pl-1 flex-wrap">
           <div className="h-2.5 bg-gray-200 rounded w-1/5" />
-          <div className="h-2.5 rounded w-1/5 border-b-2 border-emerald-400 bg-emerald-100" />
+          <div className="h-2.5 rounded w-1/5 border-b-2 border-emerald-400 bg-emerald-50" />
           <div className="h-2.5 bg-gray-200 rounded w-2/5" />
         </div>
         <div className="flex items-center gap-1 pl-1 flex-wrap">
           <div className="h-2.5 bg-gray-200 rounded w-2/5" />
-          <div className="h-2.5 rounded w-1/6 border-b-2 border-emerald-400 bg-emerald-100" />
+          <div className="h-2.5 rounded w-1/6 border-b-2 border-emerald-400 bg-emerald-50" />
           <div className="h-2.5 bg-gray-200 rounded w-1/4" />
         </div>
         <div className="flex items-center gap-1 pl-1 flex-wrap">
           <div className="h-2.5 bg-gray-200 rounded w-1/4" />
-          <div className="h-2.5 rounded w-1/5 border-b-2 border-emerald-400 bg-emerald-100" />
+          <div className="h-2.5 rounded w-1/5 border-b-2 border-emerald-400 bg-emerald-50" />
           <div className="h-2.5 bg-gray-200 rounded w-1/3" />
         </div>
       </div>
@@ -326,25 +326,25 @@ export const freeformCardTemplates: CardTemplateItem[] = [
     type: 'summary-card',
     label: 'Thẻ tóm tắt',
     preview: (
-      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-sky-50 border border-sky-200 rounded">
+      <div className="w-full h-32 flex flex-col gap-1.5 p-3 bg-white border border-gray-200 rounded">
         <div className="flex items-center gap-1.5">
           <LucideIcons.ListChecks className="w-3 h-3 text-sky-400 flex-shrink-0" />
-          <div className="h-3.5 bg-sky-200 rounded flex-1 w-2/3" />
+          <div className="h-3.5 bg-gray-300 rounded flex-1 w-2/3" />
         </div>
         <div className="flex items-center gap-1.5 pl-1">
-          <div className="w-3 h-3 border-2 border-sky-400 rounded-sm flex-shrink-0 bg-sky-200 flex items-center justify-center" />
-          <div className="h-2.5 bg-sky-100 rounded flex-1" />
+          <div className="w-3 h-3 border-2 border-sky-400 rounded-sm flex-shrink-0 bg-sky-100 flex items-center justify-center" />
+          <div className="h-2.5 bg-gray-200 rounded flex-1" />
         </div>
         <div className="flex items-center gap-1.5 pl-1">
-          <div className="w-3 h-3 border-2 border-sky-400 rounded-sm flex-shrink-0 bg-sky-200" />
-          <div className="h-2.5 bg-sky-100 rounded flex-1 w-5/6" />
+          <div className="w-3 h-3 border-2 border-sky-400 rounded-sm flex-shrink-0 bg-sky-100" />
+          <div className="h-2.5 bg-gray-200 rounded flex-1 w-5/6" />
         </div>
         <div className="flex items-center gap-1.5 pl-1">
-          <div className="w-3 h-3 border-2 border-sky-400 rounded-sm flex-shrink-0 bg-sky-200" />
-          <div className="h-2.5 bg-sky-100 rounded flex-1 w-4/5" />
+          <div className="w-3 h-3 border-2 border-sky-400 rounded-sm flex-shrink-0 bg-sky-100" />
+          <div className="h-2.5 bg-gray-200 rounded flex-1 w-4/5" />
         </div>
         <div className="flex items-center gap-1.5 pl-1">
-          <div className="w-3 h-3 border border-sky-300 rounded-sm flex-shrink-0" />
+          <div className="w-3 h-3 border border-gray-300 rounded-sm flex-shrink-0" />
           <div className="h-2.5 bg-gray-100 rounded flex-1 w-3/4" />
         </div>
       </div>

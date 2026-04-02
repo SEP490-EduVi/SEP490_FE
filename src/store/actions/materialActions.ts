@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   ILayout,
   IBlock,
+  ICard,
   NodeType,
   BlockType,
   LayoutVariant,
@@ -232,6 +233,94 @@ export function createMaterialActions(
       };
       
       setDocumentWithHistory(newDoc);
+    },
+
+    /**
+     * Drop a purchased material into the document.
+     * - Images: added as IMAGE block to the target card
+     * - Videos: create a new slide with a VIDEO block
+     */
+    dropPurchasedMaterial: (
+      targetCardId: string | null,
+      item: { title: string; description?: string; type: string; resourceUrl: string | null }
+    ) => {
+      const { document } = get();
+      if (!document) return;
+
+      const isVideo = item.type.toLowerCase().includes('video');
+      const resourceUrl = item.resourceUrl || '';
+
+      // Detect video provider from URL (youtube / vimeo / direct)
+      const detectProvider = (url: string): 'youtube' | 'vimeo' | 'direct' => {
+        if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
+        if (/vimeo\.com/i.test(url)) return 'vimeo';
+        return 'direct';
+      };
+
+      if (isVideo) {
+        const blockId = `block-${uuidv4()}`;
+        const cardId = `card-${uuidv4()}`;
+        const provider = detectProvider(resourceUrl);
+        const videoBlock: IBlock = {
+          id: blockId,
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.VIDEO,
+            src: resourceUrl,
+            provider,
+          },
+          children: [],
+          styles: {
+            width: '100%',
+            maxWidth: '800px',
+            aspectRatio: '16/9',
+          },
+          isResizable: true,
+        };
+        const newCard: ICard = {
+          id: cardId,
+          type: NodeType.CARD,
+          title: item.title,
+          children: [videoBlock],
+        };
+        const newDoc = {
+          ...document,
+          cards: [...document.cards, newCard],
+          updatedAt: new Date().toISOString(),
+        };
+        setDocumentWithHistory(newDoc, { activeCardId: cardId });
+      } else {
+        const cardId = targetCardId || document.cards[document.cards.length - 1]?.id;
+        if (!cardId) return;
+
+        const blockId = `block-${uuidv4()}`;
+        const imageBlock: IBlock = {
+          id: blockId,
+          type: NodeType.BLOCK,
+          content: {
+            type: BlockType.IMAGE,
+            src: resourceUrl,
+            alt: item.title,
+            caption: item.description || '',
+          },
+          children: [],
+          styles: {
+            width: '100%',
+            maxWidth: '800px',
+          },
+          isResizable: true,
+        };
+        const newDoc = {
+          ...document,
+          cards: document.cards.map((card) =>
+            card.id === cardId
+              ? { ...card, children: [...card.children, imageBlock] }
+              : card
+          ),
+          updatedAt: new Date().toISOString(),
+        };
+        setDocumentWithHistory(newDoc, { selectedNodeId: blockId });
+      }
     },
   };
 }

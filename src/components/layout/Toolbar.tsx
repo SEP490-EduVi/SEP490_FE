@@ -20,7 +20,6 @@ import {
   Undo2,
   Redo2,
   Play,
-  ShoppingBag,
   Heading1,
   AlignLeft,
   Image as ImageIcon,
@@ -33,6 +32,8 @@ import {
   Loader2,
   ArrowLeft,
   Film,
+  Gamepad2,
+  Download,
 } from 'lucide-react';
 
 // ============================================================================
@@ -160,7 +161,6 @@ export function Toolbar() {
   const startPresentation = useDocumentStore((state) => state.startPresentation);
   const canUndo = useDocumentStore((state) => state.canUndo());
   const canRedo = useDocumentStore((state) => state.canRedo());
-  const onlineUsers = useDocumentStore((state) => state.onlineUsers);
   const setCardContentAlignment = useDocumentStore((state) => state.setCardContentAlignment);
   const setCardBackground = useDocumentStore((state) => state.setCardBackground);
   const currentProductCode = useDocumentStore((state) => state.currentProductCode);
@@ -173,6 +173,8 @@ export function Toolbar() {
 
   const [showVideoConfirm, setShowVideoConfirm] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
 
   const activeCard = document?.cards.find((c) => c.id === activeCardId);
   const currentAlignment = activeCard?.contentAlignment ?? 'center';
@@ -194,6 +196,16 @@ export function Toolbar() {
     if (showBgPicker) window.addEventListener('mousedown', handler);
     return () => window.removeEventListener('mousedown', handler);
   }, [showBgPicker]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) {
+        setShowShareMenu(false);
+      }
+    };
+    if (showShareMenu) window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showShareMenu]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -301,44 +313,14 @@ export function Toolbar() {
           </div>
         </div>
 
-        {/* Right: online users + action buttons */}
-        <div className="flex items-center gap-3">
-          {/* Online Users */}
-          <div className="flex items-center -space-x-2">
-            {onlineUsers.slice(0, 3).map((user) => (
-              <div
-                key={user.id}
-                className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold border-2 border-white shadow-sm',
-                  user.color
-                )}
-                title={user.name}
-              >
-                {user.avatar}
-              </div>
-            ))}
-            {onlineUsers.length > 3 && (
-              <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs font-semibold border-2 border-white shadow-sm">
-                +{onlineUsers.length - 3}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => window.location.href = '/shop'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors"
-            title="Shop"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            Shop
-          </button>
-
+        {/* Right: action buttons */}
+        <div className="flex items-center gap-2">
           <button
             onClick={startPresentation}
             disabled={!document || !document.cards.length}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg',
+              'bg-white/15 hover:bg-white/25 text-white font-medium text-sm transition-colors',
               'disabled:opacity-40 disabled:cursor-not-allowed'
             )}
             title="Thuyết trình"
@@ -348,24 +330,13 @@ export function Toolbar() {
           </button>
 
           <button
-            onClick={() => { window.location.href = '/teacher/game-maker'; }}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors'
-            )}
-            title="Tạo game"
-          >
-            Tạo game
-          </button>
-
-          <button
             onClick={saveSlide}
             disabled={!isDirty || !document || !currentProductCode || isSaving}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-sm transition-colors',
               isDirty && document && currentProductCode && !isSaving
-                ? 'bg-white/15 hover:bg-white/25 text-white'
-                : 'bg-white/5 text-white/40 cursor-not-allowed'
+                ? 'bg-blue-500 hover:bg-blue-400 text-white shadow-md'
+                : 'bg-white/10 text-white/40 cursor-not-allowed'
             )}
             title="Lưu (Ctrl+S)"
           >
@@ -375,37 +346,53 @@ export function Toolbar() {
             Lưu
           </button>
 
-          {isSlideEdited && (
+          {/* Chia sẻ dropdown */}
+          <div className="relative" ref={shareMenuRef}>
             <button
-              onClick={handleGenerateVideo}
-              disabled={isDirty}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors',
-                !isDirty
-                  ? 'bg-white/15 hover:bg-white/25 text-white'
-                  : 'bg-white/5 text-white/40 cursor-not-allowed'
-              )}
-              title={isDirty ? 'Hãy lưu slide trước khi tạo video' : 'Tạo video từ slide hiện tại'}
+              onClick={() => setShowShareMenu((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-blue-700 hover:bg-blue-50 font-semibold text-sm transition-colors shadow-sm"
             >
-              <Film className="w-4 h-4" />
-              Tạo video
+              Chia sẻ
+              <ChevronDown className="w-3 h-3" />
             </button>
-          )}
 
-          <button
-            onClick={() => {
-              if (document) exportToEduvi(document);
-            }}
-            disabled={!document}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-white text-blue-700 hover:bg-blue-50 font-semibold text-sm transition-colors shadow-sm',
-              'disabled:opacity-40 disabled:cursor-not-allowed'
+            {showShareMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[9999]">
+                <button
+                  onClick={() => { window.location.href = '/teacher/game-maker'; setShowShareMenu(false); }}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Gamepad2 className="w-4 h-4 text-purple-500" />
+                  Tạo game
+                </button>
+                {isSlideEdited && (
+                  <button
+                    onClick={() => { handleGenerateVideo(); setShowShareMenu(false); }}
+                    disabled={isDirty}
+                    title={isDirty ? 'Hãy lưu slide trước khi tạo video' : ''}
+                    className={cn(
+                      'flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors',
+                      isDirty ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    <Film className="w-4 h-4 text-amber-500" />
+                    Tạo video
+                  </button>
+                )}
+                <button
+                  onClick={() => { if (document) exportToEduvi(document); setShowShareMenu(false); }}
+                  disabled={!document}
+                  className={cn(
+                    'flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors',
+                    !document ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
+                  )}
+                >
+                  <Download className="w-4 h-4 text-blue-500" />
+                  Tải file edu
+                </button>
+              </div>
             )}
-            title="Chia sẻ"
-          >
-            Chia sẻ
-          </button>
+          </div>
         </div>
       </header>
 

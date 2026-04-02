@@ -176,11 +176,11 @@ function QuestionEditor({
 
           </div>
 
-          {/* Explanation (Optional) */}
+          {/* Giải thích (Tùy chọn) */}
           <div>
             <label className="flex items-center gap-1 text-lg font-medium text-gray-600 mb-1">
               <Lightbulb className="w-3 h-3" />
-              Explanation (optional)
+              Giải thích (tùy chọn)
             </label>
             <textarea
               value={question.explanation || ''}

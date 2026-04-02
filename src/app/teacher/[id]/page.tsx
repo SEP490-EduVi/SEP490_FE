@@ -288,10 +288,29 @@ export default function ProjectDetailPage() {
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <button onClick={() => router.push('/teacher/projects')} className="hover:text-blue-600 transition-colors">Dự án</button>
             <ChevronRight className="w-3.5 h-3.5" />
+            {project.subjectCode && (
+              <>
+                <button
+                  onClick={() => router.push(`/teacher/projects?subjectCode=${project.subjectCode}`)}
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  {project.subjectName || project.subjectCode}
+                </button>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </>
+            )}
             <span className="text-gray-900 font-medium">{project.projectName}</span>
           </div>
           <div className="flex items-start gap-4">
-            <button onClick={() => router.push('/teacher/projects')} className="mt-1 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (project.subjectCode) params.set('subjectCode', project.subjectCode);
+                if (project.gradeCode) params.set('gradeCode', project.gradeCode);
+                router.push(`/teacher/projects${params.toString() ? `?${params}` : ''}`);
+              }}
+              className="mt-1 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div className="flex items-center gap-3 mt-1">
