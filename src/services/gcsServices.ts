@@ -1,37 +1,54 @@
 // src/services/gcsServices.ts
 //
-// Uploads the slide JSON to GCS via the Next.js server API route.
-// The server handles authentication with the service account key.
-// Browser never communicates with GCS directly (avoids CORS issues).
+// Uses signed URLs to upload directly from the browser to GCS.
+// The Next.js server only generates short-lived signed URLs (~15 min),
+// so large payloads bypass the Vercel 4.5 MB function body limit.
 
 /**
- * Upload slide data to GCS through the Next.js server.
- * Returns the GCS object URL (gs://...) to send to the backend.
+ * Upload slide data to GCS via signed URL (browser → GCS direct).
+ * 1. POST /api/gcs/signed-url  → get { signedUrl, gcsObjectUrl }
+ * 2. PUT JSON directly to signedUrl
+ * Returns the gs:// URL to send to the backend.
  */
 export async function uploadSlideToGcs(
   productCode: string,
   data: unknown,
 ): Promise<string> {
-  const res = await fetch('/api/gcs/upload', {
+  // Step 1: Get signed URL from our server
+  const signedRes = await fetch('/api/gcs/signed-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productCode, data }),
+    body: JSON.stringify({ productCode }),
   });
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+  if (!signedRes.ok) {
+    const body = await signedRes.json().catch(() => ({}));
     throw new Error(
-      (body as { error?: string }).error ?? `GCS upload failed (${res.status})`,
+      (body as { error?: string }).error ?? `Failed to get signed URL (${signedRes.status})`,
     );
   }
 
-  const result = await res.json();
-  return result.gcsObjectUrl as string;
+  const { signedUrl, gcsObjectUrl } = await signedRes.json();
+
+  // Step 2: Upload JSON directly to GCS via signed URL
+  const uploadRes = await fetch(signedUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error(`GCS direct upload failed (${uploadRes.status})`);
+  }
+
+  return gcsObjectUrl as string;
 }
 
 /**
- * Upload material file and optional preview file to GCS through Next.js server.
- * Returns gs:// URLs to be sent to backend as metadata.
+ * Upload material file (and optional preview) to GCS via signed URLs.
+ * 1. POST /api/gcs/material-signed-url → get signed URLs
+ * 2. PUT files directly to GCS
+ * Returns gs:// URLs for backend metadata.
  */
 export async function uploadMaterialFilesToGcs(input: {
   file: File;
@@ -39,29 +56,60 @@ export async function uploadMaterialFilesToGcs(input: {
   prefix?: string;
   userId?: string | number;
 }): Promise<{ resourceUrl: string; previewUrl: string | null }> {
-  const formData = new FormData();
-  formData.append('file', input.file);
-  if (input.previewFile) formData.append('previewFile', input.previewFile);
-  if (input.prefix) formData.append('prefix', input.prefix);
-  if (input.userId !== undefined && input.userId !== null) {
-    formData.append('userId', String(input.userId));
-  }
-
-  const res = await fetch('/api/gcs/material-upload', {
+  // Step 1: Get signed URL(s) from our server
+  const signedRes = await fetch('/api/gcs/material-signed-url', {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: input.file.name,
+      contentType: input.file.type || 'application/octet-stream',
+      prefix: input.prefix,
+      userId: input.userId !== undefined && input.userId !== null
+        ? String(input.userId)
+        : undefined,
+      previewFileName: input.previewFile?.name,
+      previewContentType: input.previewFile?.type,
+    }),
   });
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+  if (!signedRes.ok) {
+    const body = await signedRes.json().catch(() => ({}));
     throw new Error(
-      (body as { error?: string }).error ?? `GCS material upload failed (${res.status})`,
+      (body as { error?: string }).error ?? `Failed to get material signed URL (${signedRes.status})`,
     );
   }
 
-  const result = await res.json();
+  const { resource, preview } = await signedRes.json();
+
+  // Step 2: Upload main file directly to GCS
+  const uploadRes = await fetch(resource.signedUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': input.file.type || 'application/octet-stream' },
+    body: input.file,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error(`GCS material upload failed (${uploadRes.status})`);
+  }
+
+  // Step 3: Upload preview file if provided
+  let previewUrl: string | null = null;
+  if (input.previewFile && preview) {
+    const previewRes = await fetch(preview.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': input.previewFile.type || 'application/octet-stream' },
+      body: input.previewFile,
+    });
+
+    if (!previewRes.ok) {
+      console.warn(`GCS preview upload failed (${previewRes.status}), continuing without preview`);
+    } else {
+      previewUrl = preview.gcsUrl as string;
+    }
+  }
+
   return {
-    resourceUrl: result.resourceUrl as string,
-    previewUrl: (result.previewUrl as string | null) ?? null,
+    resourceUrl: resource.gcsUrl as string,
+    previewUrl,
   };
 }

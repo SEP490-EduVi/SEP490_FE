@@ -2,6 +2,11 @@ import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/gcsClient';
 
+// Increase body size limit for large material file uploads
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 const bucketName = process.env.GCS_BUCKET_NAME ?? 'eduvi_folders';
 const folder = process.env.GCS_FOLDER_MATERIAL ?? 'materials';
 

@@ -1,0 +1,18 @@
+{
+  "functions": {
+    "src/app/api/gcs/upload/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "src/app/api/gcs/material-upload/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "src/app/api/gcs/download-url/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/gcs/read/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
