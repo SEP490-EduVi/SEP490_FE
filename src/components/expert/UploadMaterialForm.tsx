@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, FileText, X } from 'lucide-react';
 import type { SubjectDto, GradeDto } from '@/types/api';
 import { MetadataSelect } from './MetadataSelect';
 import { MATERIAL_TYPE_OPTIONS } from './materialConstants';
@@ -90,15 +90,52 @@ export function UploadMaterialForm({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tệp tài liệu <span className="text-red-500">*</span>
               </label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
                   if (f) { setFile(f); if (!form.title) set('title')(f.name.replace(/\.[^.]+$/, '')); }
                 }}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
+                className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                  file ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+              >
+                {file ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium text-blue-700 truncate">{file.name}</p>
+                      <p className="text-xs text-blue-400">{(file.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-7 h-7 text-gray-300 mx-auto mb-1.5" />
+                    <p className="text-sm font-medium text-gray-600">Kéo thả hoặc nhấn để chọn</p>
+                    <p className="text-xs text-gray-400 mt-0.5">PDF, JPG, PNG, MP4 · Tối đa 50 MB</p>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) { setFile(f); if (!form.title) set('title')(f.name.replace(/\.[^.]+$/, '')); }
+                  }}
+                  className="hidden"
+                />
+              </div>
             </div>
 
             {/* Preview */}
@@ -106,13 +143,54 @@ export function UploadMaterialForm({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Ảnh xem trước (tùy chọn)
               </label>
-              <input
-                ref={previewInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) setPreviewFile(f); }}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
-              />
+              <div
+                onClick={() => previewInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
+                  if (f && f.type.startsWith('image/')) setPreviewFile(f);
+                }}
+                className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                  previewFile ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {previewFile ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      <img
+                        src={URL.createObjectURL(previewFile)}
+                        alt="preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium text-emerald-700 truncate">{previewFile.name}</p>
+                      <p className="text-xs text-emerald-400">{(previewFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setPreviewFile(null); if (previewInputRef.current) previewInputRef.current.value = ''; }}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-7 h-7 text-gray-300 mx-auto mb-1.5" />
+                    <p className="text-sm font-medium text-gray-600">Kéo thả hoặc nhấn để chọn ảnh</p>
+                    <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, GIF · Tối đa 5 MB</p>
+                  </>
+                )}
+                <input
+                  ref={previewInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setPreviewFile(f); }}
+                  className="hidden"
+                />
+              </div>
             </div>
 
             {/* Title */}

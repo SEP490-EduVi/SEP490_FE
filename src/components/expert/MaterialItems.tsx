@@ -70,8 +70,8 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onEdit, o
               <button onClick={onDeleteCancel} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Huỷ</button>
             </>
           ) : (
-            <button onClick={onDeleteStart} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-              <Trash2 className="w-3 h-3" /> Xoá
+            <button onClick={onDeleteStart} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xoá">
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
