@@ -221,6 +221,33 @@ export interface GenerateSlidesInput {
   slideRange: 'short' | 'medium' | 'long';
 }
 
+// ─── Games ───────────────────────────────────────────────────────────────
+export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP';
+
+export interface CreatePlayableGameTaskInput {
+  templateId: GameTemplateId;
+  slideEditedDocumentUrl: string;
+  roundCount?: number;
+}
+
+export interface GameTaskResponseDto {
+  taskId: string;
+  templateId: string;
+  status: string;
+}
+
+export interface GameProgressDto {
+  taskId: string;
+  userId: string;
+  templateId: string;
+  status: string;
+  step: string;
+  progress: number;
+  detail: string | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+}
+
 export interface CurriculumDto {
   documentCode: string;
   subjectCode: string;
