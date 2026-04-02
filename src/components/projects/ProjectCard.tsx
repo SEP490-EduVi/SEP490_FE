@@ -4,43 +4,8 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import {
-  MoreVertical,
-  Calendar,
-  FileText,
-  Package,
-  Trash2,
-  Edit3,
-} from 'lucide-react';
+import { Clock3, FolderKanban } from 'lucide-react';
 import type { ProjectDto } from '@/types/api';
-
-// ── Subject colors ─────────────────────────────────────────────────────────
-const SUBJECT_COLORS: Record<string, { bg: string; text: string }> = {
-  'Toán học':   { bg: 'bg-blue-50',    text: 'text-blue-700' },
-  'Vật lý':    { bg: 'bg-amber-50',   text: 'text-amber-700' },
-  'Hóa học':   { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  'Sinh học':  { bg: 'bg-green-50',   text: 'text-green-700' },
-  'Ngữ văn':   { bg: 'bg-rose-50',    text: 'text-rose-700' },
-  'Lịch sử':  { bg: 'bg-purple-50',  text: 'text-purple-700' },
-  'Tiếng Anh': { bg: 'bg-cyan-50',    text: 'text-cyan-700' },
-};
-
-export function getSubjectColor(subject: string) {
-  return SUBJECT_COLORS[subject] ?? { bg: 'bg-gray-50', text: 'text-gray-700' };
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-export function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-function getStatusLabel(status: number) {
-  return status === 0 ? 'Hoạt động' : 'Lưu trữ';
-}
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface ProjectCardProps {
@@ -53,6 +18,26 @@ interface ProjectCardProps {
   onDelete: () => void;
 }
 
+export function formatDate(value?: string) {
+  if (!value) return 'Cập nhật gần đây';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Cập nhật gần đây';
+  return d.toLocaleDateString('vi-VN');
+}
+
+export function getSubjectColor(subjectCode?: string) {
+  const code = (subjectCode ?? '').toUpperCase();
+  if (code.startsWith('TOAN') || code.startsWith('MATH')) return 'blue';
+  if (code.startsWith('LY') || code.startsWith('PHYS')) return 'amber';
+  if (code.startsWith('HOA') || code.startsWith('CHEM')) return 'rose';
+  if (code.startsWith('SINH') || code.startsWith('BIO')) return 'emerald';
+  if (code.startsWith('VAN') || code.startsWith('LIT')) return 'violet';
+  if (code.startsWith('SU') || code.startsWith('HIS')) return 'orange';
+  if (code.startsWith('DIA') || code.startsWith('GEO')) return 'teal';
+  if (code.startsWith('ANH') || code.startsWith('ENG')) return 'indigo';
+  return 'slate';
+}
+
 export default function ProjectCard({
   project,
   index,
@@ -62,83 +47,56 @@ export default function ProjectCard({
   onEdit,
   onDelete,
 }: ProjectCardProps) {
-  const subjectColor = getSubjectColor(''); // Backend doesn't have subject yet
+  const statusLabel = project.status === 0 ? null : project.status === 1 ? 'Lưu trữ' : 'Ngoại lệ';
+
+  // Keep props for compatibility with parent callers in grid mode.
+  void menuOpen;
+  void onMenuToggle;
+  void onEdit;
+  void onDelete;
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.05 }}
-      onClick={onClick}
-      className="group relative bg-white rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-600/5 transition-all cursor-pointer overflow-hidden"
+      className="relative h-full"
     >
-      {/* Color accent top bar */}
-      <div className="h-1.5 bg-blue-400" />
-
-      <div className="p-5">
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-              {project.projectName}
-            </h3>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs text-gray-500 font-mono">{project.projectCode}</span>
-            </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="group w-full h-full text-left bg-white border border-slate-200 rounded-2xl p-3.5 hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-sm transition-all"
+      >
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+            <FolderKanban className="w-4 h-4" />
           </div>
-
-          {/* Context menu */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMenuToggle();
-              }}
-              className={`p-1.5 rounded-lg hover:bg-gray-100 transition-opacity ${menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-            >
-              <MoreVertical className="w-4 h-4 text-gray-400" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 top-8 w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-1 animate-fade-in">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  Chỉnh sửa
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa dự án
-                </button>
-              </div>
-            )}
-          </div>
+          {statusLabel ? (
+            <span className="px-2 py-1 rounded-full text-[11px] font-medium whitespace-nowrap bg-slate-100 text-slate-600">
+              {statusLabel}
+            </span>
+          ) : null}
         </div>
 
-        {/* Footer */}
-        <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            project.status === 0
-              ? 'bg-emerald-50 text-emerald-600'
-              : 'bg-gray-100 text-gray-500'
-          }`}>
-            {getStatusLabel(project.status)}
+        <h3 className="text-[15px] leading-5 font-semibold text-slate-900 line-clamp-2 mb-1.5">
+          {project.projectName}
+        </h3>
+
+        <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mt-2">
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="w-3.5 h-3.5" />
+            {formatDate(project.createdAt)}
+          </span>
+          <span
+            className="truncate text-right font-mono text-[11px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={project.projectCode}
+          >
+            {project.projectCode}
           </span>
         </div>
-      </div>
+      </button>
     </motion.div>
   );
 }

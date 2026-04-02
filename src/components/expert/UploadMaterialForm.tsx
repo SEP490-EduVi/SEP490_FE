@@ -62,16 +62,6 @@ export function UploadMaterialForm({
       SubjectCode: form.subjectCode || undefined,
       GradeCode: form.gradeCode || undefined,
     });
-    console.log('Submitting upload with data:', {
-      File: file.name,
-      PreviewFile: previewFile?.name,
-        Title: form.title, 
-        Description: form.description,
-        Type: form.type,
-        Price: form.price,
-        SubjectCode: form.subjectCode,
-        GradeCode: form.gradeCode,
-    });
   };
 
   const handleCancel = () => {
@@ -113,7 +103,9 @@ export function UploadMaterialForm({
 
             {/* Preview */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh xem trước</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ảnh xem trước (tùy chọn)
+              </label>
               <input
                 ref={previewInputRef}
                 type="file"

@@ -94,6 +94,9 @@ export default function PipelineProgressModal({
   const isCompleted = progress?.status === 'completed';
   const isFailed = progress?.status === 'failed';
   const pct = progress?.progress ?? 0;
+  // True when the modal is open but SignalR hasn't delivered a progress event yet
+  // (e.g. page was reloaded mid-task and hub is still reconnecting)
+  const isReconnecting = !progress;
 
   return (
     <AnimatePresence>
@@ -141,6 +144,8 @@ export default function PipelineProgressModal({
                         ? 'Hoàn thành!'
                         : isFailed
                         ? 'Đã xảy ra lỗi'
+                        : isReconnecting
+                        ? 'Đang kết nối lại với server...'
                         : 'Đang xử lý, vui lòng chờ...'}
                     </p>
                   </div>
@@ -160,30 +165,41 @@ export default function PipelineProgressModal({
             {/* Progress bar */}
             <div className="px-6">
               <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div
-                  className={`absolute inset-y-0 left-0 rounded-full ${
-                    isFailed
-                      ? 'bg-red-500'
-                      : isCompleted
-                      ? 'bg-emerald-500'
-                      : 'bg-gradient-to-r from-blue-500 to-purple-500'
-                  }`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-                {/* Shimmer effect while processing */}
-                {!isCompleted && !isFailed && (
+                {isReconnecting ? (
+                  /* Indeterminate sweep when reconnecting */
                   <motion.div
-                    className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                    animate={{ x: ['-80px', '500px'] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    className="absolute inset-y-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-400"
+                    style={{ width: '40%' }}
+                    animate={{ x: ['-100%', '300%'] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
                   />
+                ) : (
+                  <>
+                    <motion.div
+                      className={`absolute inset-y-0 left-0 rounded-full ${
+                        isFailed
+                          ? 'bg-red-500'
+                          : isCompleted
+                          ? 'bg-emerald-500'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                      }`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
+                    {!isCompleted && !isFailed && (
+                      <motion.div
+                        className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                        animate={{ x: ['-80px', '500px'] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                      />
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex items-center justify-between mt-1.5 mb-4">
                 <span className="text-xs text-gray-400">
-                  {progress?.detail ?? 'Đang khởi tạo...'}
+                  {isReconnecting ? 'Đang kết nối lại với server...' : (progress?.detail ?? 'Đang khởi tạo...')}
                 </span>
                 <span className="text-xs font-semibold text-gray-600">{pct}%</span>
               </div>
@@ -191,6 +207,14 @@ export default function PipelineProgressModal({
 
             {/* Steps timeline */}
             <div className="px-6 pb-6">
+              {isReconnecting ? (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                  <p className="text-xs text-gray-400 text-center">
+                    Đang kiểm tra tiến trình từ server, vui lòng chờ...
+                  </p>
+                </div>
+              ) : (
               <div className="space-y-1">
                 {orderedSteps.map((stepKey, idx) => {
                   const stepInfo = getStepInfo(stepKey, pipelineType);
@@ -252,6 +276,7 @@ export default function PipelineProgressModal({
                   );
                 })}
               </div>
+              )}
 
               {/* Error message */}
               {isFailed && progress?.error && (

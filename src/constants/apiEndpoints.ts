@@ -45,8 +45,8 @@ export const API_ENDPOINTS = {
 
   // Project
   PROJECT: {
-    // GET    /api/Project
-    GET_ALL:   buildProjectEndpoint(""),
+    // GET    /api/Project/grouped
+    GET_ALL:   buildProjectEndpoint('/grouped'),
     // POST   /api/Project
     CREATE:    buildProjectEndpoint(""),
     // GET    /api/Project/{projectCode}
@@ -97,8 +97,8 @@ export const API_ENDPOINTS = {
     GENERATE: '/api/Video/generate',
     // GET  /api/Video/project/{projectCode}
     GET_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}`,
-    // GET  /api/Video/project/{projectCode}/latest
-    GET_LATEST_BY_PROJECT: (projectCode: string) => `/api/Video/project/${projectCode}/latest`,
+    // GET  /api/Video/document/{documentCode}/latest
+    GET_LATEST_BY_DOCUMENT: (documentCode: string) => `/api/Video/document/${documentCode}/latest`,
     // DELETE /api/Video/{productVideoCode}
     DELETE: (productVideoCode: string) => `/api/Video/${productVideoCode}`,
   },

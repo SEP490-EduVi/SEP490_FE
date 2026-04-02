@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingMaterials, useReviewMaterial } from '@/hooks/useStaffApi';
 import { getMaterialReviewDetail } from '@/services/staffServices';
-import { notify } from '@/components/common';
+import { notify, resolveGcsUrl } from '@/components/common';
 
 export default function StaffMaterialsPage() {
   const { data = [], isLoading, isError } = usePendingMaterials();
@@ -14,16 +15,23 @@ export default function StaffMaterialsPage() {
   const [openingCode, setOpeningCode] = useState<string | null>(null);
 
   const handleOpenPreview = async (materialCode: string, previewUrl?: string | null, resourceUrl?: string | null) => {
-    if (previewUrl || resourceUrl) {
-      window.open(previewUrl || resourceUrl || '', '_blank', 'noopener,noreferrer');
+    const rawUrl = previewUrl || resourceUrl;
+    if (rawUrl) {
+      try {
+        const url = await resolveGcsUrl(rawUrl);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } catch {
+        window.open(rawUrl, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
 
     try {
       setOpeningCode(materialCode);
       const detail = await getMaterialReviewDetail(materialCode);
-      const url = detail.previewUrl || detail.resourceUrl;
-      if (url) {
+      const raw = detail.previewUrl || detail.resourceUrl;
+      if (raw) {
+        const url = await resolveGcsUrl(raw);
         window.open(url, '_blank', 'noopener,noreferrer');
       }
     } finally {
@@ -54,8 +62,18 @@ export default function StaffMaterialsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Duyệt học liệu</h1>
         <p className="text-sm text-gray-500 mt-1">Danh sách material đang chờ phê duyệt.</p>
 
-        {isLoading && <p className="text-sm text-gray-500 mt-6">Đang tải dữ liệu...</p>}
-        {isError && <p className="text-sm text-red-600 mt-6">Không thể tải danh sách học liệu.</p>}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+            <p className="text-sm">Đang tải dữ liệu...</p>
+          </div>
+        )}
+        {isError && (
+          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 mt-6">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <p className="text-sm text-red-700">Không thể tải danh sách học liệu.</p>
+          </div>
+        )}
 
         {!isLoading && !isError && (
           <div className="space-y-4 mt-6">

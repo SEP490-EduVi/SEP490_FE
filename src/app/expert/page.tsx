@@ -27,6 +27,7 @@ import { useVerifications, useMyMaterials } from '@/hooks/useExpertApi';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { VerificationDto, MaterialDto } from '@/types/api';
 import { AppHeader } from '@/components';
+import { GcsImage } from '@/components/common';
 
 // ── Status helpers ─────────────────────────────────────────────────────────
 
@@ -261,7 +262,7 @@ export default function ExpertDashboard() {
                     <li key={m.materialCode} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {m.previewUrl ? (
-                          <img src={m.previewUrl} alt="" className="w-full h-full object-cover" />
+                          <GcsImage src={m.previewUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <BookOpen className="w-4 h-4 text-blue-500" />
                         )}

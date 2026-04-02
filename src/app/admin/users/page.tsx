@@ -4,11 +4,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, CheckCircle2, Eye, Pencil, Shield, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Pagination from '@/components/admin/Pagination';
-import StatusToast from '@/components/admin/StatusToast';
+import { notify } from '@/components/common';
 import { adminServices } from '@/services/adminServices';
 import { AdminRoleResponse, AdminUserResponse } from '@/types/admin';
-
-type ToastState = { kind: 'success' | 'error'; message: string } | null;
 
 const PAGE_SIZE = 10;
 
@@ -25,7 +23,6 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<ToastState>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
@@ -110,7 +107,7 @@ export default function AdminUsersPage() {
       const res = await adminServices.getUserDetail(userCode);
       setDetailUser(res.result);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể tải thông tin người dùng.') });
+      notify.error(parseErrorMessage(err, 'Không thể tải thông tin người dùng.'));
     } finally {
       setBusy(false);
     }
@@ -127,10 +124,10 @@ export default function AdminUsersPage() {
         avatar: editForm.avatar,
       });
       setEditingUser(null);
-      setToast({ kind: 'success', message: 'Cập nhật người dùng thành công.' });
+      notify.success('Cập nhật người dùng thành công.');
       await loadUsers(page);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể cập nhật người dùng.') });
+      notify.error(parseErrorMessage(err, 'Không thể cập nhật người dùng.'));
     } finally {
       setBusy(false);
     }
@@ -148,10 +145,10 @@ export default function AdminUsersPage() {
     try {
       await adminServices.changeUserRole(roleChangingUser.userCode, { roleId: Number(roleForm) });
       setRoleChangingUser(null);
-      setToast({ kind: 'success', message: 'Đổi vai trò thành công. Người dùng sẽ phải đăng nhập lại.' });
+      notify.success('Đổi vai trò thành công. Người dùng sẽ phải đăng nhập lại.');
       await loadUsers(page);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Không thể đổi vai trò.') });
+      notify.error(parseErrorMessage(err, 'Không thể đổi vai trò.'));
     } finally {
       setBusy(false);
     }
@@ -164,23 +161,23 @@ export default function AdminUsersPage() {
     try {
       if (confirmAction.type === 'ban') {
         await adminServices.banUser(confirmAction.user.userCode);
-        setToast({ kind: 'success', message: 'Đã khóa người dùng và thu hồi token.' });
+        notify.success('Đã khóa người dùng và thu hồi token.');
       }
 
       if (confirmAction.type === 'unban') {
         await adminServices.unbanUser(confirmAction.user.userCode);
-        setToast({ kind: 'success', message: 'Đã mở khóa người dùng.' });
+        notify.success('Đã mở khóa người dùng.');
       }
 
       if (confirmAction.type === 'delete') {
         await adminServices.deleteUser(confirmAction.user.userCode);
-        setToast({ kind: 'success', message: 'Đã xóa người dùng (hard delete).'});
+        notify.success('Đã xóa người dùng (hard delete).');
       }
 
       setConfirmAction(null);
       await loadUsers(page);
     } catch (err) {
-      setToast({ kind: 'error', message: parseErrorMessage(err, 'Thao tác thất bại.') });
+      notify.error(parseErrorMessage(err, 'Thao tác thất bại.'));
     } finally {
       setBusy(false);
     }
@@ -190,8 +187,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
-      {toast && <StatusToast kind={toast.kind} message={toast.message} onClose={() => setToast(null)} />}
-
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
         <p className="mt-1 text-sm text-gray-500">{summaryText}</p>

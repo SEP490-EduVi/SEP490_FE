@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingVerifications, useReviewVerification } from '@/hooks/useStaffApi';
 import { downloadVerificationFile } from '@/services/staffServices';
@@ -56,8 +57,18 @@ export default function StaffVerificationsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Duyệt hồ sơ xác minh Expert</h1>
         <p className="text-sm text-gray-500 mt-1">Hồ sơ đang chờ duyệt từ chuyên gia.</p>
 
-        {isLoading && <p className="text-sm text-gray-500 mt-6">Đang tải dữ liệu...</p>}
-        {isError && <p className="text-sm text-red-600 mt-6">Không thể tải danh sách hồ sơ.</p>}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+            <p className="text-sm">Đang tải dữ liệu...</p>
+          </div>
+        )}
+        {isError && (
+          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 mt-6">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <p className="text-sm text-red-700">Không thể tải danh sách hồ sơ.</p>
+          </div>
+        )}
 
         {!isLoading && !isError && (
           <div className="space-y-4 mt-6">

@@ -23,10 +23,10 @@ export async function getVideosByProject(projectCode: string): Promise<VideoProd
   return res.data.result ?? [];
 }
 
-// ─── GET latest video by project ──────────────────────────────────────────
-export async function getLatestVideoByProject(projectCode: string): Promise<VideoProductDto | null> {
+// ─── GET latest video by document ───────────────────────────────────────────
+export async function getLatestVideoByDocument(documentCode: string): Promise<VideoProductDto | null> {
   const res = await api.get<ApiResponse<VideoProductDto>>(
-    API_ENDPOINTS.VIDEO.GET_LATEST_BY_PROJECT(projectCode),
+    API_ENDPOINTS.VIDEO.GET_LATEST_BY_DOCUMENT(documentCode),
   );
   return res.data.result ?? null;
 }

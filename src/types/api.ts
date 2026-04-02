@@ -30,12 +30,31 @@ export interface PipelineProgress {
 export interface ProjectDto {
   projectCode: string;
   projectName: string;
+  subjectCode?: string;
+  subjectName?: string;
+  gradeCode?: string;
+  gradeName?: string;
   status: number;
+  createdAt?: string;
+}
+
+export interface ProjectGroupedGradeDto {
+  gradeCode: string;
+  gradeName: string;
+  projects: ProjectDto[];
+}
+
+export interface ProjectGroupedSubjectDto {
+  subjectCode: string;
+  subjectName: string;
+  grades: ProjectGroupedGradeDto[];
 }
 
 export interface CreateProjectInput {
   projectCode: string;
   projectName: string;
+  subjectCode: string;
+  gradeCode: string;
 }
 
 export interface UpdateProjectInput {
@@ -48,6 +67,7 @@ export interface UpdateProjectInput {
 export interface ProductDto {
   productCode: string;
   productName: string;
+  documentCode: string;
   description: string;
   status: number;
   statusName: string;
@@ -259,6 +279,30 @@ export interface UpdateMaterialInput {
   price: number;
   subjectCode: string;
   gradeCode: string;
+}
+
+export interface MaterialBrowseParams {
+  subjectCode?: string;
+  gradeCode?: string;
+  type?: string;
+  keyword?: string;
+}
+
+export interface PurchasedMaterialDto {
+  materialCode: string;
+  title: string;
+  description: string;
+  type: string;
+  price: number;
+  resourceUrl: string | null;
+  previewUrl: string | null;
+  subjectCode: string;
+  subjectName: string;
+  gradeCode: string;
+  gradeName: string;
+  expertCode: string;
+  expertName: string;
+  purchasedDate: string;
 }
 
 // ─── Payment ──────────────────────────────────────────────────────────────

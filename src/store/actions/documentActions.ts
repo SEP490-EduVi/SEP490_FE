@@ -15,6 +15,8 @@ const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
 const PROJECT_CODE_KEY = 'eduvi_project_code';
 const IS_EDITED_KEY = 'eduvi_is_edited';
+const IS_GENERATING_KEY = 'eduvi_is_generating';
+const GENERATING_PRODUCT_CODE_KEY = 'eduvi_generating_product_code';
 
 export function createDocumentActions(
   set: StoreSet,
@@ -37,6 +39,33 @@ export function createDocumentActions(
         set({ error: null }); // clear any stale error from a previous failed load
         return;
       }
+
+      // ── Reload during generation ──────────────────────────────────────
+      // If the page was reloaded while a slide-generation pipeline was running,
+      // restore the generating state so the SlideGenerationOverlay re-appears
+      // and reconnects to SignalR to receive the progress/completion event.
+      try {
+        const isGeneratingFlag = sessionStorage.getItem(IS_GENERATING_KEY);
+        if (isGeneratingFlag === 'true') {
+          const productCode = sessionStorage.getItem(GENERATING_PRODUCT_CODE_KEY) || null;
+          const projectCode = sessionStorage.getItem(PROJECT_CODE_KEY) || null;
+          set({
+            isGenerating: true,
+            generationStep: 'started',
+            generationProgress: 0,
+            generationProductCode: productCode,
+            currentProductCode: productCode,
+            currentProjectCode: projectCode,
+            document: null,
+            activeCardId: null,
+            revealedCardCount: 0,
+            isNewlyGenerated: true,
+            isDirty: false,
+            error: null,
+          });
+          return;
+        }
+      } catch { /* sessionStorage unavailable */ }
 
       // Restore from sessionStorage on reload (avoids re-fetching after F5)
       try {

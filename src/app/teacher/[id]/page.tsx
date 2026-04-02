@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
-import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useLatestVideoByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
+import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useVideosByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
 import { useInputDocumentsByProject } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import DocumentTree from '@/components/projects/DocumentTree';
@@ -18,6 +18,7 @@ import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
 import VideoConfirmModal from '@/components/projects/VideoConfirmModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { notify } from '@/components/common';
@@ -35,12 +36,17 @@ export default function ProjectDetailPage() {
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
   const generateVideo = useGenerateVideo();
-  const { data: latestVideo = null } = useLatestVideoByProject(projectCode);
+  const { data: projectVideos = [] } = useVideosByProject(projectCode);
   const deleteVideo = useDeleteVideo(projectCode);
   const { data: curricula = [] } = useCurricula();
   const setDocument = useDocumentStore((state) => state.setDocument);
   const startGeneration = useDocumentStore((state) => state.startGeneration);
   const queryClient = useQueryClient();
+
+  const hydrateTaskStore = usePipelineTaskStore((s) => s.hydrate);
+  const saveTask = usePipelineTaskStore((s) => s.saveTask);
+  const clearTask = usePipelineTaskStore((s) => s.clearTask);
+  const getTaskId = usePipelineTaskStore((s) => s.getTaskId);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
@@ -48,8 +54,78 @@ export default function ProjectDetailPage() {
   const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => { setAccessToken(localStorage.getItem('accessToken')); }, []);
+  useEffect(() => {
+    hydrateTaskStore();
+    // Restore modal for any tasks that were active when the page was last visited
+    const allTasks = usePipelineTaskStore.getState().getAllTasks();
+    if (allTasks.length > 0) {
+      const videoTask = allTasks.find((t) => t.key.startsWith('video:'));
+      const slidesTask = allTasks.find((t) => t.key.startsWith('slides:'));
+      const evalTask = allTasks.find((t) => t.key.startsWith('eval:'));
+      if (videoTask) setPipelineType('video');
+      else if (slidesTask) setPipelineType('slides');
+      else if (evalTask) setPipelineType('evaluation');
+      setShowPipelineModal(true);
+    }
+  }, [hydrateTaskStore]); // eslint-disable-line
+
+  /**
+   * When a mutation fires we store the expected {type, productCode} here.
+   * The first PipelineProgress event for that task will carry the taskId,
+   * at which point we persist it to the store and clear this pending ref.
+   */
+  const pendingTaskRef = useRef<{ type: PipelineTaskType; productCode: string } | null>(null);
 
   const handlePipelineProgress = useCallback((event: PipelineProgress) => {
+    // Determine which task type this event belongs to
+    const resolveType = (e: PipelineProgress): PipelineTaskType | null => {
+      if (e.step === 'video_completed') return 'video';
+      if (e.step === 'completed') return 'eval';
+      if (
+        e.step?.includes('slide') ||
+        e.step?.includes('generating') ||
+        e.detail?.toLowerCase().includes('slide')
+      ) return 'slides';
+      return null;
+    };
+
+    if (event.taskId) {
+      // Pair an incoming taskId with the pending mutation we just fired
+      if (
+        pendingTaskRef.current &&
+        (event.status === 'queued' || event.status === 'processing')
+      ) {
+        const { type, productCode: pCode } = pendingTaskRef.current;
+        saveTask(type, pCode, event.taskId);
+        pendingTaskRef.current = null;
+      }
+
+      // Auto-show modal when SignalR reconnect brings back a live task status
+      if (event.status === 'queued' || event.status === 'processing') {
+        // Determine type from the store (most reliable)
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const storedTask = allTasks.find((t) => t.taskId === event.taskId);
+        if (storedTask) {
+          if (storedTask.key.startsWith('video:')) setPipelineType('video');
+          else if (storedTask.key.startsWith('slides:')) setPipelineType('slides');
+          else setPipelineType('evaluation');
+        }
+        setShowPipelineModal(true);
+      }
+
+      // Clear on completion / failure (look up by taskId in the store)
+      if (event.status === 'completed' || event.status === 'failed') {
+        const taskType = resolveType(event);
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const stored = allTasks.find(({ taskId }) => taskId === event.taskId);
+        if (stored) {
+          const pCode = stored.key.split(':').slice(1).join(':');
+          if (taskType) clearTask(taskType, pCode);
+          else (['eval', 'slides', 'video'] as PipelineTaskType[]).forEach((t) => clearTask(t, pCode));
+        }
+      }
+    }
+
     setPipelineProgress(event);
     if (event.status === 'completed' || event.status === 'failed') {
       refetchProducts();
@@ -57,18 +133,12 @@ export default function ProjectDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['video', 'latest', projectCode] });
       }
     }
-  }, [refetchProducts, queryClient, projectCode]);
+  }, [saveTask, clearTask, refetchProducts, queryClient, projectCode]);
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
   const [expandedDocCodes, setExpandedDocCodes] = useState<Set<string>>(new Set());
   const [expandedProductCodes, setExpandedProductCodes] = useState<Set<string>>(new Set());
-  const [docProductMap, setDocProductMap] = useState<Record<string, string[]>>(() => {
-    try {
-      const saved = sessionStorage.getItem(`dpm-${projectCode}`);
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
 
   const [evalProductCode, setEvalProductCode] = useState<string | null>(null);
   const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
@@ -83,27 +153,6 @@ export default function ProjectDetailPage() {
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
-  // Auto-assign unlinked products to their document when only 1 document exists
-  useEffect(() => {
-    if (products.length === 0 || inputDocuments.length !== 1) return;
-    const doc = inputDocuments[0];
-    const allLinked = new Set(Object.values(docProductMap).flat());
-    const unlinked = products.filter(p => !allLinked.has(p.productCode));
-    if (unlinked.length === 0) return;
-    setDocProductMap(prev => {
-      const next = {
-        ...prev,
-        [doc.documentCode]: [
-          ...(prev[doc.documentCode] ?? []),
-          ...unlinked.map(p => p.productCode).filter(c => !(prev[doc.documentCode] ?? []).includes(c)),
-        ],
-      };
-      try { sessionStorage.setItem(`dpm-${projectCode}`, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, inputDocuments]);
-
   const toggleDoc = (docCode: string) =>
     setExpandedDocCodes(prev => { const n = new Set(prev); n.has(docCode) ? n.delete(docCode) : n.add(docCode); return n; });
 
@@ -116,6 +165,16 @@ export default function ProjectDetailPage() {
 
   const handleConfirmAnalysis = async (productName: string, year: number) => {
     if (!analysisDocCode) return;
+
+    // Check if any eval task is already running for this project's products
+    const runningEval = products.find((p) => !!getTaskId('eval', p.productCode));
+    if (runningEval) {
+      setPipelineType('evaluation');
+      setShowPipelineModal(true);
+      setShowAnalysisForm(false); setAnalysisDocCode(null);
+      return;
+    }
+
     prevProductCodesRef.current = new Set(products.map(p => p.productCode));
     const docCode = analysisDocCode;
     setShowAnalysisForm(false); setAnalysisDocCode(null);
@@ -129,9 +188,6 @@ export default function ProjectDetailPage() {
             const result = await refetchProducts();
             const newProds = (result.data ?? []).filter(p => !prevProductCodesRef.current.has(p.productCode));
             if (newProds.length > 0) {
-              const newMap = { ...docProductMap, [docCode]: [...(docProductMap[docCode] ?? []), ...newProds.map(p => p.productCode)] };
-              setDocProductMap(newMap);
-              sessionStorage.setItem(`dpm-${projectCode}`, JSON.stringify(newMap));
               setExpandedDocCodes(prev => { const n = new Set(prev); n.add(docCode); return n; });
             }
           } catch { /* ignore */ }
@@ -141,6 +197,12 @@ export default function ProjectDetailPage() {
   };
 
   const handleGenerateSlides = (productCode: string) => {
+    if (getTaskId('slides', productCode)) {
+      setPipelineType('slides');
+      setShowPipelineModal(true);
+      return;
+    }
+    pendingTaskRef.current = { type: 'slides', productCode };
     generateSlides.mutate(
       { productCode, slideRange: 'short' },
       { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); router.push('/teacher/editor'); } },
@@ -153,10 +215,18 @@ export default function ProjectDetailPage() {
     if (!pendingVideoProductCode) return;
     const productCode = pendingVideoProductCode;
     setShowVideoConfirm(false); setPendingVideoProductCode(null);
+
+    if (getTaskId('video', productCode)) {
+      setPipelineType('video');
+      setShowPipelineModal(true);
+      return;
+    }
+
     try {
       setVideoLoadingCode(productCode);
       const url = await getEditedSlideGcsUrl(productCode);
       if (!url) { setVideoLoadingCode(null); notify.error('Không thể lấy đường dẫn slide. Vui lòng thử lại.'); return; }
+      pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url },
         { onSuccess: () => { notify.info('Yêu cầu tạo video đã được gửi'); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
@@ -227,6 +297,12 @@ export default function ProjectDetailPage() {
             <div className="flex items-center gap-3 mt-1">
               <h1 className="text-2xl font-bold text-gray-900">{project.projectName}</h1>
               <span className="text-xs text-gray-400 font-mono">{project.projectCode}</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700">
+                {project.subjectName || project.subjectCode || 'Chưa có môn'}
+              </span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700">
+                {project.gradeName || project.gradeCode || 'Chưa có lớp'}
+              </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium ${project.status === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
                 {project.status === 0 ? 'Hoạt động' : 'Lưu trữ'}
               </span>
@@ -238,9 +314,12 @@ export default function ProjectDetailPage() {
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-4">
         <DocumentTree
           projectCode={projectCode}
+          projectSubjectCode={project.subjectCode}
+          projectSubjectName={project.subjectName}
+          projectGradeCode={project.gradeCode}
+          projectGradeName={project.gradeName}
           products={products}
-          latestVideo={latestVideo}
-          docProductMap={docProductMap}
+          videos={projectVideos}
           expandedDocCodes={expandedDocCodes}
           expandedProductCodes={expandedProductCodes}
           viewSlideLoading={viewSlideLoading}
@@ -265,7 +344,7 @@ export default function ProjectDetailPage() {
 
       </main>
 
-      {viewingVideo && <VideoPlayerModal video={viewingVideo} projectCode={projectCode} onClose={() => setViewingVideo(null)} />}
+      {viewingVideo && <VideoPlayerModal video={viewingVideo} onClose={() => setViewingVideo(null)} />}
 
       <EvaluationModal
         open={!!evalProductCode}

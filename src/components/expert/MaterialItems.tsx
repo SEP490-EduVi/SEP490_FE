@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Pencil, Trash2 } from 'lucide-react';
 import type { MaterialDto } from '@/types/api';
 import { APPROVAL_STATUS_MAP } from './materialConstants';
+import { GcsImage } from '@/components/common';
 
 interface Props {
   material: MaterialDto;
@@ -27,15 +28,15 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onEdit, o
       exit={{ opacity: 0, scale: 0.95 }}
       className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
     >
-      {m.previewUrl ? (
-        <div className="h-36 bg-gray-100 overflow-hidden">
-          <img src={m.previewUrl} alt={m.title} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className="h-36 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <BookOpen className="w-10 h-10 text-blue-300" />
-        </div>
-      )}
+      <div className="h-36 bg-gray-100 overflow-hidden">
+        {m.previewUrl ? (
+          <GcsImage src={m.previewUrl} alt={m.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+            <BookOpen className="w-10 h-10 text-blue-300" />
+          </div>
+        )}
+      </div>
 
       <div className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
@@ -93,7 +94,7 @@ export function MaterialListItem({ material: m, confirmDelete, isDeleting, onEdi
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
           {m.previewUrl ? (
-            <img src={m.previewUrl} alt="" className="w-full h-full object-cover" />
+            <GcsImage src={m.previewUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <BookOpen className="w-6 h-6 text-blue-600" />
           )}

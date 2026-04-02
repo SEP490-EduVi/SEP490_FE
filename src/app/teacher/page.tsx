@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus } from 'lucide-react';
+import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus, Clock3, ChevronRight } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
+import Modal from '@/components/common/Modal';
+import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import { useProjects } from '@/hooks/useProjectApi';
 import { useAllProducts } from '@/hooks/useProductApi';
 import { useAllVideos } from '@/hooks/usePipelineApi';
@@ -17,6 +19,17 @@ export default function TeacherDashboard() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: allProducts = [], isLoading: productsLoading } = useAllProducts();
   const { data: allVideos = [], isLoading: videosLoading } = useAllVideos();
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
+  const { data: grades = [], isLoading: gradesLoading } = useGrades();
+
+  const [showCreatePicker, setShowCreatePicker] = useState(false);
+  const [subjectCode, setSubjectCode] = useState('');
+  const [gradeCode, setGradeCode] = useState('');
+
+  const highSchoolGrades = useMemo(() => {
+    const hs = grades.filter((g) => /(10|11|12)/.test(`${g.gradeName} ${g.gradeCode}`));
+    return hs.length > 0 ? hs : grades;
+  }, [grades]);
 
   const displayName =
     (user && 'fullName' in user && (user as any).fullName) ||
@@ -25,42 +38,104 @@ export default function TeacherDashboard() {
 
   const isLoading = projectsLoading || productsLoading || videosLoading;
 
+  const relativeTime = (iso?: string) => {
+    if (!iso) return 'Cập nhật gần đây';
+    const diff = Date.now() - new Date(iso).getTime();
+    if (Number.isNaN(diff) || diff < 0) return 'Cập nhật gần đây';
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'Vừa xong';
+    if (min < 60) return `${min} phút trước`;
+    const hour = Math.floor(min / 60);
+    if (hour < 24) return `${hour} giờ trước`;
+    const day = Math.floor(hour / 24);
+    if (day < 30) return `${day} ngày trước`;
+    return new Date(iso).toLocaleDateString('vi-VN');
+  };
+
   const stats = {
     projects: projects.length,
-    activeProjects: projects.filter((p) => p.status === 0).length,
+    projectsThisMonth: projects.filter((p) => {
+      if (!p.createdAt) return false;
+      const d = new Date(p.createdAt);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length,
     slides: allProducts.filter((p) => p.hasSlide).length,
     videos: allVideos.filter((v) => v.status === 'completed').length,
   };
+
+  const statCards = [
+    {
+      label: 'Tổng dự án',
+      value: stats.projects,
+      color: 'text-blue-600 bg-blue-50',
+      href: '/teacher/projects',
+      hint: 'Toàn bộ dự án theo môn và lớp',
+    },
+    {
+      label: 'Dự án tháng này',
+      value: stats.projectsThisMonth,
+      color: 'text-emerald-600 bg-emerald-50',
+      href: '/teacher/projects',
+      hint: 'Số dự án được tạo trong tháng hiện tại',
+    },
+    {
+      label: 'Bộ slide',
+      value: stats.slides,
+      color: 'text-violet-600 bg-violet-50',
+      href: '/teacher/slides',
+      hint: 'Slide đã tạo để chỉnh sửa nhanh',
+    },
+    {
+      label: 'Video đã tạo',
+      value: stats.videos,
+      color: 'text-rose-600 bg-rose-50',
+      href: '/teacher/videos',
+      hint: 'Video sẵn sàng để xem lại',
+    },
+  ] as const;
 
   const sections = [
     {
       href: '/teacher/projects',
       icon: FolderKanban,
-      label: 'Dự án',
-      description: 'Quản lý dự án bài giảng. Tạo mới, upload tài liệu và bắt đầu tạo nội dung AI.',
-      count: stats.projects,
-      countLabel: 'dự án',
-      gradient: 'from-blue-500 to-indigo-600',
+      label: 'Không gian dự án',
+      description: 'Quản lý môn, lớp và tiếp tục các dự án đang biên soạn.',
     },
     {
       href: '/teacher/slides',
       icon: Layers,
-      label: 'Slide',
-      description: 'Xem và chỉnh sửa các bộ slide AI đã tạo từ tài liệu của bạn.',
-      count: stats.slides,
-      countLabel: 'bộ slide',
-      gradient: 'from-violet-500 to-purple-600',
+      label: 'Thư viện slide',
+      description: 'Mở nhanh các bộ slide để chỉnh sửa và hoàn thiện nội dung.',
     },
     {
       href: '/teacher/videos',
       icon: Film,
-      label: 'Video',
-      description: 'Xem lại video bài giảng đã tạo, hoàn chỉnh với tương tác quiz.',
-      count: stats.videos,
-      countLabel: 'video',
-      gradient: 'from-rose-500 to-orange-500',
+      label: 'Danh sách video',
+      description: 'Theo dõi video đã tạo và kiểm tra chất lượng bài giảng.',
     },
   ];
+
+  const recentProjects = useMemo(() => {
+    return [...projects]
+      .sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      })
+      .slice(0, 3);
+  }, [projects]);
+
+  const handleStartCreateProject = () => {
+    if (!subjectCode || !gradeCode) return;
+    const params = new URLSearchParams({
+      subjectCode,
+      gradeCode,
+      create: '1',
+    });
+    setShowCreatePicker(false);
+    router.push(`/teacher/projects?${params.toString()}`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -72,21 +147,16 @@ export default function TeacherDashboard() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-600/20"
+          className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl px-5 py-3.5 sm:px-6 sm:py-4 text-white shadow-lg shadow-blue-600/20"
         >
-          <div className="relative z-10">
-            <p className="text-blue-100 text-sm mb-1">Chào mừng trở lại</p>
-            <h2 className="text-2xl font-bold">{displayName}</h2>
-            <p className="text-blue-200 text-sm mt-1">
-              Tạo bài giảng thông minh với AI — từ tài liệu đến video chỉ trong vài bước.
-            </p>
-            <button
-              onClick={() => router.push('/teacher/projects?create=1')}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-medium transition-colors backdrop-blur-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Tạo dự án mới
-            </button>
+          <div className="relative z-10 min-h-[84px] flex items-center gap-3">
+            <div>
+              <p className="text-blue-100 text-xs sm:text-sm mb-0.5">Chào mừng trở lại</p>
+              <h2 className="text-[24px] leading-tight font-bold tracking-tight">{displayName}</h2>
+              <p className="text-blue-200 text-xs sm:text-sm mt-1">
+                Tiếp tục bài giảng đang dở hoặc tạo dự án mới trong 1 bước.
+              </p>
+            </div>
           </div>
           <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
           <div className="absolute right-12 bottom-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 pointer-events-none" />
@@ -94,64 +164,188 @@ export default function TeacherDashboard() {
 
         {/* ── Stat pills ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Tổng dự án',      value: stats.projects,       color: 'text-blue-600   bg-blue-50'   },
-            { label: 'Đang hoạt động',  value: stats.activeProjects,  color: 'text-emerald-600 bg-emerald-50' },
-            { label: 'Bộ slide',         value: stats.slides,          color: 'text-violet-600 bg-violet-50' },
-            { label: 'Video đã tạo',    value: stats.videos,          color: 'text-rose-600   bg-rose-50'   },
-          ].map((s, i) => (
+          {statCards.map((s, i) => (
             <motion.div
               key={s.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }}
-              className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3"
+              className="bg-white rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all"
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold ${s.color}`}>
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : s.value}
-              </div>
-              <p className="text-xs text-gray-500 leading-tight">{s.label}</p>
+              <button
+                type="button"
+                onClick={() => router.push(s.href)}
+                className="w-full p-4 flex items-center gap-3 text-left"
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold ${s.color}`}>
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : s.value}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 leading-tight">{s.label}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 truncate">{s.hint}</p>
+                </div>
+              </button>
             </motion.div>
           ))}
         </div>
 
-        {/* ── Section cards ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {sections.map((section, i) => {
-            const Icon = section.icon;
-            return (
-              <motion.button
-                key={section.href}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.08 }}
-                onClick={() => router.push(section.href)}
-                className="group text-left bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all overflow-hidden"
-              >
-                <div className={`h-1.5 bg-gradient-to-r ${section.gradient}`} />
-                <div className="p-6">
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${section.gradient} flex items-center justify-center mb-4 shadow-sm`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1.5 group-hover:text-blue-600 transition-colors">
-                    {section.label}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-5 leading-relaxed">{section.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-gray-900">
-                      {isLoading ? '…' : section.count}
-                      <span className="text-sm font-normal text-gray-400 ml-1">{section.countLabel}</span>
+        {/* ── Recent activity + quick actions ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-slate-900">Tiếp tục gần đây</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowCreatePicker(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Tạo dự án mới
+                </button>
+                <button
+                  onClick={() => router.push('/teacher/projects')}
+                  className="text-sm text-blue-600 font-medium hover:text-blue-700"
+                >
+                  Xem tất cả
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {recentProjects.length > 0 ? recentProjects.map((project) => (
+                <button
+                  key={project.projectCode}
+                  type="button"
+                  onClick={() => router.push(`/teacher/${project.projectCode}`)}
+                  className="w-full text-left px-3.5 py-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold text-slate-900 truncate">{project.projectName}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                        {(project.subjectName ?? project.subjectCode ?? 'Chưa rõ môn')} • {(project.gradeName ?? project.gradeCode ?? 'Chưa rõ lớp')}
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 whitespace-nowrap">
+                      <Clock3 className="w-3.5 h-3.5" />
+                      {relativeTime(project.createdAt)}
                     </span>
-                    <span className="flex items-center gap-1 text-sm text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                      Xem ngay <ArrowRight className="w-4 h-4" />
-                    </span>
                   </div>
+                </button>
+              )) : (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-slate-700">Chưa có hoạt động gần đây</p>
+                  <p className="text-xs text-slate-500 mt-1">Tạo dự án đầu tiên để bắt đầu luồng làm việc.</p>
                 </div>
-              </motion.button>
-            );
-          })}
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+            className="bg-white rounded-2xl border border-gray-100 p-5"
+          >
+            <h3 className="text-base font-semibold text-slate-900 mb-1">Đi nhanh tới</h3>
+            <p className="text-xs text-slate-500 mb-3">Lối tắt tác vụ</p>
+            <div className="space-y-2">
+              {sections.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <button
+                    key={section.href}
+                    type="button"
+                    onClick={() => router.push(section.href)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-800 truncate">{section.label}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
         </div>
       </main>
+
+      <Modal
+        isOpen={showCreatePicker}
+        onClose={() => setShowCreatePicker(false)}
+        title="Tạo dự án mới"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setShowCreatePicker(false)}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleStartCreateProject}
+              disabled={!subjectCode || !gradeCode || subjectsLoading || gradesLoading}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Tiếp tục
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Chọn môn học và khối lớp trước, sau đó hệ thống sẽ chuyển tới đúng thư mục để bạn chỉ cần nhập tên dự án.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Môn học <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={subjectCode}
+              onChange={(e) => setSubjectCode(e.target.value)}
+              disabled={subjectsLoading}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+            >
+              <option value="">{subjectsLoading ? 'Đang tải môn học...' : '-- Chọn môn học --'}</option>
+              {subjects.map((s) => (
+                <option key={s.subjectCode} value={s.subjectCode}>
+                  {s.subjectName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Khối lớp <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={gradeCode}
+              onChange={(e) => setGradeCode(e.target.value)}
+              disabled={gradesLoading}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+            >
+              <option value="">{gradesLoading ? 'Đang tải khối lớp...' : '-- Chọn khối lớp --'}</option>
+              {highSchoolGrades.map((g) => (
+                <option key={g.gradeCode} value={g.gradeCode}>
+                  {g.gradeName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

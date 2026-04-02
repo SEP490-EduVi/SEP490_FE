@@ -7,9 +7,9 @@ import { ToastProvider } from '@/components/common';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EduVi - Slide-Based Presentations',
-  description: 'Create beautiful, dynamic presentations with EduVi. A next-generation slide-based presentation tool.',
-  keywords: ['presentation', 'slides', 'education', 'EduVi', 'Next.js'],
+  title: 'EduVi - Nền tảng bài giảng thông minh',
+  description: 'Tạo bài giảng chất lượng cao với EduVi. Công cụ tạo slide và video bài giảng thế hệ mới.',
+  keywords: ['bài giảng', 'slide', 'giáo dục', 'EduVi', 'Next.js'],
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body className={inter.className}>
         <QueryProvider>
           {children}
