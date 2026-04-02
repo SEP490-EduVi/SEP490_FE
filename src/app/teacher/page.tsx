@@ -97,9 +97,9 @@ export default function TeacherDashboard() {
 
   const sections = [
     {
-      href: '/teacher/projects',
+      href: '/teacher/material-lib',
       icon: FolderKanban,
-      label: 'Không gian dự án',
+      label: 'Thư viện học liệu',
       description: 'Quản lý môn, lớp và tiếp tục các dự án đang biên soạn.',
     },
     {

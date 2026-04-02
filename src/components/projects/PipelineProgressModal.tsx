@@ -50,6 +50,7 @@ const SLIDE_STEPS: Record<string, StepInfo> = {
 
 const VIDEO_STEPS: Record<string, StepInfo> = {
   started:             { label: 'Bắt đầu tạo video',       icon: Sparkles },
+  processing_cards:    { label: 'Render từng slide',        icon: Film },
   rendering_slides:    { label: 'Render từng slide',        icon: Film },
   concatenating_video: { label: 'Ghép clip video',          icon: Scissors },
   building_timeline:   { label: 'Tạo timeline tương tác',  icon: Clock },
@@ -68,7 +69,7 @@ function getOrderedSteps(pipelineType: 'evaluation' | 'slides' | 'video') {
   if (pipelineType === 'evaluation')
     return ['started', 'downloading', 'extracting_text', 'fetching_data', 'evaluating', 'completed'];
   if (pipelineType === 'video')
-    return ['started', 'rendering_slides', 'concatenating_video', 'building_timeline', 'uploading_video', 'video_completed'];
+    return ['started', 'processing_cards', 'concatenating_video', 'building_timeline', 'uploading_video', 'video_completed'];
   return ['started', 'planning', 'generating_slides', 'assembling', 'slides_completed'];
 }
 
@@ -114,6 +115,27 @@ export default function PipelineProgressModal({
             exit={{ scale: 0.9, opacity: 0, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
+            {/* Top accent progress bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 z-10 overflow-hidden">
+              {/* Always-visible solid fill */}
+              <motion.div
+                key="accent-bar"
+                className={`h-full rounded-full ${isFailed ? 'bg-red-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'}`}
+                initial={{ width: `${pct}%` }}
+                animate={{ width: isReconnecting ? '0%' : `${pct}%` }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              />
+              {/* Sweep overlay when reconnecting */}
+              {isReconnecting && (
+                <motion.div
+                  className="absolute inset-y-0 w-2/5 bg-gradient-to-r from-blue-400 to-purple-400"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '350%' }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+            </div>
+
             {/* Header */}
             <div className="relative px-6 pt-6 pb-4">
               <div className="flex items-center justify-between">
@@ -176,6 +198,7 @@ export default function PipelineProgressModal({
                 ) : (
                   <>
                     <motion.div
+                      key="main-bar"
                       className={`absolute inset-y-0 left-0 rounded-full ${
                         isFailed
                           ? 'bg-red-500'
@@ -183,9 +206,9 @@ export default function PipelineProgressModal({
                           ? 'bg-emerald-500'
                           : 'bg-gradient-to-r from-blue-500 to-purple-500'
                       }`}
-                      initial={{ width: 0 }}
+                      initial={{ width: `${pct}%` }}
                       animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      transition={{ duration: 0.4, ease: 'easeOut' }}
                     />
                     {!isCompleted && !isFailed && (
                       <motion.div

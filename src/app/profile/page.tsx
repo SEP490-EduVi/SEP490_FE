@@ -7,10 +7,11 @@ import {
   User, ShieldCheck, CheckCircle,
   Eye, EyeOff, Loader2, AlertCircle, Camera,
   Upload, Trash2, FileText, Clock, CheckCircle2, XCircle,
-  Mail, Phone, BadgeCheck, Activity, KeyRound, LockKeyhole, Wallet, CreditCard,
+  Mail, Phone, BadgeCheck, LockKeyhole, Wallet, CreditCard,
+  PencilLine, X, Check,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useGetMeService, useChangePasswordService } from '@/services/authServices';
+import { useGetMeService, useChangePasswordService, useUpdateMeService } from '@/services/authServices';
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
 import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
 import AppHeader from '@/components/sidebar/AppHeader';
@@ -88,7 +89,55 @@ function ProfilePageInner() {
   const [pwError,   setPwError]   = useState<string | null>(null);
   const changePassword = useChangePasswordService();
   const strength       = passwordStrength(newPw);
+  // ── Edit profile ─────────────────────────────────────────────────────────────────────
+  const [isEditing,      setIsEditing]      = useState(false);
+  const [editFullName,   setEditFullName]   = useState('');
+  const [editPhone,      setEditPhone]      = useState('');
+  const [editAvatarUrl,  setEditAvatarUrl]  = useState('');
+  const updateMe = useUpdateMeService();
+  const [avatarImgError, setAvatarImgError] = useState(false);
+  useEffect(() => { setAvatarImgError(false); }, [info?.avatarUrl]);
+  const [avatarLocalPreview, setAvatarLocalPreview] = useState<string | null>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
+  const openEdit = () => {
+    setEditFullName(info?.fullName ?? '');
+    setEditPhone(info?.phoneNumber ?? '');
+    setEditAvatarUrl(info?.avatarUrl ?? '');
+    setAvatarLocalPreview(null);
+    setIsEditing(true);
+  };
+
+  const handleAvatarFileSelect = (file: File) => {
+    if (!file.type.startsWith('image/')) { notify.error('Chỉ chấp nhận file ảnh.'); return; }
+    if (file.size > 5 * 1024 * 1024) { notify.error('File ảnh tối đa 5 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setAvatarLocalPreview(dataUrl);
+      setEditAvatarUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFullName.trim()) { notify.error('Họ và tên không được để trống.'); return; }
+    updateMe.mutate(
+      { fullName: editFullName.trim(), phoneNumber: editPhone.trim(), avatarUrl: editAvatarUrl.trim() },
+      {
+        onSuccess: (res) => {
+          if (res?.result) setUser(res.result);
+          notify.success('Cập nhật hồ sơ thành công!');
+          setIsEditing(false);
+        },
+        onError: (err: unknown) => {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+          notify.error(msg ?? 'Cập nhật thất bại. Vui lòng thử lại.');
+        },
+      },
+    );
+  };
   const handleChangePw = (e: React.FormEvent) => {
     e.preventDefault();
     setPwError(null);
@@ -237,6 +286,7 @@ function ProfilePageInner() {
   const roleLabel   = info?.role?.roleName ?? '';
   const isExpert    = role === 'expert';
   const isActive    = info?.status === 1;
+  const cert        = verifications[0] ?? null;
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
@@ -254,7 +304,7 @@ function ProfilePageInner() {
         <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100">
 
           {/* Cover banner */}
-          <div className="h-36 bg-gradient-to-r from-blue-600 via-violet-600 to-indigo-700 relative">
+          <div className="h-28 bg-gradient-to-r from-blue-600 via-violet-600 to-indigo-700 relative">
             {/* subtle dot pattern overlay */}
             <div
               className="absolute inset-0 opacity-20"
@@ -266,18 +316,19 @@ function ProfilePageInner() {
           </div>
 
           {/* Profile info row */}
-          <div className="bg-white px-8 py-10 -mt-12 rounded-t-2xl shadow-lg relative">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12-">
+          <div className="bg-white px-8 pb-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
               {/* Avatar */}
-              <div className="relative group flex-shrink-0">
-                {info?.avatarUrl ? (
+              <div className="relative group flex-shrink-0 -mt-10">
+                {info?.avatarUrl && !avatarImgError ? (
                   <img
                     src={info.avatarUrl}
                     alt={displayName}
-                    className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+                    className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg"
+                    onError={() => setAvatarImgError(true)}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-4xl font-bold ring-4 ring-white shadow-lg">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-lg select-none">
                     {isMeLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : initial}
                   </div>
                 )}
@@ -287,7 +338,7 @@ function ProfilePageInner() {
               </div>
 
               {/* Name + meta */}
-              <div className="flex-1 min-w-0 pb-1">
+              <div className="flex-1 min-w-0 pt-3 sm:pt-0 pb-3">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <h1 className="text-2xl font-bold text-gray-900 truncate">{displayName}</h1>
                   {isActive ? (
@@ -326,7 +377,7 @@ function ProfilePageInner() {
             </div>
 
             {/* Tab bar (underline style) */}
-            <div className="flex items-center gap-0 mt-6 border-b border-gray-100 -mx-8 px-8">
+            <div className="flex items-center gap-0 mt-4 border-b border-gray-100 -mx-8 px-8">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.key;
@@ -366,20 +417,123 @@ function ProfilePageInner() {
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
             >
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
+                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-900">Thông tin cá nhân</h2>
+                      <p className="text-xs text-gray-400">Chi tiết tài khoản của bạn</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-semibold text-gray-900">Thông tin cá nhân</h2>
-                    <p className="text-xs text-gray-400">Chi tiết tài khoản của bạn</p>
-                  </div>
+                  {!isMeLoading && !isEditing && (
+                    <button
+                      onClick={openEdit}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <PencilLine className="w-3.5 h-3.5" />
+                      Chỉnh sửa
+                    </button>
+                  )}
                 </div>
 
                 {isMeLoading ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                   </div>
+                ) : isEditing ? (
+                  <form onSubmit={handleUpdateProfile} className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Họ và tên <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={editFullName}
+                        onChange={(e) => setEditFullName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                        placeholder="Nhập họ và tên"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+                      <div className="flex items-center gap-2.5 px-3.5 py-2.5 border border-gray-100 rounded-xl text-sm bg-gray-100 select-none">
+                        <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="flex-1 text-gray-500">{info?.email ?? '—'}</span>
+                        <span className="text-[10px] text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded-md whitespace-nowrap">Không thể thay đổi</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Số điện thoại</label>
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                        placeholder="Nhập số điện thoại"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Ảnh đại diện</label>
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => avatarFileInputRef.current?.click()}
+                          className="relative group flex-shrink-0 rounded-full overflow-hidden"
+                        >
+                          {(avatarLocalPreview ?? editAvatarUrl) ? (
+                            <img
+                              src={avatarLocalPreview ?? editAvatarUrl}
+                              alt="Ảnh đại diện"
+                              className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xl font-bold">
+                              {initial}
+                            </div>
+                          )}
+                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
+                            <Camera className="w-5 h-5 text-white" />
+                          </div>
+                        </button>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => avatarFileInputRef.current?.click()}
+                            className="px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                          Chọn ảnh
+                          </button>
+                          <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, GIF · Tối đa 5 MB</p>
+                        </div>
+                        <input
+                          ref={avatarFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFileSelect(f); e.target.value = ''; }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={updateMe.isPending}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {updateMe.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        {updateMe.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setAvatarLocalPreview(null); setIsEditing(false); }}
+                        disabled={updateMe.isPending}
+                        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl text-sm font-medium transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Hủy
+                      </button>
+                    </div>
+                  </form>
                 ) : (
                   <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-gray-50">
                     <div className="space-y-5 sm:pr-8">
@@ -390,12 +544,6 @@ function ProfilePageInner() {
                     <div className="space-y-5 pt-5 sm:pt-0 sm:pl-8">
                       <InfoField icon={Phone}    label="Số điện thoại" value={info?.phoneNumber} />
                       {roleLabel && <InfoField icon={BadgeCheck} label="Vai trò" value={roleLabel} />}
-                      <InfoField
-                        icon={Activity}
-                        label="Trạng thái"
-                        value={isActive ? 'Hoạt động' : 'Không hoạt động'}
-                        highlight={isActive}
-                      />
                     </div>
                   </div>
                 )}
@@ -484,7 +632,7 @@ function ProfilePageInner() {
                     {changePassword.isPending ? (
                       <><Loader2 className="w-4 h-4 animate-spin" />Đang cập nhật...</>
                     ) : (
-                      <><KeyRound className="w-4 h-4" />Cập nhật mật khẩu</>
+                      <><Check className="w-4 h-4" />Cập nhật mật khẩu</>
                     )}
                   </button>
                 </form>
@@ -636,106 +784,6 @@ function ProfilePageInner() {
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
             >
-              {/* Stats row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                {[
-                  { label: 'Tổng nộp',   value: verifications.length,
-                    icon: FileText,    bg: 'bg-blue-50',    text: 'text-blue-600' },
-                  { label: 'Chờ duyệt',  value: verifications.filter(v => v.status === 'pending').length,
-                    icon: Clock,       bg: 'bg-amber-50',   text: 'text-amber-600' },
-                  { label: 'Đã duyệt',   value: verifications.filter(v => v.status === 'approved').length,
-                    icon: CheckCircle2, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-                  { label: 'Từ chối',    value: verifications.filter(v => v.status === 'rejected').length,
-                    icon: XCircle,     bg: 'bg-red-50',     text: 'text-red-600' },
-                ].map((s) => {
-                  const Icon = s.icon;
-                  return (
-                    <div key={s.label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                      <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
-                        <Icon className={`w-4.5 h-4.5 ${s.text}`} style={{ width: 18, height: 18 }} />
-                      </div>
-                      <p className={`text-2xl font-bold ${s.text}`}>{s.value}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Header row with action */}
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-gray-900">Danh sách chứng chỉ</h2>
-                <button
-                  onClick={() => setShowCertForm(s => !s)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.97] transition-all text-sm font-medium shadow-lg shadow-blue-600/20"
-                >
-                  <Upload className="w-4 h-4" />
-                  Nộp chứng chỉ
-                </button>
-              </div>
-
-              {/* Upload form */}
-              <AnimatePresence>
-                {showCertForm && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-5"
-                  >
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Nộp chứng chỉ mới</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Tệp chứng chỉ <span className="text-red-500">*</span>
-                          </label>
-                          <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
-                            <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={(e) => { const f = e.target.files?.[0]; if (f) setCertFile(f); }}
-                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                            />
-                            {certFile && (
-                              <p className="mt-2 text-xs text-blue-600 font-medium">
-                                {certFile.name} · {(certFile.size / 1024).toFixed(0)} KB
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                              Loại chứng chỉ <span className="text-red-500">*</span>
-                            </label>
-                            <select value={certFileType} onChange={(e) => setCertFileType(e.target.value)}
-                              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                            >
-                              {FILE_TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
-                            <input type="text" value={certDesc} onChange={(e) => setCertDesc(e.target.value)}
-                              placeholder="Mô tả ngắn..."
-                              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 pt-1">
-                          <button onClick={handleCertSubmit}
-                            disabled={!certFile || submitVerification.isPending}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-lg shadow-blue-600/20"
-                          >
-                            {submitVerification.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                            {submitVerification.isPending ? 'Đang tải lên...' : 'Nộp chứng chỉ'}
-                          </button>
-                          <button onClick={() => { setShowCertForm(false); setCertFile(null); setCertDesc(''); }}
-                            className="px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-                          >Huỷ</button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               {/* Loading */}
               {certLoading && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-center py-16">
@@ -747,97 +795,224 @@ function ProfilePageInner() {
               {certError && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-16">
                   <AlertCircle className="w-10 h-10 text-red-300 mb-3" />
-                  <p className="text-sm text-gray-500">Không thể tải danh sách chứng chỉ.</p>
+                  <p className="text-sm text-gray-500">Không thể tải thông tin chứng chỉ.</p>
                 </div>
               )}
 
-              {/* Empty */}
-              {!certLoading && !certError && verifications.length === 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 border border-blue-100 flex items-center justify-center mb-4">
-                    <ShieldCheck className="w-8 h-8 text-blue-300" />
-                  </div>
-                  <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có chứng chỉ nào</h3>
-                  <p className="text-sm text-gray-400 mb-5 max-w-xs">Nộp chứng chỉ để xác minh danh tính chuyên gia của bạn.</p>
-                  <button onClick={() => setShowCertForm(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Nộp chứng chỉ đầu tiên
-                  </button>
-                </div>
-              )}
+              {/* No cert → empty state or upload form */}
+              {!certLoading && !certError && !cert && (
+                <>
+                  {!showCertForm ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-20 text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 border border-blue-100 flex items-center justify-center mb-4">
+                        <ShieldCheck className="w-8 h-8 text-blue-300" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có chứng chỉ nào</h3>
+                      <p className="text-sm text-gray-400 mb-5 max-w-xs">Nộp chứng chỉ để xác minh danh tính chuyên gia của bạn.</p>
+                      <button
+                        onClick={() => setShowCertForm(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold shadow-lg shadow-blue-600/20"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Nộp chứng chỉ
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <Upload className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900">Nộp chứng chỉ</h3>
+                          <p className="text-xs text-gray-400">Mỗi chuyên gia chỉ được nộp một chứng chỉ</p>
+                        </div>
+                      </div>
 
-              {/* List */}
-              {!certLoading && !certError && verifications.length > 0 && (
-                <div className="space-y-3">
-                  <AnimatePresence mode="popLayout">
-                    {verifications.map((v) => {
-                      const statusCfg = CERT_STATUS_CONFIG[v.status] ?? CERT_STATUS_CONFIG['pending'];
-                      return (
-                        <motion.div key={v.verificationCode} layout
-                          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
-                          className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-                        >
-                          {/* Status accent bar */}
-                          <div className={`h-1 w-full ${
-                            v.status === 'approved' ? 'bg-emerald-400' :
-                            v.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'
-                          }`} />
-                          <div className="p-5 flex items-start justify-between gap-4">
-                            <div className="flex items-start gap-4 flex-1 min-w-0">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${statusCfg.bgColor}`}>
-                                <FileText className={`w-5 h-5 ${statusCfg.textColor}`} />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <p className="text-sm font-semibold text-gray-900">
-                                    {FILE_TYPE_OPTIONS.find(o => o.value === v.fileType)?.label ?? v.fileType}
-                                  </p>
-                                  <CertStatusBadge status={v.status} />
+                      <div className="space-y-4">
+                        {/* Dropzone */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                            Tệp chứng chỉ <span className="text-red-500">*</span>
+                          </label>
+                          <div
+                            onClick={() => fileInputRef.current?.click()}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) setCertFile(f); }}
+                            className={`border-2 border-dashed rounded-xl p-5 cursor-pointer transition-all ${
+                              certFile ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {certFile ? (
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                  <FileText className="w-5 h-5 text-blue-600" />
                                 </div>
-                                {v.description && (
-                                  <p className="text-sm text-gray-500 line-clamp-1 mb-1">{v.description}</p>
-                                )}
-                                <p className="text-xs text-gray-400">
-                                  Nộp: {new Date(v.uploadedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                  {v.reviewedAt && (
-                                    <span> · Duyệt: {new Date(v.reviewedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                                  )}
-                                </p>
-                                {v.rejectionReason && (
-                                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                                    <XCircle className="w-3 h-3" />
-                                    {v.rejectionReason}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            {confirmDelete === v.verificationCode ? (
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <button onClick={() => handleCertDelete(v.verificationCode)}
-                                  disabled={deleteVerification.isPending}
-                                  className="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-blue-700 truncate">{certFile.name}</p>
+                                  <p className="text-xs text-blue-400">{(certFile.size / 1024).toFixed(0)} KB</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setCertFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                  className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors flex-shrink-0"
                                 >
-                                  {deleteVerification.isPending ? 'Đang xoá...' : 'Xác nhận'}
+                                  <X className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => setConfirmDelete(null)}
-                                  className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                                >Huỷ</button>
                               </div>
                             ) : (
-                              <button onClick={() => setConfirmDelete(v.verificationCode)}
-                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="text-center">
+                                <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-gray-600">Kéo thả hoặc nhấn để chọn file</p>
+                                <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG · Tối đa 10 MB</p>
+                              </div>
                             )}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => { const f = e.target.files?.[0]; if (f) setCertFile(f); }}
+                              className="hidden"
+                            />
                           </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
+                        </div>
+
+                        {/* Type - full width */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                            Loại chứng chỉ <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={certFileType}
+                            onChange={(e) => setCertFileType(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+                          >
+                            {FILE_TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          </select>
+                        </div>
+
+                        {/* Description - full width textarea */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1.5">Mô tả</label>
+                          <textarea
+                            value={certDesc}
+                            onChange={(e) => setCertDesc(e.target.value)}
+                            placeholder="Mô tả ngắn về chứng chỉ..."
+                            rows={3}
+                            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all resize-none"
+                          />
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="flex items-center gap-3 pt-1">
+                          <button
+                            onClick={handleCertSubmit}
+                            disabled={!certFile || submitVerification.isPending}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-semibold shadow-lg shadow-blue-600/20"
+                          >
+                            {submitVerification.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                            {submitVerification.isPending ? 'Đang tải lên...' : 'Nộp chứng chỉ'}
+                          </button>
+                          <button
+                            onClick={() => { setShowCertForm(false); setCertFile(null); setCertDesc(''); }}
+                            className="px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                          >
+                            Huỷ
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Has cert → single status card */}
+              {!certLoading && !certError && cert && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className={`h-1.5 w-full ${
+                    cert.status === 'approved' ? 'bg-emerald-400' :
+                    cert.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'
+                  }`} />
+                  <div className="p-6">
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${(CERT_STATUS_CONFIG[cert.status] ?? CERT_STATUS_CONFIG['pending']).bgColor}`}>
+                          <ShieldCheck className={`w-5 h-5 ${(CERT_STATUS_CONFIG[cert.status] ?? CERT_STATUS_CONFIG['pending']).textColor}`} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900">Chứng chỉ của bạn</h3>
+                          <p className="text-xs text-gray-400">
+                            Nộp: {new Date(cert.uploadedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            {cert.reviewedAt && ` · Duyệt: ${new Date(cert.reviewedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
+                          </p>
+                        </div>
+                      </div>
+                      <CertStatusBadge status={cert.status} />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] font-medium text-gray-400 mb-0.5">Loại chứng chỉ</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {FILE_TYPE_OPTIONS.find(o => o.value === cert.fileType)?.label ?? cert.fileType}
+                        </p>
+                      </div>
+                      {cert.description && (
+                        <div className="bg-gray-50 rounded-xl p-3">
+                          <p className="text-[10px] font-medium text-gray-400 mb-0.5">Mô tả</p>
+                          <p className="text-sm text-gray-700">{cert.description}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {cert.rejectionReason && (
+                      <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl mb-4">
+                        <XCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-semibold text-red-700 mb-0.5">Lý do từ chối</p>
+                          <p className="text-xs text-red-600">{cert.rejectionReason}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {cert.status === 'approved' && (
+                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <p className="text-xs font-medium text-emerald-700">Chứng chỉ đã được xác minh. Bạn có thể đăng tài liệu lên nền tảng.</p>
+                      </div>
+                    )}
+
+                    {cert.status !== 'approved' && (
+                      <div className="mt-4 flex items-center gap-3">
+                        {confirmDelete === cert.verificationCode ? (
+                          <>
+                            <span className="text-xs text-gray-500">Xác nhận rút lại chứng chỉ?</span>
+                            <button
+                              onClick={() => handleCertDelete(cert.verificationCode)}
+                              disabled={deleteVerification.isPending}
+                              className="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                            >
+                              {deleteVerification.isPending ? 'Đang xoá...' : 'Xác nhận xóa'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              Huỷ
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDelete(cert.verificationCode)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Rút lại chứng chỉ
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -870,7 +1045,7 @@ function InfoField({
         <Icon className="w-4 h-4 text-gray-400" />
       </div>
       <div>
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium text-gray-400">{label}</p>
         <p className={`text-sm font-medium mt-0.5 ${highlight ? 'text-emerald-600' : 'text-gray-900'}`}>
           {value ?? '—'}
         </p>

@@ -130,7 +130,7 @@ export default function ProjectDetailPage() {
     if (event.status === 'completed' || event.status === 'failed') {
       refetchProducts();
       if (event.step === 'video_completed') {
-        queryClient.invalidateQueries({ queryKey: ['video', 'latest', projectCode] });
+        queryClient.invalidateQueries({ queryKey: ['video', 'project', projectCode] });
       }
     }
   }, [saveTask, clearTask, refetchProducts, queryClient, projectCode]);

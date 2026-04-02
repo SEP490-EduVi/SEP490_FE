@@ -77,9 +77,9 @@ export const deleteMutationHook =
 
 // ─── POST không có invalidate (ví dụ: login, upload) ─────────────────────────
 export const createStandaloneMutationHook =
-  <TResponse, TInput = unknown>(url: string) =>
+  <TResponse, TInput = unknown>(url: string, method: 'POST' | 'PUT' | 'PATCH' = 'POST') =>
   (): UseMutationResult<TResponse, ApiError, TInput> =>
     useMutation({
       mutationFn: (data: TInput) =>
-        api.post<TResponse>(url, data).then((r) => r.data),
+        api[method.toLowerCase() as 'post' | 'put' | 'patch']<TResponse>(url, data).then((r) => r.data),
     });

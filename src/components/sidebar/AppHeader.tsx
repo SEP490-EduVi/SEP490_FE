@@ -25,10 +25,7 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
   teacher: [
     { href: '/teacher',               label: 'Tổng quan',  icon: LayoutDashboard },
     { href: '/teacher/projects',      label: 'Dự án',      icon: FolderKanban    },
-    { href: '/teacher/slides',        label: 'Slide',      icon: Layers          },
-    { href: '/teacher/videos',        label: 'Video',      icon: Film            },
     { href: '/material-shop',         label: 'Cửa hàng',   icon: Store           },
-    { href: '/teacher/material-lib',  label: 'Thư viện',   icon: Library         },
   ],
   expert: [
     { href: '/expert',             label: 'Tổng quan',  icon: LayoutDashboard },
@@ -69,6 +66,7 @@ export default function AppHeader() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [headerAvatarErr, setHeaderAvatarErr] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close mobile nav on route change
@@ -98,6 +96,8 @@ export default function AppHeader() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  useEffect(() => { setHeaderAvatarErr(false); }, [user?.avatarUrl]);
 
   const handleLogout = () => {
     logoutService.mutate(undefined, {
@@ -185,23 +185,19 @@ export default function AppHeader() {
             aria-expanded={menuOpen}
             aria-haspopup="true"
           >
-            {avatarUrl ? (
+            {avatarUrl && !headerAvatarErr ? (
               <img
                 src={avatarUrl}
                 alt={displayName}
                 className="w-11 h-11 rounded-full object-cover ring-2 ring-blue-100"
+                onError={() => setHeaderAvatarErr(true)}
               />
             ) : (
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                 {initial}
               </div>
             )}
-            <div className="hidden sm:block text-left">
-              <p className="text-base font-semibold text-gray-900 leading-none">{displayName}</p>
-              {email && (
-                <p className="text-sm text-gray-400 mt-0.5 leading-none truncate max-w-[140px]">{email}</p>
-              )}
-            </div>
+            <p className="hidden sm:block text-base font-semibold text-gray-900 leading-none">{displayName}</p>
             <ChevronDown
               className={`w-4 h-4 text-gray-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
             />
@@ -231,6 +227,35 @@ export default function AppHeader() {
                 <Settings className="w-4 h-4 text-gray-400" />
                 Đổi mật khẩu
               </button>
+
+              {role === 'teacher' && (
+                <>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/teacher/slides'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <Layers className="w-4 h-4 text-violet-400" />
+                    Slide của tôi
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/teacher/videos'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <Film className="w-4 h-4 text-rose-400" />
+                    Video của tôi
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/teacher/material-lib'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <Library className="w-4 h-4 text-emerald-400" />
+                    Thư viện
+                  </button>
+                </>
+              )}
 
               <div className="border-t border-gray-100 mt-1 pt-1">
                 <button

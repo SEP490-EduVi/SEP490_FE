@@ -164,7 +164,7 @@ function ShopMaterialCard({
       <div className="p-4 flex flex-col gap-2 flex-1">
         <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug">{material.title}</h3>
 
-        {material.description && (
+        {material.description && material.description.toLowerCase() !== 'string' && (
           <p className="text-xs text-gray-500 line-clamp-2 flex-1">{material.description}</p>
         )}
 
