@@ -366,19 +366,44 @@ export default function PipelinePage() {
       setCurrentStep('video');
       setShowPipelineModal(false);
       notify.success('Video đã tạo xong!');
-      // Retry polling until backend writes videoUrl
+
+      // ── Immediately hydrate videoData from SignalR result ──
+      // The result payload already contains videoUrl, duration, interactions, pausePoints.
+      // This avoids the "forever waiting" state when the polling API is slow or docCode is unresolved.
+      const signalRResult = event.result as Record<string, unknown> | null;
+      const immediateVideoUrl =
+        (signalRResult?.videoUrl ?? signalRResult?.video_url ?? signalRResult?.videoGcsUri ?? '') as string;
+      const resolvedPCode = (signalRResult?.productCode as string | undefined) ?? productCode ?? productCodeParam ?? '';
+
+      if (immediateVideoUrl && resolvedPCode) {
+        setVideoData((prev) => prev ?? {
+          productCode: resolvedPCode,
+          productName: '',
+          productVideoCode: (signalRResult?.requestId as string | undefined) ?? '',
+          status: 'completed',
+          slideDocumentUrl: null,
+          videoUrl: immediateVideoUrl,
+          duration: (signalRResult?.duration as number | undefined) ?? null,
+          interactions: (signalRResult?.interactions as VideoProductDto['interactions'] | undefined) ?? [],
+          pausePoints: signalRResult?.pausePoints ?? [],
+          errorMessage: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        });
+      }
+
+      // ── Background polling to replace with the proper BE-stored DTO ──
       (async () => {
         let docCode = effectiveDocumentCode;
         if (!docCode) {
-          const codeToResolve = productCode ?? productCodeParam;
+          const codeToResolve = resolvedPCode || productCodeParam;
           if (codeToResolve) {
             try {
               const detail = await productService.getProductByCode(codeToResolve);
               docCode = detail.documentCode ?? '';
               if (docCode) setResolvedVideoDocumentCode(docCode);
-            } catch {
-              // Keep silent: no polling fallback available without documentCode.
-            }
+            } catch { /* silent */ }
           }
         }
         if (!docCode) return;

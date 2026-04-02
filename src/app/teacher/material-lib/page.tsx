@@ -126,23 +126,23 @@ function MaterialDetailModal({
                 <p className="text-sm text-gray-600 leading-relaxed">{material.description}</p>
               )}
 
-              {/* Meta grid */}
+              {/* Meta grid - unified style */}
               <div className="grid grid-cols-2 gap-3">
                 {material.subjectName && (
-                  <div className="bg-blue-50 rounded-xl p-3 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] text-blue-400 font-medium">Môn học</p>
-                      <p className="text-xs font-semibold text-blue-800">{material.subjectName}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">Môn học</p>
+                      <p className="text-xs font-semibold text-gray-700">{material.subjectName}</p>
                     </div>
                   </div>
                 )}
                 {material.gradeName && (
-                  <div className="bg-amber-50 rounded-xl p-3 flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] text-amber-400 font-medium">Khối lớp</p>
-                      <p className="text-xs font-semibold text-amber-800">{material.gradeName}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">Khối lớp</p>
+                      <p className="text-xs font-semibold text-gray-700">{material.gradeName}</p>
                     </div>
                   </div>
                 )}
@@ -162,16 +162,23 @@ function MaterialDetailModal({
                 </div>
               </div>
 
-              {/* Action */}
+              {/* Actions: separate View + Download */}
               {material.resourceUrl ? (
-                <button
-                  onClick={handleDownload}
-                  className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-blue-200"
-                >
-                  <Download className="w-4 h-4" />
-                  Tải về / Xem tài liệu
-                  <ExternalLink className="w-3.5 h-3.5 opacity-60" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDownload}
+                    className="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-blue-200"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Xem tài liệu
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
                 <div className="w-full py-3 bg-gray-100 text-gray-400 text-sm font-medium rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
                   <AlertCircle className="w-4 h-4" />

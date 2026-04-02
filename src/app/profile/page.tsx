@@ -7,10 +7,11 @@ import {
   User, ShieldCheck, CheckCircle,
   Eye, EyeOff, Loader2, AlertCircle, Camera,
   Upload, Trash2, FileText, Clock, CheckCircle2, XCircle,
-  Mail, Phone, BadgeCheck, Activity, KeyRound, LockKeyhole, Wallet, CreditCard,
+  Mail, Phone, BadgeCheck, LockKeyhole, Wallet, CreditCard,
+  PencilLine, X, Check,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useGetMeService, useChangePasswordService } from '@/services/authServices';
+import { useGetMeService, useChangePasswordService, useUpdateMeService } from '@/services/authServices';
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
 import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
 import AppHeader from '@/components/sidebar/AppHeader';
@@ -88,7 +89,55 @@ function ProfilePageInner() {
   const [pwError,   setPwError]   = useState<string | null>(null);
   const changePassword = useChangePasswordService();
   const strength       = passwordStrength(newPw);
+  // ── Edit profile ─────────────────────────────────────────────────────────────────────
+  const [isEditing,      setIsEditing]      = useState(false);
+  const [editFullName,   setEditFullName]   = useState('');
+  const [editPhone,      setEditPhone]      = useState('');
+  const [editAvatarUrl,  setEditAvatarUrl]  = useState('');
+  const updateMe = useUpdateMeService();
+  const [avatarImgError, setAvatarImgError] = useState(false);
+  useEffect(() => { setAvatarImgError(false); }, [info?.avatarUrl]);
+  const [avatarLocalPreview, setAvatarLocalPreview] = useState<string | null>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
+  const openEdit = () => {
+    setEditFullName(info?.fullName ?? '');
+    setEditPhone(info?.phoneNumber ?? '');
+    setEditAvatarUrl(info?.avatarUrl ?? '');
+    setAvatarLocalPreview(null);
+    setIsEditing(true);
+  };
+
+  const handleAvatarFileSelect = (file: File) => {
+    if (!file.type.startsWith('image/')) { notify.error('Chỉ chấp nhận file ảnh.'); return; }
+    if (file.size > 5 * 1024 * 1024) { notify.error('File ảnh tối đa 5 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setAvatarLocalPreview(dataUrl);
+      setEditAvatarUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFullName.trim()) { notify.error('Họ và tên không được để trống.'); return; }
+    updateMe.mutate(
+      { fullName: editFullName.trim(), phoneNumber: editPhone.trim(), avatarUrl: editAvatarUrl.trim() },
+      {
+        onSuccess: (res) => {
+          if (res?.result) setUser(res.result);
+          notify.success('Cập nhật hồ sơ thành công!');
+          setIsEditing(false);
+        },
+        onError: (err: unknown) => {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+          notify.error(msg ?? 'Cập nhật thất bại. Vui lòng thử lại.');
+        },
+      },
+    );
+  };
   const handleChangePw = (e: React.FormEvent) => {
     e.preventDefault();
     setPwError(null);
@@ -254,7 +303,7 @@ function ProfilePageInner() {
         <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100">
 
           {/* Cover banner */}
-          <div className="h-36 bg-gradient-to-r from-blue-600 via-violet-600 to-indigo-700 relative">
+          <div className="h-28 bg-gradient-to-r from-blue-600 via-violet-600 to-indigo-700 relative">
             {/* subtle dot pattern overlay */}
             <div
               className="absolute inset-0 opacity-20"
@@ -266,18 +315,19 @@ function ProfilePageInner() {
           </div>
 
           {/* Profile info row */}
-          <div className="bg-white px-8 py-10 -mt-12 rounded-t-2xl shadow-lg relative">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12-">
+          <div className="bg-white px-8 pb-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
               {/* Avatar */}
-              <div className="relative group flex-shrink-0">
-                {info?.avatarUrl ? (
+              <div className="relative group flex-shrink-0 -mt-10">
+                {info?.avatarUrl && !avatarImgError ? (
                   <img
                     src={info.avatarUrl}
                     alt={displayName}
-                    className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+                    className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg"
+                    onError={() => setAvatarImgError(true)}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-4xl font-bold ring-4 ring-white shadow-lg">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-lg select-none">
                     {isMeLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : initial}
                   </div>
                 )}
@@ -287,7 +337,7 @@ function ProfilePageInner() {
               </div>
 
               {/* Name + meta */}
-              <div className="flex-1 min-w-0 pb-1">
+              <div className="flex-1 min-w-0 pt-3 sm:pt-0 pb-3">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <h1 className="text-2xl font-bold text-gray-900 truncate">{displayName}</h1>
                   {isActive ? (
@@ -326,7 +376,7 @@ function ProfilePageInner() {
             </div>
 
             {/* Tab bar (underline style) */}
-            <div className="flex items-center gap-0 mt-6 border-b border-gray-100 -mx-8 px-8">
+            <div className="flex items-center gap-0 mt-4 border-b border-gray-100 -mx-8 px-8">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.key;
@@ -366,20 +416,123 @@ function ProfilePageInner() {
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
             >
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
+                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-900">Thông tin cá nhân</h2>
+                      <p className="text-xs text-gray-400">Chi tiết tài khoản của bạn</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-semibold text-gray-900">Thông tin cá nhân</h2>
-                    <p className="text-xs text-gray-400">Chi tiết tài khoản của bạn</p>
-                  </div>
+                  {!isMeLoading && !isEditing && (
+                    <button
+                      onClick={openEdit}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <PencilLine className="w-3.5 h-3.5" />
+                      Chỉnh sửa
+                    </button>
+                  )}
                 </div>
 
                 {isMeLoading ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                   </div>
+                ) : isEditing ? (
+                  <form onSubmit={handleUpdateProfile} className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Họ và tên <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={editFullName}
+                        onChange={(e) => setEditFullName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                        placeholder="Nhập họ và tên"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+                      <div className="flex items-center gap-2.5 px-3.5 py-2.5 border border-gray-100 rounded-xl text-sm bg-gray-100 select-none">
+                        <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="flex-1 text-gray-500">{info?.email ?? '—'}</span>
+                        <span className="text-[10px] text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded-md whitespace-nowrap">Không thể thay đổi</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Số điện thoại</label>
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                        placeholder="Nhập số điện thoại"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Ảnh đại diện</label>
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => avatarFileInputRef.current?.click()}
+                          className="relative group flex-shrink-0 rounded-full overflow-hidden"
+                        >
+                          {(avatarLocalPreview ?? editAvatarUrl) ? (
+                            <img
+                              src={avatarLocalPreview ?? editAvatarUrl}
+                              alt="Ảnh đại diện"
+                              className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xl font-bold">
+                              {initial}
+                            </div>
+                          )}
+                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
+                            <Camera className="w-5 h-5 text-white" />
+                          </div>
+                        </button>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => avatarFileInputRef.current?.click()}
+                            className="px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                          Chọn ảnh
+                          </button>
+                          <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, GIF · Tối đa 5 MB</p>
+                        </div>
+                        <input
+                          ref={avatarFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFileSelect(f); e.target.value = ''; }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={updateMe.isPending}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {updateMe.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        {updateMe.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setAvatarLocalPreview(null); setIsEditing(false); }}
+                        disabled={updateMe.isPending}
+                        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl text-sm font-medium transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Hủy
+                      </button>
+                    </div>
+                  </form>
                 ) : (
                   <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-gray-50">
                     <div className="space-y-5 sm:pr-8">
@@ -390,12 +543,6 @@ function ProfilePageInner() {
                     <div className="space-y-5 pt-5 sm:pt-0 sm:pl-8">
                       <InfoField icon={Phone}    label="Số điện thoại" value={info?.phoneNumber} />
                       {roleLabel && <InfoField icon={BadgeCheck} label="Vai trò" value={roleLabel} />}
-                      <InfoField
-                        icon={Activity}
-                        label="Trạng thái"
-                        value={isActive ? 'Hoạt động' : 'Không hoạt động'}
-                        highlight={isActive}
-                      />
                     </div>
                   </div>
                 )}
@@ -484,7 +631,7 @@ function ProfilePageInner() {
                     {changePassword.isPending ? (
                       <><Loader2 className="w-4 h-4 animate-spin" />Đang cập nhật...</>
                     ) : (
-                      <><KeyRound className="w-4 h-4" />Cập nhật mật khẩu</>
+                      <><Check className="w-4 h-4" />Cập nhật mật khẩu</>
                     )}
                   </button>
                 </form>
@@ -870,7 +1017,7 @@ function InfoField({
         <Icon className="w-4 h-4 text-gray-400" />
       </div>
       <div>
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium text-gray-400">{label}</p>
         <p className={`text-sm font-medium mt-0.5 ${highlight ? 'text-emerald-600' : 'text-gray-900'}`}>
           {value ?? '—'}
         </p>
