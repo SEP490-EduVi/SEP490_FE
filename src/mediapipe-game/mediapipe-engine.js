@@ -76,6 +76,125 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+function wrapTextLines(ctx, text, maxWidth, maxLines) {
+  const raw = String(text ?? '').trim();
+  if (!raw) return [''];
+
+  const words = raw.split(/\s+/);
+  const lines = [];
+  let current = '';
+
+  const pushLine = (line) => {
+    if (lines.length < maxLines) lines.push(line);
+  };
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    if (!current) {
+      // Fallback for a very long token without spaces.
+      let partial = '';
+      for (const ch of word) {
+        const next = partial + ch;
+        if (ctx.measureText(next).width <= maxWidth) {
+          partial = next;
+        } else {
+          break;
+        }
+      }
+      pushLine(partial || word.slice(0, 1));
+      current = word.slice((partial || word.slice(0, 1)).length).trim();
+    } else {
+      pushLine(current);
+      current = word;
+    }
+
+    if (lines.length >= maxLines) break;
+  }
+
+  if (lines.length < maxLines && current) {
+    pushLine(current);
+  }
+
+  // Ellipsis when truncated.
+  const consumedWordCount = lines.join(' ').split(/\s+/).filter(Boolean).length;
+  const truncated = consumedWordCount < words.length;
+  if (truncated && lines.length > 0) {
+    const lastIdx = lines.length - 1;
+    let last = lines[lastIdx];
+    const ellipsis = '...';
+    while (last && ctx.measureText(last + ellipsis).width > maxWidth) {
+      last = last.slice(0, -1);
+    }
+    lines[lastIdx] = (last || '').trimEnd() + ellipsis;
+  }
+
+  return lines.slice(0, maxLines);
+}
+
+function drawCenteredMultilineText(ctx, text, centerX, centerY, maxWidth, lineHeight, maxLines) {
+  const lines = wrapTextLines(ctx, text, maxWidth, maxLines);
+  const blockHeight = lines.length * lineHeight;
+  let y = centerY - blockHeight / 2 + lineHeight / 2;
+
+  for (const line of lines) {
+    ctx.fillText(line, centerX, y);
+    y += lineHeight;
+  }
+}
+
+function drawAutoFitTextInRect(ctx, text, rect, options = {}) {
+  const {
+    paddingX = 12,
+    paddingY = 8,
+    minFontPx = 10,
+    maxFontPx = 18,
+    maxLines = 3,
+    fontWeight = 600,
+  } = options;
+
+  const availableWidth = Math.max(12, rect.w - paddingX * 2);
+  const availableHeight = Math.max(12, rect.h - paddingY * 2);
+
+  let chosenFont = minFontPx;
+  let chosenLineHeight = Math.max(12, Math.round(minFontPx * 1.25));
+  let chosenLines = [''];
+
+  for (let fontPx = maxFontPx; fontPx >= minFontPx; fontPx -= 1) {
+    const lineHeight = Math.max(12, Math.round(fontPx * 1.25));
+    const allowedLines = Math.max(1, Math.min(maxLines, Math.floor(availableHeight / lineHeight)));
+    if (allowedLines <= 0) continue;
+
+    ctx.font = `${fontWeight} ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    const lines = wrapTextLines(ctx, text, availableWidth, allowedLines);
+    const blockHeight = lines.length * lineHeight;
+
+    if (blockHeight <= availableHeight) {
+      chosenFont = fontPx;
+      chosenLineHeight = lineHeight;
+      chosenLines = lines;
+      break;
+    }
+  }
+
+  ctx.font = `${fontWeight} ${chosenFont}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const blockHeight = chosenLines.length * chosenLineHeight;
+  let y = rect.y + rect.h / 2 - blockHeight / 2 + chosenLineHeight / 2;
+  const x = rect.x + rect.w / 2;
+
+  for (const line of chosenLines) {
+    ctx.fillText(line, x, y);
+    y += chosenLineHeight;
+  }
+}
+
 async function importTasksVision() {
   // Runtime ESM import from CDN (do not bundle).
   const mod = await import(
@@ -270,7 +389,8 @@ class HoverSelectGame {
     ctx.fillStyle = '#ffffff';
     ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(this.playable.prompt, width / 2, 36);
+    ctx.textBaseline = 'middle';
+    drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, 34, width * 0.9, 24, 2);
 
     // Choices
     for (const c of this.playable.choices) {
@@ -293,12 +413,20 @@ class HoverSelectGame {
       ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.55)';
       ctx.stroke();
 
+      // Clip text inside choice box to avoid crossing into neighboring choices.
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 14);
+      ctx.clip();
+
       // Text
       ctx.fillStyle = '#ffffff';
-      ctx.font = '600 18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(c.text, rect.x + rect.w / 2, rect.y + rect.h / 2);
+      drawAutoFitTextInRect(ctx, c.text, rect, {
+        minFontPx: 11,
+        maxFontPx: 18,
+        maxLines: 3,
+        paddingX: 10,
+        paddingY: 8,
+        fontWeight: 600,
+      });
       ctx.restore();
     }
 
@@ -345,11 +473,26 @@ class DragDropGame {
    * @param {{ playable: any; settings: any; canvas: HTMLCanvasElement }} params
    */
   constructor({ playable, settings, canvas }) {
-    this.playable = playable;
+    // Clone so layout optimization does not mutate external payload/state.
+    this.playable = {
+      ...playable,
+      items: (playable.items ?? []).map((it) => ({
+        ...it,
+        start: { ...it.start },
+        size: { ...it.size },
+      })),
+      dropZones: (playable.dropZones ?? []).map((z) => ({
+        ...z,
+        zone: { ...z.zone },
+      })),
+    };
     this.settings = settings;
     this.canvas = canvas;
 
-    this.items = playable.items.map((it) => ({
+    this._optimizeDropZoneLayout();
+    this._optimizeItemLayout();
+
+    this.items = this.playable.items.map((it) => ({
       ...it,
       pos: { x: it.start.x, y: it.start.y },
       placedZoneId: null,
@@ -359,6 +502,74 @@ class DragDropGame {
     this.wasPinching = false;
 
     this.completedAtMs = null;
+  }
+
+  _optimizeDropZoneLayout() {
+    const zones = this.playable.dropZones;
+    if (!Array.isArray(zones) || zones.length < 3) return;
+
+    const yValues = zones.map((z) => z.zone.y + z.zone.h / 2);
+    const isSameRow = Math.max(...yValues) - Math.min(...yValues) <= 0.18;
+    if (!isSameRow) return;
+
+    const sorted = [...zones].sort((a, b) => a.zone.x - b.zone.x);
+    let minGap = Infinity;
+    for (let i = 0; i < sorted.length - 1; i += 1) {
+      const a = sorted[i].zone;
+      const b = sorted[i + 1].zone;
+      minGap = Math.min(minGap, b.x - (a.x + a.w));
+    }
+
+    // Existing spacing is good enough.
+    if (minGap >= 0.02) return;
+
+    const n = sorted.length;
+    const sidePadding = 0.05;
+    const targetGap = 0.02;
+    const availableWidth = 1 - sidePadding * 2 - targetGap * (n - 1);
+    const oldAvgW = sorted.reduce((sum, z) => sum + z.zone.w, 0) / n;
+    const targetW = Math.max(0.11, Math.min(oldAvgW, availableWidth / n));
+
+    let x = sidePadding;
+    for (const zone of sorted) {
+      zone.zone.x = x;
+      zone.zone.w = targetW;
+      x += targetW + targetGap;
+    }
+  }
+
+  _optimizeItemLayout() {
+    const items = this.playable.items;
+    if (!Array.isArray(items) || items.length < 3) return;
+
+    const yValues = items.map((it) => it.start.y);
+    const isSameRow = Math.max(...yValues) - Math.min(...yValues) <= 0.2;
+    if (!isSameRow) return;
+
+    const sorted = [...items].sort((a, b) => a.start.x - b.start.x);
+    let minGap = Infinity;
+    for (let i = 0; i < sorted.length - 1; i += 1) {
+      const aLeft = sorted[i].start.x - sorted[i].size.w / 2;
+      const aRight = sorted[i].start.x + sorted[i].size.w / 2;
+      const bLeft = sorted[i + 1].start.x - sorted[i + 1].size.w / 2;
+      minGap = Math.min(minGap, bLeft - aRight);
+    }
+
+    if (minGap >= 0.018) return;
+
+    const n = sorted.length;
+    const sidePadding = 0.06;
+    const targetGap = 0.02;
+    const availableWidth = 1 - sidePadding * 2 - targetGap * (n - 1);
+    const oldAvgW = sorted.reduce((sum, it) => sum + it.size.w, 0) / n;
+    const targetW = Math.max(0.1, Math.min(oldAvgW, availableWidth / n));
+
+    let centerX = sidePadding + targetW / 2;
+    for (const it of sorted) {
+      it.size.w = targetW;
+      it.start.x = centerX;
+      centerX += targetW + targetGap;
+    }
   }
 
   /** @param {InputFrame} frame */
@@ -485,7 +696,8 @@ class DragDropGame {
     ctx.fillStyle = '#ffffff';
     ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(this.playable.prompt, width / 2, 36);
+    ctx.textBaseline = 'middle';
+    drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, 34, width * 0.9, 24, 2);
 
     // Drop zones
     for (const zone of this.playable.dropZones) {
@@ -499,11 +711,18 @@ class DragDropGame {
       ctx.lineWidth = 2;
       ctx.stroke();
 
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 16);
+      ctx.clip();
+
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.font = '600 16px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.textBaseline = 'top';
-      ctx.textAlign = 'center';
-      ctx.fillText(zone.label, rect.x + rect.w / 2, rect.y + 10);
+      drawAutoFitTextInRect(ctx, zone.label, rect, {
+        minFontPx: 9,
+        maxFontPx: 16,
+        maxLines: 4,
+        paddingX: 8,
+        paddingY: 6,
+        fontWeight: 600,
+      });
       ctx.restore();
     }
 
@@ -537,11 +756,18 @@ class DragDropGame {
       ctx.lineWidth = isGrabbed ? 3 : 2;
       ctx.stroke();
 
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 14);
+      ctx.clip();
+
       ctx.fillStyle = '#ffffff';
-      ctx.font = '700 16px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(it.label, rect.x + rect.w / 2, rect.y + rect.h / 2);
+      drawAutoFitTextInRect(ctx, it.label, rect, {
+        minFontPx: 10,
+        maxFontPx: 16,
+        maxLines: 3,
+        paddingX: 8,
+        paddingY: 6,
+        fontWeight: 700,
+      });
       ctx.restore();
     }
 

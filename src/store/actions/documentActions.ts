@@ -17,6 +17,7 @@ const PROJECT_CODE_KEY = 'eduvi_project_code';
 const IS_EDITED_KEY = 'eduvi_is_edited';
 const IS_GENERATING_KEY = 'eduvi_is_generating';
 const GENERATING_PRODUCT_CODE_KEY = 'eduvi_generating_product_code';
+const LAST_EDITED_SLIDE_GCS_URL_KEY = 'eduvi_last_edited_slide_gcs_url';
 
 export function createDocumentActions(
   set: StoreSet,
@@ -219,6 +220,7 @@ export function createDocumentActions(
         try {
           sessionStorage.setItem(IS_EDITED_KEY, 'true');
           sessionStorage.setItem('eduvi_is_newly_generated', 'false');
+          sessionStorage.setItem(LAST_EDITED_SLIDE_GCS_URL_KEY, gcsObjectUrl);
         } catch { /* ignore */ }
       } catch (err: unknown) {
         const msg =

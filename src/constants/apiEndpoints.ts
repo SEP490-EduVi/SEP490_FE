@@ -10,6 +10,7 @@ const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion$
 const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
 const buildPaymentEndpoint       = (path: string) => `/api/Payment${path}`;
 const buildStaffEndpoint         = (path: string) => `/api/staff${path}`;
+const buildGamesEndpoint         = (path: string) => `/api/Games${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
@@ -41,6 +42,14 @@ export const API_ENDPOINTS = {
     // GET  /api/Pipeline/status/{taskId} — Kiểm tra trạng thái task (fallback SignalR)
     GET_TASK_STATUS: (taskId: string) =>
       buildPipelineEndpoint(`/status/${taskId}`),
+  },
+
+  // Games (async game generation)
+  GAMES: {
+    // POST /api/Games/playable — create async game generation task
+    CREATE_PLAYABLE_TASK: buildGamesEndpoint('/playable'),
+    // GET /api/Games/status/{taskId} — read latest task status
+    GET_TASK_STATUS: (taskId: string) => buildGamesEndpoint(`/status/${taskId}`),
   },
 
   // Project

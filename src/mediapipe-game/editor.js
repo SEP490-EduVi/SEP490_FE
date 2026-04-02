@@ -1,6 +1,6 @@
 /**
- * Teacher Game Config UI (Mock)
- * ============================
+ * Teacher Game Config UI
+ * ======================
  *
  * This module is intentionally DOM-driven (vanilla JS) to match the spec.
  * It expects a root element with child nodes marked by data-role attributes.
@@ -8,6 +8,23 @@
 
 import { GAME_BLUEPRINTS } from './api-contracts.js';
 import { MediaPipeTracker, GameEngine } from './mediapipe-engine.js';
+
+const GAME_STATUS_POLLING_MS = 3000;
+
+function normalizePlayableResult(result) {
+  if (!result || typeof result !== 'object') return null;
+  if ('templateId' in result && 'payload' in result) return result;
+
+  const keys = ['playable', 'game', 'data', 'payload'];
+  for (const key of keys) {
+    const value = result[key];
+    if (value && typeof value === 'object' && 'templateId' in value && 'payload' in value) {
+      return value;
+    }
+  }
+
+  return null;
+}
 
 /**
  * @typedef {{
@@ -32,11 +49,6 @@ function hide(el) {
   el.classList.add('hidden');
 }
 
-function safeNumber(v, fallback) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 /**
  * @param {InitParams} params
  * @returns {() => void} dispose
@@ -49,10 +61,6 @@ export function initTeacherGameEditor({ rootEl }) {
   const saveBtn = /** @type {HTMLButtonElement} */ (q(rootEl, 'save-game-btn'));
 
   const templateSelect = /** @type {HTMLSelectElement} */ (q(rootEl, 'template-select'));
-  const timeLimitInput = /** @type {HTMLInputElement} */ (q(rootEl, 'time-limit-input'));
-
-  const hoverHoldInput = /** @type {HTMLInputElement} */ (q(rootEl, 'hover-hold-input'));
-  const pinchThresholdInput = /** @type {HTMLInputElement} */ (q(rootEl, 'pinch-threshold-input'));
 
   const statusEl = q(rootEl, 'engine-status');
   const videoEl = /** @type {HTMLVideoElement} */ (q(rootEl, 'video'));
@@ -62,9 +70,18 @@ export function initTeacherGameEditor({ rootEl }) {
   let engine = null;
   /** @type {MediaPipeTracker | null} */
   let tracker = null;
+  /** @type {number | null} */
+  let pollingTimer = null;
 
   const setStatus = (msg) => {
     statusEl.textContent = msg;
+  };
+
+  const stopPolling = () => {
+    if (pollingTimer !== null) {
+      window.clearInterval(pollingTimer);
+      pollingTimer = null;
+    }
   };
 
   const openModal = () => show(modalEl);
@@ -101,39 +118,61 @@ export function initTeacherGameEditor({ rootEl }) {
   const handleSave = async () => {
     const templateId = /** @type {any} */ (templateSelect.value);
 
-    const timeLimitSec = safeNumber(timeLimitInput.value, 60);
-    const hoverHoldMs = safeNumber(hoverHoldInput.value, 2000);
-    const pinchThreshold = safeNumber(pinchThresholdInput.value, 0.045);
+    const accessToken = localStorage.getItem('accessToken');
+    const productCode = sessionStorage.getItem('eduvi_product_code') || '';
+    let slideEditedDocumentUrl = sessionStorage.getItem('eduvi_last_edited_slide_gcs_url') || '';
 
-    /** @type {import('./api-contracts.js').GameConfigRequest} */
+    if (!slideEditedDocumentUrl && productCode) {
+      try {
+        const editedRes = await fetch(`/api/Product/${encodeURIComponent(productCode)}/slide/edited`, {
+          method: 'GET',
+          headers: {
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (editedRes.ok) {
+          const editedPayload = await editedRes.json();
+          const ref = editedPayload?.result?.slideEditedDocument;
+          if (typeof ref === 'string' && ref.startsWith('gs://')) {
+            slideEditedDocumentUrl = ref;
+            sessionStorage.setItem('eduvi_last_edited_slide_gcs_url', ref);
+          }
+        }
+      } catch {
+        // Ignore and let validation below handle missing URL.
+      }
+    }
+
+    if (!slideEditedDocumentUrl) {
+      setStatus('Thiếu slideEditedDocumentUrl. Hãy lưu slide trước hoặc đảm bảo API /slide/edited đã có dữ liệu.');
+      return;
+    }
+
+    const roundCount = 1;
+
+    /** @type {{ templateId: string; slideEditedDocumentUrl: string; roundCount: number; }} */
     const req = {
       templateId,
-      slideDataReferences: {
-        documentId: 'mock_document',
-        slideIds: ['mock_slide_1'],
-        note: 'Mock-only: BE chưa implement',
-      },
-      teacherConfigs: {
-        timeLimitSec,
-        hoverHoldMs,
-        pinchThreshold,
-        enableSound: false,
-      },
+      slideEditedDocumentUrl,
+      roundCount,
     };
 
-    // Task requirement: console.log GameConfigRequest
+    // Task requirement: console.log request payload
     // eslint-disable-next-line no-console
-    console.log('[GameConfigRequest]', req);
+    console.log('[CreatePlayableGameTaskInput]', req);
 
     closeModal();
+    stopPolling();
 
     try {
-      setStatus('Đang gửi cấu hình xuống BE (mock)...');
+      setStatus('Đang gửi yêu cầu tạo game...');
 
-      const res = await fetch('/api/games/mock', {
+      const res = await fetch('/api/Games/playable', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify(req),
       });
@@ -143,13 +182,54 @@ export function initTeacherGameEditor({ rootEl }) {
         throw new Error(err?.error || `BE error (${res.status})`);
       }
 
-      const playable = await res.json();
+      const createResp = await res.json();
+      const taskId = createResp?.result?.taskId;
+      if (!taskId) {
+        throw new Error('Không nhận được taskId từ API.');
+      }
 
-      setStatus('Đang khởi tạo...');
-      await launchGame(playable);
+      setStatus(`Đã tạo task ${taskId}. Đang chờ xử lý...`);
+
+      pollingTimer = window.setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/Games/status/${taskId}`, {
+            method: 'GET',
+            headers: {
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+          });
+
+          if (!statusRes.ok) return;
+          const statusPayload = await statusRes.json();
+          const progress = statusPayload?.result;
+          if (!progress) return;
+
+          if (progress.detail) {
+            setStatus(progress.detail);
+          } else if (progress.step) {
+            setStatus(`Đang xử lý: ${progress.step}`);
+          }
+
+          if (String(progress.status).toLowerCase() === 'failed') {
+            stopPolling();
+            setStatus(progress.error || 'Tạo game thất bại');
+            return;
+          }
+
+          const playable = normalizePlayableResult(progress.result);
+          if (playable) {
+            stopPolling();
+            setStatus('Đang khởi tạo...');
+            await launchGame(playable);
+          }
+        } catch {
+          // Keep polling and wait for the next cycle.
+        }
+      }, GAME_STATUS_POLLING_MS);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e);
+      stopPolling();
       setStatus(e instanceof Error ? e.message : 'Failed to start game');
     }
   };
@@ -172,6 +252,8 @@ export function initTeacherGameEditor({ rootEl }) {
     closeBtn.removeEventListener('click', closeModal);
     modalBackdrop.removeEventListener('click', closeModal);
     saveBtn.removeEventListener('click', handleSave);
+
+    stopPolling();
 
     if (engine) engine.dispose();
     if (tracker) tracker.stop();
