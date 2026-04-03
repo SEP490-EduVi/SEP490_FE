@@ -16,6 +16,7 @@ import {
   Brain,
   Layers,
   X,
+  Minus,
   Film,
   Video,
   Scissors,
@@ -80,6 +81,7 @@ interface PipelineProgressModalProps {
   progress: PipelineProgress | null;
   pipelineType: 'evaluation' | 'slides' | 'video';
   onClose: () => void;
+  onMinimize?: () => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -89,6 +91,7 @@ export default function PipelineProgressModal({
   progress,
   pipelineType,
   onClose,
+  onMinimize,
 }: PipelineProgressModalProps) {
   const orderedSteps = getOrderedSteps(pipelineType);
   const currentStepIdx = progress ? orderedSteps.indexOf(progress.step) : -1;
@@ -173,14 +176,25 @@ export default function PipelineProgressModal({
                   </div>
                 </div>
 
-                {(isCompleted || isFailed) && (
-                  <button
-                    onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <X className="w-4 h-4 text-gray-500" />
-                  </button>
-                )}
+                <div className="flex items-center gap-1">
+                  {!isCompleted && !isFailed && onMinimize && (
+                    <button
+                      onClick={onMinimize}
+                      title="Thu nhỏ"
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <Minus className="w-4 h-4 text-gray-500" />
+                    </button>
+                  )}
+                  {(isCompleted || isFailed) && (
+                    <button
+                      onClick={onClose}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-500" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -220,10 +234,7 @@ export default function PipelineProgressModal({
                   </>
                 )}
               </div>
-              <div className="flex items-center justify-between mt-1.5 mb-4">
-                <span className="text-xs text-gray-400">
-                  {isReconnecting ? 'Đang kết nối lại với server...' : (progress?.detail ?? 'Đang khởi tạo...')}
-                </span>
+              <div className="flex justify-end mt-1.5 mb-4">
                 <span className="text-xs font-semibold text-gray-600">{pct}%</span>
               </div>
             </div>
