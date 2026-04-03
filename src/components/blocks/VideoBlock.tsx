@@ -36,15 +36,21 @@ function getVimeoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-function getEmbedUrl(content: IVideoContent): string | null {
+function getEmbedUrl(content: IVideoContent, autoplay = false): string | null {
   if (!content.src) return null;
   if (content.provider === 'youtube') {
     const id = getYouTubeId(content.src);
-    return id ? `https://www.youtube.com/embed/${id}` : null;
+    if (!id) return null;
+    return autoplay
+      ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`
+      : `https://www.youtube.com/embed/${id}`;
   }
   if (content.provider === 'vimeo') {
     const id = getVimeoId(content.src);
-    return id ? `https://player.vimeo.com/video/${id}` : null;
+    if (!id) return null;
+    return autoplay
+      ? `https://player.vimeo.com/video/${id}?autoplay=1`
+      : `https://player.vimeo.com/video/${id}`;
   }
   return content.src; // direct / object URL
 }
@@ -64,6 +70,8 @@ export function VideoBlock({
 }: VideoBlockProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
+  const appMode = useDocumentStore((state) => state.appMode);
+  const isPresenting = appMode === 'PRESENT';
   const [urlMode, setUrlMode] = useState(false);
   const [urlValue, setUrlValue] = useState('');
 
@@ -224,7 +232,7 @@ export function VideoBlock({
   const effectiveContent: IVideoContent = resolvedSrc && content.provider === 'direct'
     ? { ...content, src: resolvedSrc }
     : content;
-  const embedUrl = getEmbedUrl(effectiveContent);
+  const embedUrl = getEmbedUrl(effectiveContent, isPresenting);
 
   return (
     <div
@@ -246,6 +254,7 @@ export function VideoBlock({
       <div className="relative w-full aspect-video bg-gray-900">
         {embedUrl && (content.provider === 'youtube' || content.provider === 'vimeo') ? (
           <iframe
+            key={isPresenting ? 'present' : 'edit'}
             src={embedUrl}
             className="absolute inset-0 w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -255,9 +264,11 @@ export function VideoBlock({
         ) : embedUrl ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
+            key={isPresenting ? 'present' : 'edit'}
             src={embedUrl}
             className="absolute inset-0 w-full h-full"
             controls
+            autoPlay={isPresenting}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -265,19 +276,21 @@ export function VideoBlock({
           </div>
         )}
 
-        {/* Hover overlay with replace button */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 pointer-events-auto">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="flex items-center gap-2 px-3 py-2 bg-white/90 rounded-lg shadow text-sm font-semibold text-gray-800 hover:bg-white"
-            >
-              <VideoPlus className="w-4 h-4" />
-              Thay video
-            </button>
+        {/* Hover overlay with replace button — hidden in presentation mode */}
+        {!isPresenting && (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 pointer-events-auto">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                className="flex items-center gap-2 px-3 py-2 bg-white/90 rounded-lg shadow text-sm font-semibold text-gray-800 hover:bg-white"
+              >
+                <VideoPlus className="w-4 h-4" />
+                Thay video
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

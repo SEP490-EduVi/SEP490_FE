@@ -39,6 +39,7 @@ const INTERACTIVE_TYPES = new Set([
   BlockType.QUIZ,
   BlockType.FLASHCARD,
   BlockType.FILL_BLANK,
+  BlockType.VIDEO,
 ]);
 
 function hasInteractiveBlock(nodes: (ILayout | IBlock)[]): boolean {
@@ -129,6 +130,16 @@ export function PresentationLayer() {
         break;
     }
   }, [nextSlide, previousSlide, exitPresentation, isInteractive]);
+
+  useEffect(() => {
+    if (appMode === 'PRESENT') {
+      window.document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      if (window.document.fullscreenElement) {
+        window.document.exitFullscreen?.().catch(() => {});
+      }
+    }
+  }, [appMode]);
 
   useEffect(() => {
     if (appMode === 'PRESENT') {

@@ -26,12 +26,20 @@ async function checkStoredTasks(onProgress: (p: PipelineProgress) => void) {
   if (allTasks.length === 0) return;
 
   await Promise.allSettled(
-    allTasks.map(async ({ taskId }) => {
+    allTasks.map(async ({ key, taskId }) => {
       try {
         const status = await getPipelineTaskStatus(taskId);
         onProgress(status);
-      } catch {
-        // Status endpoint unreachable for this taskId — leave stored for next reconnect
+      } catch (err: unknown) {
+        // 404 → task doesn't exist on the server for this user (wrong user, expired, etc.)
+        // Remove it from storage so it stops being polled.
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404) {
+          const [type, ...rest] = key.split(':');
+          const productCode = rest.join(':');
+          usePipelineTaskStore.getState().clearTask(type as import('@/store/usePipelineTaskStore').PipelineTaskType, productCode);
+        }
+        // Other errors (network, 5xx) → leave stored for next reconnect
       }
     })
   );

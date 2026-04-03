@@ -15,6 +15,7 @@ import {
   BlockType,
   LayoutVariant,
   IMaterial,
+  WidgetType,
   isLayout,
 } from '@/types';
 import { updateNodeInTree, getColumnCountForVariant } from '../helpers/treeUtils';
@@ -37,6 +38,12 @@ export function createMaterialActions(
       const { document } = get();
       if (!document) return;
 
+      // Video Player widget → dedicated video slide with empty src (shows upload UI)
+      if (material.widgetType === WidgetType.MATERIAL_VIDEO) {
+        get().addVideoSlide(material.name);
+        return;
+      }
+
       const newBlock: IBlock = {
         id: `block-${uuidv4()}`,
         type: NodeType.BLOCK,
@@ -53,6 +60,9 @@ export function createMaterialActions(
       // Check if parentId is a card
       const targetCard = document.cards.find((card) => card.id === parentId);
       
+      // Prevent dropping into a video-only slide
+      if (targetCard?.isVideoSlide) return;
+
       if (targetCard) {
         const newDoc = {
           ...document,
@@ -282,6 +292,7 @@ export function createMaterialActions(
           type: NodeType.CARD,
           title: item.title,
           children: [videoBlock],
+          isVideoSlide: true,
         };
         const newDoc = {
           ...document,
@@ -293,6 +304,10 @@ export function createMaterialActions(
         const cardId = targetCardId || document.cards[document.cards.length - 1]?.id;
         if (!cardId) return;
 
+        // Prevent dropping into a video-only slide
+        const targetCard = document.cards.find((c) => c.id === cardId);
+        if (targetCard?.isVideoSlide) return;
+
         const blockId = `block-${uuidv4()}`;
         const imageBlock: IBlock = {
           id: blockId,
@@ -301,7 +316,7 @@ export function createMaterialActions(
             type: BlockType.IMAGE,
             src: resourceUrl,
             alt: item.title,
-            caption: item.description || '',
+            caption: '',
           },
           children: [],
           styles: {

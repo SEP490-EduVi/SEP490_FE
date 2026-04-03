@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Film, Search, Loader2, Play, FolderOpen, Clock, Plus, Zap } from 'lucide-react';
 
@@ -9,6 +9,9 @@ import { Breadcrumb } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import { useAllVideos } from '@/hooks/usePipelineApi';
+import { useAllProducts } from '@/hooks/useProductApi';
+import { useAllInputDocuments } from '@/hooks/useInputDocumentApi';
+import { useProjects } from '@/hooks/useProjectApi';
 import type { VideoProductDto } from '@/types/api';
 
 const PAGE_SIZE = 8;
@@ -29,6 +32,24 @@ function formatDate(d: string | null) {
 
 export default function TeacherVideosPage() {
   const { data: allVideos = [], isLoading } = useAllVideos();
+  const { data: allProducts = [] } = useAllProducts();
+  const { data: allInputDocs = [] } = useAllInputDocuments();
+  const { data: projects = [] } = useProjects();
+
+  const videoToProjectName = useMemo(() => {
+    const projectMap = new Map(projects.map((p) => [p.projectCode, p.projectName]));
+    const docToProject = new Map<string, string>();
+    for (const doc of allInputDocs) {
+      const name = projectMap.get(doc.projectCode);
+      if (name) docToProject.set(doc.documentCode, name);
+    }
+    const map = new Map<string, string>();
+    for (const product of allProducts) {
+      const projectName = docToProject.get(product.documentCode);
+      if (projectName) map.set(product.productCode, projectName);
+    }
+    return map;
+  }, [allProducts, allInputDocs, projects]);
 
   const [searchQuery, setSearchQuery]   = useState('');
   const [page, setPage]                 = useState(1);
@@ -193,9 +214,15 @@ export default function TeacherVideosPage() {
                   </div>
 
                   <div className="p-3">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate mb-1.5">
+                    <h3 className="text-sm font-semibold text-gray-900 truncate mb-0.5">
                       {video.productName}
                     </h3>
+                    {videoToProjectName.get(video.productCode) && (
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mb-1.5">
+                        <FolderOpen className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{videoToProjectName.get(video.productCode)}</span>
+                      </div>
+                    )}
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {formatDate(video.completedAt)}

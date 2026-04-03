@@ -91,6 +91,7 @@ export interface DocumentState {
   
   // Node CRUD Actions
   addCard: (title?: string) => void;
+  addVideoSlide: (title?: string) => void;
   addCardFromTemplate: (templateType: string) => void;
   addBlockToCard: (cardId: string, blockType: BlockType) => void;
   addLayoutToCard: (cardId: string, variant: LayoutVariant) => void;

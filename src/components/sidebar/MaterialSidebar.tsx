@@ -259,19 +259,7 @@ function DraggablePurchasedItem({ item }: { item: PurchasedMaterialDto }) {
 
       <div className="flex-1 min-w-0">
         <h4 className="text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</h4>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className={cn(
-            'inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full',
-            item.type.toLowerCase().includes('video')
-              ? 'bg-amber-100 text-amber-700'
-              : item.type.toLowerCase().includes('image')
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-600'
-          )}>
-            {item.type}
-          </span>
-          <span className="text-[10px] text-gray-400 truncate">{item.expertName}</span>
-        </div>
+        <span className="text-[10px] text-gray-400 truncate block mt-0.5">Được tạo bởi: {item.expertName}</span>
       </div>
     </div>
   );

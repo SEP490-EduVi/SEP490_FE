@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, Search, Loader2, Eye, FolderOpen, Plus } from 'lucide-react';
@@ -9,6 +9,8 @@ import AppHeader from '@/components/sidebar/AppHeader';
 import { Breadcrumb, notify } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import { useAllProducts } from '@/hooks/useProductApi';
+import { useAllInputDocuments } from '@/hooks/useInputDocumentApi';
+import { useProjects } from '@/hooks/useProjectApi';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import * as productService from '@/services/productServices';
 
@@ -24,7 +26,19 @@ function formatDate(d: string | null) {
 export default function TeacherSlidesPage() {
   const router = useRouter();
   const { data: allProducts = [], isLoading } = useAllProducts();
+  const { data: allInputDocs = [] } = useAllInputDocuments();
+  const { data: projects = [] } = useProjects();
   const setDocument = useDocumentStore((s) => s.setDocument);
+
+  const docToProjectName = useMemo(() => {
+    const projectMap = new Map(projects.map((p) => [p.projectCode, p.projectName]));
+    const map = new Map<string, string>();
+    for (const doc of allInputDocs) {
+      const name = projectMap.get(doc.projectCode);
+      if (name) map.set(doc.documentCode, name);
+    }
+    return map;
+  }, [allInputDocs, projects]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage]               = useState(1);
@@ -180,9 +194,16 @@ export default function TeacherSlidesPage() {
                     </div>
 
                     <div className="p-4">
-                      <h3 className="text-sm font-semibold text-gray-900 truncate mb-1.5">
+                      <h3 className="text-sm font-semibold text-gray-900 truncate mb-0.5">
                         {slide.productName}
                       </h3>
+
+                      {docToProjectName.get(slide.documentCode) && (
+                        <div className="flex items-center gap-1 text-xs text-gray-400 mb-1.5">
+                          <FolderOpen className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{docToProjectName.get(slide.documentCode)}</span>
+                        </div>
+                      )}
 
                       {/* Single status badge */}
                       <div className="flex flex-wrap items-center gap-1.5 mb-3">
