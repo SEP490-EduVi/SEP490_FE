@@ -13,6 +13,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/gcsClient';
 
+// Increase body size limit for large slide JSON payloads
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 const bucketName = process.env.GCS_BUCKET_NAME ?? 'eduvi_folders';
 const folder = process.env.GCS_FOLDER_EDITED_SLIDES ?? 'edited_slides';
 

@@ -91,6 +91,7 @@ export interface DocumentState {
   
   // Node CRUD Actions
   addCard: (title?: string) => void;
+  addVideoSlide: (title?: string) => void;
   addCardFromTemplate: (templateType: string) => void;
   addBlockToCard: (cardId: string, blockType: BlockType) => void;
   addLayoutToCard: (cardId: string, variant: LayoutVariant) => void;
@@ -115,6 +116,7 @@ export interface DocumentState {
   
   // Material/Widget Actions
   dropMaterial: (parentId: string, material: IMaterial, columnIndex?: number, customData?: Record<string, unknown>) => void;
+  dropPurchasedMaterial: (targetCardId: string | null, item: { title: string; description?: string; type: string; resourceUrl: string | null }) => void;
   createWidgetGroup: (cardId: string, variant: LayoutVariant, materials: IMaterial[]) => void;
   wrapBlocksInLayout: (cardId: string, blockIds: string[], variant: LayoutVariant) => void;
   

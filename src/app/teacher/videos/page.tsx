@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, Search, Loader2, Play, FolderOpen, Clock } from 'lucide-react';
+import { Film, Search, Loader2, Play, FolderOpen, Clock, Plus, Zap } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import { Breadcrumb } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import { useAllVideos } from '@/hooks/usePipelineApi';
+import { useAllProducts } from '@/hooks/useProductApi';
+import { useAllInputDocuments } from '@/hooks/useInputDocumentApi';
+import { useProjects } from '@/hooks/useProjectApi';
 import type { VideoProductDto } from '@/types/api';
 
 const PAGE_SIZE = 8;
@@ -29,6 +32,24 @@ function formatDate(d: string | null) {
 
 export default function TeacherVideosPage() {
   const { data: allVideos = [], isLoading } = useAllVideos();
+  const { data: allProducts = [] } = useAllProducts();
+  const { data: allInputDocs = [] } = useAllInputDocuments();
+  const { data: projects = [] } = useProjects();
+
+  const videoToProjectName = useMemo(() => {
+    const projectMap = new Map(projects.map((p) => [p.projectCode, p.projectName]));
+    const docToProject = new Map<string, string>();
+    for (const doc of allInputDocs) {
+      const name = projectMap.get(doc.projectCode);
+      if (name) docToProject.set(doc.documentCode, name);
+    }
+    const map = new Map<string, string>();
+    for (const product of allProducts) {
+      const projectName = docToProject.get(product.documentCode);
+      if (projectName) map.set(product.productCode, projectName);
+    }
+    return map;
+  }, [allProducts, allInputDocs, projects]);
 
   const [searchQuery, setSearchQuery]   = useState('');
   const [page, setPage]                 = useState(1);
@@ -57,17 +78,26 @@ export default function TeacherVideosPage() {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center gap-3 mb-6"
+          className="flex items-center justify-between gap-3 mb-6"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center">
-            <Film className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center">
+              <Film className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Video của tôi</h1>
+              <p className="text-sm text-gray-500">
+                {isLoading ? '…' : `${completed.length} video đã hoàn thành`}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Video của tôi</h1>
-            <p className="text-sm text-gray-500">
-              {isLoading ? '…' : `${completed.length} video đã hoàn thành`}
-            </p>
-          </div>
+          <button
+            onClick={() => window.location.href = '/teacher/projects'}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shadow-rose-200 flex-shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo video mới
+          </button>
         </motion.div>
 
         {/* Search */}
@@ -120,9 +150,18 @@ export default function TeacherVideosPage() {
               <h3 className="text-lg font-semibold text-gray-700 mb-1">
                 {searchQuery ? 'Không tìm thấy video' : 'Chưa có video nào'}
               </h3>
-              <p className="text-sm text-gray-500">
-                {searchQuery ? 'Thử thay đổi từ khóa tìm kiếm' : 'Tạo video từ trang Dự án → Pipeline'}
+              <p className="text-sm text-gray-500 mb-5">
+                {searchQuery ? 'Thử thay đổi từ khóa tìm kiếm' : 'Video được tạo qua Pipeline từ trang Dự án'}
               </p>
+              {!searchQuery && (
+                <button
+                  onClick={() => window.location.href = '/teacher/projects'}
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-colors shadow-sm shadow-rose-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tạo video đầu tiên
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -150,10 +189,11 @@ export default function TeacherVideosPage() {
                   onClick={() => setPlayingVideo(video)}
                 >
                   {/* Thumbnail */}
-                  <div className="relative h-36 bg-gray-950 flex items-center justify-center">
-                    <Film className="w-10 h-10 text-white/10" />
+                  <div className="relative h-36 bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center overflow-hidden">
+                    <Film className="w-10 h-10 text-white/15 absolute" />
+                    <p className="relative z-10 text-sm font-semibold text-white/80 px-3 text-center line-clamp-2 select-none">{video.productName}</p>
 
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                         <Play className="w-5 h-5 text-gray-900 ml-0.5" />
                       </div>
@@ -166,16 +206,23 @@ export default function TeacherVideosPage() {
                     )}
 
                     {(video.interactions?.length ?? 0) > 0 && (
-                      <span className="absolute top-2 left-2 text-xs text-white bg-violet-600/80 px-1.5 py-0.5 rounded">
-                        {video.interactions.length} tương tác
+                      <span className="absolute top-2 left-2 text-xs text-white bg-violet-600/80 px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Zap className="w-2.5 h-2.5" />
+                        Video tương tác
                       </span>
                     )}
                   </div>
 
                   <div className="p-3">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate mb-1.5">
+                    <h3 className="text-sm font-semibold text-gray-900 truncate mb-0.5">
                       {video.productName}
                     </h3>
+                    {videoToProjectName.get(video.productCode) && (
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mb-1.5">
+                        <FolderOpen className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{videoToProjectName.get(video.productCode)}</span>
+                      </div>
+                    )}
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {formatDate(video.completedAt)}

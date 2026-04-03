@@ -93,3 +93,15 @@ export const useChangePasswordService = createStandaloneMutationHook<
   ApiResponse<boolean>,
   ChangePasswordInput
 >(API_ENDPOINTS.AUTH.CHANGE_PASSWORD);
+
+// ─── Update Me ─────────────────────────────────────────────────────────────────
+export interface UpdateMeInput {
+  fullName: string;
+  phoneNumber: string;
+  avatarUrl: string;
+}
+
+export const useUpdateMeService = createStandaloneMutationHook<
+  ApiResponse<UserInfo>,
+  UpdateMeInput
+>(API_ENDPOINTS.AUTH.ME, 'PUT');

@@ -96,6 +96,8 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
   const deleteNode = useDocumentStore((state) => state.deleteNode);
   const editingNodeId = useDocumentStore((state) => state.editingNodeId);
+  const appMode = useDocumentStore((state) => state.appMode);
+  const isPresenting = appMode === 'PRESENT';
 
   const isSelected = selectedNodeId === node.id;
   const isEditing = editingNodeId === node.id;
@@ -219,7 +221,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
 
   return (
     <>
-      {depth > 0 && isSelected && !isEditing && toolbarPos && createPortal(
+      {depth > 0 && isSelected && !isEditing && !isPresenting && toolbarPos && createPortal(
         <div
           className="fixed z-[9999] flex items-center gap-1 px-2 py-1.5 bg-white rounded-lg shadow-lg border border-gray-200 -translate-x-1/2"
           style={{ top: toolbarPos.top, left: toolbarPos.left }}

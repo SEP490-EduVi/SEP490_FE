@@ -20,6 +20,8 @@ import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { IMaterial, MaterialCategory } from '@/types';
+import type { PurchasedMaterialDto } from '@/types/api';
+import { getPurchasedMaterials } from '@/services/materialServices';
 import { Modal } from '@/components/common/Modal';
 import { basicCardTemplates, freeformCardTemplates } from './cardTemplates';
 import * as LucideIcons from 'lucide-react';
@@ -34,6 +36,10 @@ import {
   Columns3,
   LayoutGrid,
   Sparkles,
+  ShoppingBag,
+  ImageIcon,
+  Film,
+  FileText,
 } from 'lucide-react';
 
 // ============================================================================
@@ -190,6 +196,76 @@ function CategorySection({ category, materials, isExpanded, onToggle }: Category
 }
 
 // ============================================================================
+// DRAGGABLE PURCHASED MATERIAL ITEM
+// ============================================================================
+
+function getPurchasedIcon(type: string) {
+  const t = type.toLowerCase();
+  if (t.includes('video')) return <Film className="w-4 h-4" />;
+  if (t.includes('image') || t.includes('photo')) return <LucideIcons.Image className="w-4 h-4" />;
+  return <FileText className="w-4 h-4" />;
+}
+
+function getPurchasedColor(type: string) {
+  const t = type.toLowerCase();
+  if (t.includes('video')) return { icon: 'text-amber-500', bg: 'bg-amber-50' };
+  if (t.includes('image') || t.includes('photo')) return { icon: 'text-blue-500', bg: 'bg-blue-50' };
+  return { icon: 'text-gray-500', bg: 'bg-gray-50' };
+}
+
+function DraggablePurchasedItem({ item }: { item: PurchasedMaterialDto }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `purchased-${item.materialCode}`,
+    data: {
+      type: 'PURCHASED_MATERIAL',
+      purchasedMaterial: item,
+    },
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: isDragging ? 1000 : undefined }
+    : undefined;
+
+  const color = getPurchasedColor(item.type);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group flex items-center gap-2.5 p-2 rounded-lg cursor-grab',
+        'bg-white border border-gray-100',
+        'hover:border-blue-300 hover:bg-blue-50/40',
+        'transition-all duration-150',
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-blue-400'
+      )}
+      {...listeners}
+      {...attributes}
+    >
+      <div className="flex-shrink-0 text-gray-300 group-hover:text-blue-400">
+        <GripVertical className="w-3.5 h-3.5" />
+      </div>
+
+      {/* Thumbnail or icon */}
+      {item.previewUrl ? (
+        <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+          <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className={cn('flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center', color.bg)}>
+          <span className={color.icon}>{getPurchasedIcon(item.type)}</span>
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</h4>
+        <span className="text-[10px] text-gray-400 truncate block mt-0.5">Được tạo bởi: {item.expertName}</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -198,9 +274,15 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'widgets' | 'purchased'>('widgets');
   const [expandedCategories, setExpandedCategories] = useState<Set<MaterialCategory>>(
     new Set(Object.values(MaterialCategory))
   );
+
+  // Purchased materials state
+  const [purchasedItems, setPurchasedItems] = useState<PurchasedMaterialDto[]>([]);
+  const [purchasedLoading, setPurchasedLoading] = useState(false);
+  const [purchasedError, setPurchasedError] = useState<string | null>(null);
 
   // --------------------------------------------------------------------------
   // Fetch materials on mount
@@ -227,6 +309,39 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
 
     fetchMaterials();
   }, []);
+
+  // --------------------------------------------------------------------------
+  // Fetch purchased materials
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    async function fetchPurchased() {
+      try {
+        setPurchasedLoading(true);
+        const data = await getPurchasedMaterials();
+        setPurchasedItems(data);
+      } catch (err) {
+        setPurchasedError('Không thể tải tài nguyên đã mua');
+        console.error('Failed to fetch purchased materials:', err);
+      } finally {
+        setPurchasedLoading(false);
+      }
+    }
+    fetchPurchased();
+  }, []);
+
+  // --------------------------------------------------------------------------
+  // Filter purchased materials by search query
+  // --------------------------------------------------------------------------
+  const filteredPurchased = useMemo(() => {
+    if (!searchQuery.trim()) return purchasedItems;
+    const query = searchQuery.toLowerCase();
+    return purchasedItems.filter(
+      (m) =>
+        m.title.toLowerCase().includes(query) ||
+        m.description?.toLowerCase().includes(query) ||
+        m.type.toLowerCase().includes(query)
+    );
+  }, [purchasedItems, searchQuery]);
 
   // --------------------------------------------------------------------------
   // Filter materials by search query
@@ -289,13 +404,13 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
       )}
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-100 bg-white">
+      <div className="p-4 pb-3 border-b border-gray-100 bg-white">
         <h2 className="text-base font-bold text-slate-800 mb-3">
           Thư viện tài nguyên
         </h2>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -310,58 +425,131 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             )}
           />
         </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+          <button
+            onClick={() => setActiveTab('widgets')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors',
+              activeTab === 'widgets'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <Package className="w-3.5 h-3.5" />
+            Widget
+          </button>
+          <button
+            onClick={() => setActiveTab('purchased')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors',
+              activeTab === 'purchased'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            Đã mua
+            {purchasedItems.length > 0 && (
+              <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded-full font-semibold">
+                {purchasedItems.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-          </div>
+        {/* ── Widget Tab ─────────────────────────────────────────── */}
+        {activeTab === 'widgets' && (
+          <>
+            {loading && (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+              </div>
+            )}
+
+            {error && !loading && (
+              <div className="p-4 text-center">
+                <p className="text-sm text-red-500">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-2 text-sm text-blue-500 hover:underline"
+                >
+                  Thử lại
+                </button>
+              </div>
+            )}
+
+            {!loading && !error && filteredMaterials.length === 0 && (
+              <div className="p-4 text-center">
+                <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">
+                  {searchQuery ? 'Không tìm thấy tài nguyên' : 'Chưa có tài nguyên nào'}
+                </p>
+              </div>
+            )}
+
+            {!loading && !error && filteredMaterials.length > 0 && (
+              <div className="divide-y divide-gray-100">
+                {Object.values(MaterialCategory).map((category) => {
+                  const categoryMaterials = materialsByCategory[category];
+                  if (categoryMaterials.length === 0) return null;
+                  return (
+                    <CategorySection
+                      key={category}
+                      category={category}
+                      materials={categoryMaterials}
+                      isExpanded={expandedCategories.has(category)}
+                      onToggle={() => toggleCategory(category)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Error State */}
-        {error && !loading && (
-          <div className="p-4 text-center">
-            <p className="text-sm text-red-500">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-blue-500 hover:underline"
-            >
-              Thử lại
-            </button>
-          </div>
-        )}
+        {/* ── Purchased Tab ──────────────────────────────────────── */}
+        {activeTab === 'purchased' && (
+          <>
+            {purchasedLoading && (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+              </div>
+            )}
 
-        {/* Empty State */}
-        {!loading && !error && filteredMaterials.length === 0 && (
-          <div className="p-4 text-center">
-            <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">
-              {searchQuery ? 'Không tìm thấy tài nguyên' : 'Chưa có tài nguyên nào'}
-            </p>
-          </div>
-        )}
+            {purchasedError && !purchasedLoading && (
+              <div className="p-4 text-center">
+                <p className="text-sm text-red-500">{purchasedError}</p>
+              </div>
+            )}
 
-        {/* Categories */}
-        {!loading && !error && filteredMaterials.length > 0 && (
-          <div className="divide-y divide-gray-100">
-            {Object.values(MaterialCategory).map((category) => {
-              const categoryMaterials = materialsByCategory[category];
-              if (categoryMaterials.length === 0) return null;
+            {!purchasedLoading && !purchasedError && filteredPurchased.length === 0 && (
+              <div className="p-6 text-center">
+                <ShoppingBag className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">
+                  {searchQuery ? 'Không tìm thấy' : 'Chưa mua tài nguyên nào'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Mua tài nguyên từ Shop để sử dụng trong slide
+                </p>
+              </div>
+            )}
 
-              return (
-                <CategorySection
-                  key={category}
-                  category={category}
-                  materials={categoryMaterials}
-                  isExpanded={expandedCategories.has(category)}
-                  onToggle={() => toggleCategory(category)}
-                />
-              );
-            })}
-          </div>
+            {!purchasedLoading && !purchasedError && filteredPurchased.length > 0 && (
+              <div className="p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1">
+                  Kéo vào slide để sử dụng — Hình ảnh vào slide hiện tại, Video thành slide riêng
+                </p>
+                {filteredPurchased.map((item) => (
+                  <DraggablePurchasedItem key={item.materialCode} item={item} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -371,7 +559,10 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
       {/* Footer Hint */}
       <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-t border-blue-100">
         <p className="text-xs text-blue-500 text-center">
-          <span className="font-semibold">Mẹo:</span> Kéo tài nguyên vào các cột bố cục
+          <span className="font-semibold">Mẹo:</span>{' '}
+          {activeTab === 'widgets'
+            ? 'Kéo tài nguyên vào các cột bố cục'
+            : 'Kéo hình ảnh/video đã mua vào slide'}
         </p>
       </div>
     </aside>

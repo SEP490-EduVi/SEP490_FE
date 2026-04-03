@@ -1,23 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Search, Loader2, Eye, BarChart3, FolderOpen } from 'lucide-react';
+import { Layers, Search, Loader2, Eye, FolderOpen, Plus } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import { Breadcrumb, notify } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import { useAllProducts } from '@/hooks/useProductApi';
+import { useAllInputDocuments } from '@/hooks/useInputDocumentApi';
+import { useProjects } from '@/hooks/useProjectApi';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import * as productService from '@/services/productServices';
 
 const PAGE_SIZE = 9;
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  SLIDES_GENERATED: { label: 'Bản gốc',  color: 'bg-emerald-50 text-emerald-600' },
-  VIDEO_GENERATED:  { label: 'Có video', color: 'bg-violet-50  text-violet-600'  },
-};
+
 
 function formatDate(d: string | null) {
   if (!d) return '—';
@@ -27,7 +26,19 @@ function formatDate(d: string | null) {
 export default function TeacherSlidesPage() {
   const router = useRouter();
   const { data: allProducts = [], isLoading } = useAllProducts();
+  const { data: allInputDocs = [] } = useAllInputDocuments();
+  const { data: projects = [] } = useProjects();
   const setDocument = useDocumentStore((s) => s.setDocument);
+
+  const docToProjectName = useMemo(() => {
+    const projectMap = new Map(projects.map((p) => [p.projectCode, p.projectName]));
+    const map = new Map<string, string>();
+    for (const doc of allInputDocs) {
+      const name = projectMap.get(doc.projectCode);
+      if (name) map.set(doc.documentCode, name);
+    }
+    return map;
+  }, [allInputDocs, projects]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage]               = useState(1);
@@ -75,17 +86,26 @@ export default function TeacherSlidesPage() {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center gap-3 mb-6"
+          className="flex items-center justify-between gap-3 mb-6"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-            <Layers className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+              <Layers className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Slide của tôi</h1>
+              <p className="text-sm text-gray-500">
+                {isLoading ? '…' : `${allSlides.length} bộ slide đã tạo`}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Slide của tôi</h1>
-            <p className="text-sm text-gray-500">
-              {isLoading ? '…' : `${allSlides.length} bộ slide đã tạo`}
-            </p>
-          </div>
+          <button
+            onClick={() => router.push('/teacher/projects')}
+            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shadow-violet-200 flex-shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo slide mới
+          </button>
         </motion.div>
 
         {/* Search */}
@@ -158,10 +178,6 @@ export default function TeacherSlidesPage() {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             >
               {paged.map((slide) => {
-                const statusInfo =
-                  STATUS_LABEL[slide.statusName] ??
-                  { label: slide.statusName, color: 'bg-gray-100 text-gray-600' };
-
                 return (
                   <motion.div
                     key={slide.productCode}
@@ -169,44 +185,47 @@ export default function TeacherSlidesPage() {
                       hidden:  { opacity: 0, y: 20 },
                       visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
                     }}
-                    className="bg-white rounded-2xl border border-gray-100 hover:border-violet-200 hover:shadow-lg transition-all overflow-hidden"
+                    className="bg-white rounded-2xl border border-gray-100 hover:border-violet-200 hover:shadow-lg transition-all overflow-hidden group"
                   >
-                    <div className="h-28 bg-gradient-to-br from-violet-50 to-purple-50 flex items-center justify-center border-b border-gray-100">
-                      <Layers className="w-10 h-10 text-violet-200" />
+                    {/* Thumbnail with name preview */}
+                    <div className="relative h-28 bg-gradient-to-br from-violet-50 to-purple-100 flex items-center justify-center border-b border-gray-100 overflow-hidden">
+                      <Layers className="w-8 h-8 text-violet-200 absolute" />
+                      <p className="relative z-10 text-sm font-semibold text-violet-700/60 px-4 text-center line-clamp-2 select-none">{slide.productName}</p>
                     </div>
 
                     <div className="p-4">
-                      <h3 className="text-sm font-semibold text-gray-900 truncate mb-1.5">
+                      <h3 className="text-sm font-semibold text-gray-900 truncate mb-0.5">
                         {slide.productName}
                       </h3>
 
+                      {docToProjectName.get(slide.documentCode) && (
+                        <div className="flex items-center gap-1 text-xs text-gray-400 mb-1.5">
+                          <FolderOpen className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{docToProjectName.get(slide.documentCode)}</span>
+                        </div>
+                      )}
+
+                      {/* Single status badge */}
                       <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${statusInfo.color}`}>
-                          {statusInfo.label}
-                        </span>
-                        {slide.hasEditedSlide && (
-                          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
-                            Đã sửa
-                          </span>
+                        {slide.hasEditedSlide ? (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-600">Đã chỉnh sửa</span>
+                        ) : (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600">Bản gốc</span>
                         )}
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">
-                          {formatDate(slide.slideGeneratedAt)}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleViewSlide(slide.productCode, slide.hasEditedSlide)}
-                            disabled={viewLoading === slide.productCode}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            {viewLoading === slide.productCode
-                              ? <Loader2 className="w-3 h-3 animate-spin" />
-                              : <Eye className="w-3 h-3" />}
-                            Xem
-                          </button>
-                        </div>
+                        <span className="text-xs text-gray-400">{formatDate(slide.slideGeneratedAt)}</span>
+                        <button
+                          onClick={() => handleViewSlide(slide.productCode, slide.hasEditedSlide)}
+                          disabled={viewLoading === slide.productCode}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {viewLoading === slide.productCode
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Eye className="w-3 h-3" />}
+                          Xem / Sửa
+                        </button>
                       </div>
                     </div>
                   </motion.div>

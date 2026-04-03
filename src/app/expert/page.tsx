@@ -54,10 +54,11 @@ export default function ExpertDashboard() {
     (user && 'fullName' in user && user.fullName) ||
     (user && 'email' in user && user.email) ||
     'Chuyên gia';
+  const formattedName = (displayName as string).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   // Derived stats
-  const approvedVerifications = verifications.filter((v) => v.status === 'Approved').length;
-  const pendingVerifications = verifications.filter((v) => v.status === 'Pending').length;
+  const approvedVerifications = verifications.filter((v) => v.status === 'approved').length;
+  const pendingVerifications = verifications.filter((v) => v.status === 'pending').length;
   const approvedMaterials = materials.filter((m) => m.approvalStatus === 1).length;
   const totalRevenue = materials.reduce((sum, m) => sum + (m.price > 0 ? m.price : 0), 0);
 
@@ -91,7 +92,7 @@ export default function ExpertDashboard() {
     },
     {
       label: 'Tổng giá niêm yết',
-      value: totalRevenue > 0 ? `${(totalRevenue / 1000).toFixed(0)}K ₫` : '—',
+      value: totalRevenue > 0 ? `${totalRevenue.toLocaleString('vi-VN')} ₫` : '—',
       sub: `${materials.filter((m) => m.price > 0).length} tài liệu có phí`,
       icon: DollarSign,
       color: 'text-emerald-600 bg-emerald-50',
@@ -113,7 +114,7 @@ export default function ExpertDashboard() {
         >
           <div className="relative z-10">
             <p className="text-blue-100 text-sm mb-1">Chào mừng trở lại</p>
-            <h2 className="text-2xl font-bold">{displayName}</h2>
+            <h2 className="text-2xl font-bold">{formattedName}</h2>
             <p className="text-blue-200 text-sm mt-1">
               Quản lý chứng chỉ và tài liệu của bạn tại đây.
             </p>
@@ -203,7 +204,7 @@ export default function ExpertDashboard() {
             ) : (
               <ul className="divide-y divide-gray-100">
                 {recentVerifications.map((v: VerificationDto) => {
-                  const cfg = VERIFICATION_STATUS[v.status] ?? VERIFICATION_STATUS['Pending'];
+                  const cfg = VERIFICATION_STATUS[v.status] ?? VERIFICATION_STATUS['pending'];
                   const StatusIcon = cfg.icon;
                   return (
                     <li key={v.verificationCode} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">

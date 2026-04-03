@@ -50,6 +50,7 @@ import { MaterialSidebar } from '@/components/sidebar/MaterialSidebar';
 import { PresentationLayer } from '@/components/presentation';
 import SlideGenerationOverlay from '@/components/editor/SlideGenerationOverlay';
 import { IMaterial } from '@/types';
+import type { PurchasedMaterialDto } from '@/types/api';
 import { Package } from 'lucide-react';
 
 /**
@@ -63,7 +64,7 @@ const customCollisionDetection: CollisionDetection = (args) => {
   const { active } = args;
   
   // Check if we're dragging a sortable block (not a material)
-  const isDraggingBlock = !active.data.current?.material;
+  const isDraggingBlock = !active.data.current?.material && !active.data.current?.purchasedMaterial;
   
   // For sortable blocks, use closestCenter for smooth reordering (like sidebar)
   if (isDraggingBlock) {
@@ -100,10 +101,12 @@ export default function EditorPage() {
   const loadDocument = useDocumentStore((state) => state.loadDocument);
   const activeCardId = useDocumentStore((state) => state.activeCardId);
   const dropMaterial = useDocumentStore((state) => state.dropMaterial);
+  const dropPurchasedMaterial = useDocumentStore((state) => state.dropPurchasedMaterial);
   const reorderNodesInCard = useDocumentStore((state) => state.reorderNodesInCard);
   const reorderNodesInLayout = useDocumentStore((state) => state.reorderNodesInLayout);
 
   const [activeDragItem, setActiveDragItem] = React.useState<IMaterial | null>(null);
+  const [activePurchasedDrag, setActivePurchasedDrag] = React.useState<PurchasedMaterialDto | null>(null);
 
   // Load document on mount
   useEffect(() => {
@@ -127,9 +130,10 @@ export default function EditorPage() {
     const { active } = event;
     const dragData = active.data.current;
 
-    // Only track materials for drag overlay
     if (dragData?.material) {
       setActiveDragItem(dragData.material as IMaterial);
+    } else if (dragData?.purchasedMaterial) {
+      setActivePurchasedDrag(dragData.purchasedMaterial as PurchasedMaterialDto);
     }
   };
 
@@ -140,10 +144,21 @@ export default function EditorPage() {
 
     // Reset drag state
     setActiveDragItem(null);
+    setActivePurchasedDrag(null);
 
     if (!over) return;
 
-    // Check if this is a material drop
+    // ── Handle purchased material drop ──────────────────────────
+    if (dragData?.purchasedMaterial) {
+      const pm = dragData.purchasedMaterial as PurchasedMaterialDto;
+      const targetCardId =
+        (over.data.current?.type === 'CARD' && (over.data.current.cardId as string)) ||
+        activeCardId;
+      dropPurchasedMaterial(targetCardId, pm);
+      return;
+    }
+
+    // ── Handle widget material drop ─────────────────────────────
     const isMaterialDrag = dragData?.material;
 
     if (isMaterialDrag) {
@@ -228,7 +243,24 @@ export default function EditorPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">{activeDragItem.name}</p>
-                  <p className="text-xs text-gray-500">Drop to add</p>
+                  <p className="text-xs text-gray-500">Thả vào slide</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {activePurchasedDrag && (
+            <div className="bg-white border-2 border-blue-400 rounded-lg p-3 shadow-xl opacity-90">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                  <Package className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{activePurchasedDrag.title}</p>
+                  <p className="text-xs text-gray-500">
+                    {activePurchasedDrag.type.toLowerCase().includes('video')
+                      ? 'Thả để tạo slide video mới'
+                      : 'Thả vào slide'}
+                  </p>
                 </div>
               </div>
             </div>

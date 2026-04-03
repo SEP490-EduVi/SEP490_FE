@@ -57,6 +57,43 @@ export function createCardActions(
       });
     },
 
+    addVideoSlide: (title?: string) => {
+      const { document } = get();
+      if (!document) return;
+
+      const blockId = `block-${uuidv4()}`;
+      const cardId = `card-${uuidv4()}`;
+      const videoBlock: IBlock = {
+        id: blockId,
+        type: NodeType.BLOCK,
+        content: {
+          type: BlockType.VIDEO,
+          src: '',
+          provider: 'youtube' as const,
+        },
+        children: [],
+        styles: {
+          width: '100%',
+          maxWidth: '800px',
+          aspectRatio: '16/9',
+        },
+        isResizable: true,
+      };
+      const newCard: ICard = {
+        id: cardId,
+        type: NodeType.CARD,
+        title: title || `Video ${document.cards.length + 1}`,
+        children: [videoBlock],
+        isVideoSlide: true,
+      };
+      const newDoc = {
+        ...document,
+        cards: [...document.cards, newCard],
+        updatedAt: new Date().toISOString(),
+      };
+      setDocumentWithHistory(newDoc, { activeCardId: cardId, selectedNodeId: blockId });
+    },
+
     addCardFromTemplate: (templateType: string) => {
       const { document } = get();
       if (!document) return;
@@ -397,6 +434,16 @@ export function createCardActions(
       const { document } = get();
       if (!document) return;
 
+      // Video always goes on its own dedicated slide
+      if (blockType === BlockType.VIDEO) {
+        get().addVideoSlide();
+        return;
+      }
+
+      // Prevent adding any block to a video-only slide
+      const targetCard = document.cards.find((c) => c.id === cardId);
+      if (targetCard?.isVideoSlide) return;
+
       const newBlock = createBlockByType(blockType);
 
       const newDoc = {
@@ -417,6 +464,10 @@ export function createCardActions(
     addLayoutToCard: (cardId: string, variant: LayoutVariant) => {
       const { document } = get();
       if (!document) return;
+
+      // Prevent adding layouts to a video-only slide
+      const targetCard = document.cards.find((c) => c.id === cardId);
+      if (targetCard?.isVideoSlide) return;
 
       const newLayout = createLayout(
         `layout-${uuidv4()}`,

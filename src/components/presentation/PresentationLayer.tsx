@@ -24,11 +24,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { NodeRenderer } from '@/components/renderer/NodeRenderer';
+import { ILayout, IBlock, BlockType, isBlock } from '@/types';
 import {
   ChevronLeft,
   ChevronRight,
   X,
 } from 'lucide-react';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+const INTERACTIVE_TYPES = new Set([
+  BlockType.QUIZ,
+  BlockType.FLASHCARD,
+  BlockType.FILL_BLANK,
+  BlockType.VIDEO,
+]);
+
+function hasInteractiveBlock(nodes: (ILayout | IBlock)[]): boolean {
+  for (const node of nodes) {
+    if (isBlock(node) && INTERACTIVE_TYPES.has(node.content.type)) return true;
+    if (!isBlock(node) && node.children && hasInteractiveBlock(node.children)) return true;
+  }
+  return false;
+}
 
 // ============================================================================
 // SLIDE TRANSITION VARIANTS
@@ -80,14 +100,24 @@ export function PresentationLayer() {
   }
   const direction = directionRef.current;
 
+  // Compute isInteractive before handleKeyDown so it's in scope for the callback
+  const currentCard = document?.cards[presentationSlideIndex];
+  const isInteractive = currentCard ? hasInteractiveBlock(currentCard.children ?? []) : false;
+
   // Keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     switch (e.key) {
       case 'ArrowRight':
       case 'ArrowDown':
-      case ' ':
         e.preventDefault();
         nextSlide();
+        break;
+      case ' ':
+        // Block Space navigation on interactive slides so users can type/click freely
+        if (!isInteractive) {
+          e.preventDefault();
+          nextSlide();
+        }
         break;
       case 'ArrowLeft':
       case 'ArrowUp':
@@ -99,7 +129,17 @@ export function PresentationLayer() {
         exitPresentation();
         break;
     }
-  }, [nextSlide, previousSlide, exitPresentation]);
+  }, [nextSlide, previousSlide, exitPresentation, isInteractive]);
+
+  useEffect(() => {
+    if (appMode === 'PRESENT') {
+      window.document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      if (window.document.fullscreenElement) {
+        window.document.exitFullscreen?.().catch(() => {});
+      }
+    }
+  }, [appMode]);
 
   useEffect(() => {
     if (appMode === 'PRESENT') {
@@ -112,7 +152,6 @@ export function PresentationLayer() {
   // Don't render if not in presentation mode
   if (appMode !== 'PRESENT' || !document) return null;
 
-  const currentCard = document.cards[presentationSlideIndex];
   const totalSlides = document.cards.length;
   const canGoBack = presentationSlideIndex > 0;
   const canGoForward = presentationSlideIndex < totalSlides - 1;
@@ -163,10 +202,16 @@ export function PresentationLayer() {
                   opacity: { duration: 0.2 },
                   scale: { duration: 0.2 },
                 }}
-                className="absolute inset-0 bg-[#f8f8f6] select-none"
+                className={cn(
+                  'absolute inset-0 bg-[#f8f8f6]',
+                  !isInteractive && 'select-none'
+                )}
               >
                 {currentCard ? (
-                  <div className="min-h-full flex flex-col justify-center px-20 py-10 pt-16 pointer-events-none">
+                  <div className={cn(
+                    'min-h-full flex flex-col justify-center px-20 py-10 pt-16',
+                    isInteractive ? 'pointer-events-auto' : 'pointer-events-none'
+                  )}>
                     <div className="w-full space-y-6">
                       {currentCard.children && currentCard.children.length > 0 ? (
                         currentCard.children.map((child) => (
@@ -192,7 +237,7 @@ export function PresentationLayer() {
           <div
             onClick={canGoBack ? previousSlide : undefined}
             className={cn(
-              'absolute left-0 top-12 bottom-10 w-[12%] z-10 flex items-center justify-start pl-4 group',
+              'absolute left-0 top-12 bottom-10 w-[5%] z-10 flex items-center justify-start pl-2 group',
               canGoBack ? 'cursor-pointer' : 'pointer-events-none'
             )}
           >
@@ -207,7 +252,7 @@ export function PresentationLayer() {
           <div
             onClick={canGoForward ? nextSlide : undefined}
             className={cn(
-              'absolute right-0 top-12 bottom-10 w-[12%] z-10 flex items-center justify-end pr-4 group',
+              'absolute right-0 top-12 bottom-10 w-[5%] z-10 flex items-center justify-end pr-2 group',
               canGoForward ? 'cursor-pointer' : 'pointer-events-none'
             )}
           >

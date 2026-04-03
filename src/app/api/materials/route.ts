@@ -63,25 +63,6 @@ const mockMaterials: IMaterial[] = [
     },
   },
   {
-    id: 'material-youtube',
-    name: 'YouTube Embed',
-    description: 'Embed YouTube videos',
-    widgetType: WidgetType.MATERIAL_YOUTUBE,
-    icon: 'Youtube',
-    category: MaterialCategory.MEDIA,
-    previewUrl: '/previews/youtube.png',
-    defaultData: {
-      videoId: 'dQw4w9WgXcQ',
-      title: 'YouTube Video',
-      autoplay: false,
-    },
-    defaultStyles: {
-      width: '100%',
-      maxWidth: '800px',
-      aspectRatio: '16/9',
-    },
-  },
-  {
     id: 'material-audio-player',
     name: 'Audio Player',
     description: 'Embed audio content',

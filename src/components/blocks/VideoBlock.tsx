@@ -11,11 +11,11 @@
  *  - "Nhập link YouTube / Vimeo" → inline text input
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { IVideoContent, BlockType } from '@/types';
 import { useDocumentStore } from '@/store';
-import { VideoIcon as VideoPlus, Link2 } from 'lucide-react';
+import { VideoIcon as VideoPlus, Link2, Loader2 } from 'lucide-react';
 
 interface VideoBlockProps {
   id: string;
@@ -36,15 +36,21 @@ function getVimeoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-function getEmbedUrl(content: IVideoContent): string | null {
+function getEmbedUrl(content: IVideoContent, autoplay = false): string | null {
   if (!content.src) return null;
   if (content.provider === 'youtube') {
     const id = getYouTubeId(content.src);
-    return id ? `https://www.youtube.com/embed/${id}` : null;
+    if (!id) return null;
+    return autoplay
+      ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`
+      : `https://www.youtube.com/embed/${id}`;
   }
   if (content.provider === 'vimeo') {
     const id = getVimeoId(content.src);
-    return id ? `https://player.vimeo.com/video/${id}` : null;
+    if (!id) return null;
+    return autoplay
+      ? `https://player.vimeo.com/video/${id}?autoplay=1`
+      : `https://player.vimeo.com/video/${id}`;
   }
   return content.src; // direct / object URL
 }
@@ -64,8 +70,40 @@ export function VideoBlock({
 }: VideoBlockProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
+  const appMode = useDocumentStore((state) => state.appMode);
+  const isPresenting = appMode === 'PRESENT';
   const [urlMode, setUrlMode] = useState(false);
   const [urlValue, setUrlValue] = useState('');
+
+  // Resolve gs:// URLs to signed download URLs (only for direct provider)
+  const needsResolve = !!content.src && content.src.startsWith('gs://');
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(
+    content.src && !needsResolve ? content.src : null
+  );
+  const [gcsLoading, setGcsLoading] = useState(needsResolve);
+
+  useEffect(() => {
+    if (!content.src) return;
+    if (!content.src.startsWith('gs://')) {
+      setResolvedSrc(content.src);
+      setGcsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setGcsLoading(true);
+    fetch('/api/gcs/download-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcsUrl: content.src }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.signedUrl) setResolvedSrc(data.signedUrl);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setGcsLoading(false); });
+    return () => { cancelled = true; };
+  }, [content.src]);
 
   // ── Handle local file upload ──────────────────────────────────────────────
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,8 +210,29 @@ export function VideoBlock({
     );
   }
 
+  // ── Loading state (resolving gs:// URL) ────────────────────────────────
+  if (content.src && gcsLoading) {
+    return (
+      <div
+        className={cn(
+          'relative rounded-lg overflow-hidden transition-all duration-200',
+          isSelected && 'ring-2 ring-primary-500 ring-offset-2'
+        )}
+      >
+        <div className="w-full aspect-video flex items-center justify-center bg-gray-900 rounded-lg">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <span className="ml-2 text-sm text-gray-400">Đang tải video…</span>
+        </div>
+      </div>
+    );
+  }
+
   // ── Video player ──────────────────────────────────────────────────────────
-  const embedUrl = getEmbedUrl(content);
+  // Use resolvedSrc for direct/gs:// videos, original content for youtube/vimeo embeds
+  const effectiveContent: IVideoContent = resolvedSrc && content.provider === 'direct'
+    ? { ...content, src: resolvedSrc }
+    : content;
+  const embedUrl = getEmbedUrl(effectiveContent, isPresenting);
 
   return (
     <div
@@ -195,6 +254,7 @@ export function VideoBlock({
       <div className="relative w-full aspect-video bg-gray-900">
         {embedUrl && (content.provider === 'youtube' || content.provider === 'vimeo') ? (
           <iframe
+            key={isPresenting ? 'present' : 'edit'}
             src={embedUrl}
             className="absolute inset-0 w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -204,9 +264,11 @@ export function VideoBlock({
         ) : embedUrl ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
+            key={isPresenting ? 'present' : 'edit'}
             src={embedUrl}
             className="absolute inset-0 w-full h-full"
             controls
+            autoPlay={isPresenting}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -214,19 +276,21 @@ export function VideoBlock({
           </div>
         )}
 
-        {/* Hover overlay with replace button */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 pointer-events-auto">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="flex items-center gap-2 px-3 py-2 bg-white/90 rounded-lg shadow text-sm font-semibold text-gray-800 hover:bg-white"
-            >
-              <VideoPlus className="w-4 h-4" />
-              Thay video
-            </button>
+        {/* Hover overlay with replace button — hidden in presentation mode */}
+        {!isPresenting && (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 pointer-events-auto">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                className="flex items-center gap-2 px-3 py-2 bg-white/90 rounded-lg shadow text-sm font-semibold text-gray-800 hover:bg-white"
+              >
+                <VideoPlus className="w-4 h-4" />
+                Thay video
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
