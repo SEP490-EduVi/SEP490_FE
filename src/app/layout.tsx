@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import QueryProvider from '@/providers/QueryProvider';
 import { ToastProvider } from '@/components/common';
+import GlobalPipelinePill from '@/components/common/GlobalPipelinePill';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <QueryProvider>
           {children}
           <ToastProvider />
+          <GlobalPipelinePill />
         </QueryProvider>
       </body>
     </html>

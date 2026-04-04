@@ -34,6 +34,7 @@ import {
   Film,
   Gamepad2,
   Download,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ============================================================================
@@ -173,6 +174,8 @@ export function Toolbar() {
 
   const [showVideoConfirm, setShowVideoConfirm] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const pendingNavRef = useRef<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
 
@@ -193,9 +196,21 @@ export function Toolbar() {
         setShowBgPicker(false);
       }
     };
+
     if (showBgPicker) window.addEventListener('mousedown', handler);
     return () => window.removeEventListener('mousedown', handler);
   }, [showBgPicker]);
+
+  useEffect(() => {
+    const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+    return () => window.removeEventListener('beforeunload', beforeUnloadHandler);
+  }, [isDirty]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -267,6 +282,11 @@ export function Toolbar() {
             onClick={() => {
               if (isNewlyGenerated && !isSlideEdited) {
                 setShowExitWarning(true);
+                return;
+              }
+              if (isDirty) {
+                pendingNavRef.current = currentProjectCode ? `/teacher/${currentProjectCode}` : null;
+                setShowUnsavedWarning(true);
                 return;
               }
               if (currentProjectCode) {
@@ -522,9 +542,6 @@ export function Toolbar() {
                 <p className="text-sm text-gray-500">Tính năng tạo video sử dụng tài nguyên AI đáng kể và có thể mất vài phút. Bạn có chắc muốn tiếp tục không?</p>
               </div>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
-              <p className="text-xs text-amber-700 font-medium">⚠ Lưu ý: Mỗi dự án chỉ được tạo một video. Quá trình không thể hủy sau khi bắt đầu.</p>
-            </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowVideoConfirm(false)}
@@ -538,6 +555,52 @@ export function Toolbar() {
               >
                 <Film className="w-4 h-4" />
                 Xác nhận tạo video
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Unsaved Warning Modal ──────────────────────────────────────────── */}
+      {showUnsavedWarning && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Có thay đổi chưa lưu</h3>
+                <p className="text-sm text-gray-500">Bạn có thay đổi chưa được lưu. Bạn có muốn lưu trước khi thoát không?</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowUnsavedWarning(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  setShowUnsavedWarning(false);
+                  if (pendingNavRef.current) router.push(pendingNavRef.current);
+                  else router.back();
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Thoát không lưu
+              </button>
+              <button
+                onClick={async () => {
+                  setShowUnsavedWarning(false);
+                  await saveSlide();
+                  if (pendingNavRef.current) router.push(pendingNavRef.current);
+                  else router.back();
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+              >
+                Lưu và thoát
               </button>
             </div>
           </div>

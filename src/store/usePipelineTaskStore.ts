@@ -23,6 +23,7 @@ import { create } from 'zustand';
 
 const LS_KEY_PREFIX = 'pipeline-tasks';
 const LEGACY_LS_KEY = 'pipeline-tasks'; // un-scoped key from old code — cleaned up on hydrate
+const PC_KEY_PREFIX = 'pipeline-task-projects'; // taskKey → projectCode
 
 /** Resolve the localStorage key for a given userId. */
 function lsKey(userId: string | number | null): string {
@@ -50,6 +51,29 @@ function readFromStorage(userId: string | null): Record<string, string> {
   }
 }
 
+function readProjectCodesFromStorage(userId: string | null): Record<string, string> {
+  try {
+    const key = userId ? `${PC_KEY_PREFIX}-${userId}` : PC_KEY_PREFIX;
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeProjectCodesToStorage(projectCodes: Record<string, string>, userId: string | null) {
+  try {
+    if (typeof window !== 'undefined') {
+      const key = userId ? `${PC_KEY_PREFIX}-${userId}` : PC_KEY_PREFIX;
+      if (Object.keys(projectCodes).length === 0) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(projectCodes));
+      }
+    }
+  } catch { /* ignore */ }
+}
+
 function writeToStorage(tasks: Record<string, string>, userId: string | null) {
   try {
     if (typeof window !== 'undefined') {
@@ -75,11 +99,17 @@ interface PipelineTaskState {
   /** In-memory mirror of localStorage pipeline-tasks-{userId} */
   tasks: Record<string, string>; // taskKey → taskId
 
+  /** taskKey → projectCode (so nav pill knows where to go) */
+  projectCodes: Record<string, string>;
+
   /** Currently scoped userId (set during hydrate) */
   userId: string | null;
 
   /** Persist a new taskId when a pipeline starts */
   saveTask: (type: PipelineTaskType, productCode: string, taskId: string) => void;
+
+  /** Persist a new taskId AND the owning projectCode */
+  saveTaskWithProject: (type: PipelineTaskType, productCode: string, taskId: string, projectCode: string) => void;
 
   /** Remove a taskId when the pipeline completes or fails */
   clearTask: (type: PipelineTaskType, productCode: string) => void;
@@ -89,6 +119,9 @@ interface PipelineTaskState {
 
   /** Get a single taskId (or null) */
   getTaskId: (type: PipelineTaskType, productCode: string) => string | null;
+
+  /** Get the projectCode associated with a task (or null) */
+  getProjectCode: (type: PipelineTaskType, productCode: string) => string | null;
 
   /** Get all active tasks as an array of { key, taskId } */
   getAllTasks: () => { key: string; taskId: string }[];
@@ -105,6 +138,7 @@ interface PipelineTaskState {
 
 export const usePipelineTaskStore = create<PipelineTaskState>()((set, get) => ({
   tasks: {},
+  projectCodes: {},
   userId: null,
 
   hydrate: () => {
@@ -115,7 +149,11 @@ export const usePipelineTaskStore = create<PipelineTaskState>()((set, get) => ({
       try { localStorage.removeItem(LEGACY_LS_KEY); } catch { /* ignore */ }
     }
 
-    set({ tasks: readFromStorage(userId), userId });
+    set({
+      tasks: readFromStorage(userId),
+      projectCodes: readProjectCodesFromStorage(userId),
+      userId,
+    });
   },
 
   saveTask: (type, productCode, taskId) => {
@@ -125,21 +163,38 @@ export const usePipelineTaskStore = create<PipelineTaskState>()((set, get) => ({
     set({ tasks: next });
   },
 
+  saveTaskWithProject: (type, productCode, taskId, projectCode) => {
+    const key = makeTaskKey(type, productCode);
+    const nextTasks = { ...get().tasks, [key]: taskId };
+    const nextPc = { ...get().projectCodes, [key]: projectCode };
+    writeToStorage(nextTasks, get().userId);
+    writeProjectCodesToStorage(nextPc, get().userId);
+    set({ tasks: nextTasks, projectCodes: nextPc });
+  },
+
   clearTask: (type, productCode) => {
     const key = makeTaskKey(type, productCode);
-    const next = { ...get().tasks };
-    delete next[key];
-    writeToStorage(next, get().userId);
-    set({ tasks: next });
+    const nextTasks = { ...get().tasks };
+    const nextPc = { ...get().projectCodes };
+    delete nextTasks[key];
+    delete nextPc[key];
+    writeToStorage(nextTasks, get().userId);
+    writeProjectCodesToStorage(nextPc, get().userId);
+    set({ tasks: nextTasks, projectCodes: nextPc });
   },
 
   clearAll: () => {
     writeToStorage({}, get().userId);
-    set({ tasks: {} });
+    writeProjectCodesToStorage({}, get().userId);
+    set({ tasks: {}, projectCodes: {} });
   },
 
   getTaskId: (type, productCode) => {
     return get().tasks[makeTaskKey(type, productCode)] ?? null;
+  },
+
+  getProjectCode: (type, productCode) => {
+    return get().projectCodes[makeTaskKey(type, productCode)] ?? null;
   },
 
   getAllTasks: () => {

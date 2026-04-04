@@ -209,7 +209,7 @@ export function createDocumentActions(
           return { ...card, renderedHtml: fullHtml };
         }));
 
-        const docWithHtml = { ...document, cards: cardsWithHtml };
+        const docWithHtml = { ...document, title: '', cards: cardsWithHtml };
 
         // 1. Upload slide JSON to GCS via Next.js server (no CORS, key stays server-side)
         const gcsObjectUrl = await uploadSlideToGcs(currentProductCode, docWithHtml);

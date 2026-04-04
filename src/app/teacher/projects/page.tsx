@@ -20,6 +20,8 @@ import AppHeader from '@/components/sidebar/AppHeader';
 import { Breadcrumb, notify } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
+import { usePipelineTaskStore } from '@/store/usePipelineTaskStore';
+import { usePipelineProgressStore } from '@/store/usePipelineProgressStore';
 import type { PipelineProgress } from '@/types/api';
 import ProjectCard from '@/components/projects/ProjectCard';
 import FolderTile from '@/components/projects/FolderTile';
@@ -65,16 +67,40 @@ export default function TeacherProjectsPage() {
   const [editTarget, setEditTarget] = useState<ProjectDto | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const setGlobalProgress = usePipelineProgressStore((s) => s.setProgress);
+  const clearGlobalProgress = usePipelineProgressStore((s) => s.clear);
 
   useEffect(() => {
     setAccessToken(localStorage.getItem('accessToken'));
+    // Hydrate task store so GlobalPipelinePill can read projectCodes
+    usePipelineTaskStore.getState().hydrate();
   }, []);
 
   usePipelineHub({
     accessToken,
     onProgress: (event) => {
       setPipelineProgress(event);
+      if (event.status !== 'completed' && event.status !== 'failed') {
+        // Look up projectCode from task store by taskId
+        const allTasks = usePipelineTaskStore.getState().getAllTasks();
+        const stored = allTasks.find((t) => t.taskId === event.taskId);
+        const projectCode = stored
+          ? (() => {
+              const [type, ...rest] = stored.key.split(':');
+              return usePipelineTaskStore.getState().getProjectCode(
+                type as 'eval' | 'slides' | 'video',
+                rest.join(':')
+              );
+            })()
+          : null;
+        const type: 'evaluation' | 'slides' | 'video' =
+          event.step?.includes('video') ? 'video'
+          : (event.step?.includes('slide') || event.step?.includes('generating') || event.step?.includes('planning') || event.step?.includes('assembling')) ? 'slides'
+          : 'evaluation';
+        setGlobalProgress(event, type, projectCode);
+      }
       if (event.status === 'completed' || event.status === 'failed') {
+        clearGlobalProgress();
         setTimeout(() => setPipelineProgress(null), 3000);
       }
     },
@@ -399,12 +425,6 @@ export default function TeacherProjectsPage() {
         {/* ── Subject folders (level 1) ── */}
         {!isLoading && !isError && level === 'subject' && (
           <div className="space-y-4">
-            <div className="flex flex-col gap-1">
-              <p className="text-sm text-slate-600">
-                Chọn môn để bật nhanh lựa chọn lớp ngay tại chỗ, không cần qua màn hình trung gian.
-              </p>
-            </div>
-
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800">
                 Đang hoạt động ({activeSubjects.length})
@@ -450,7 +470,6 @@ export default function TeacherProjectsPage() {
                 {!showEmptySubjects && (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3.5">
                     <p className="text-sm text-slate-700 font-medium">Bạn đang dạy thêm môn khác?</p>
-                    <p className="text-xs text-slate-500 mt-1">Chọn 1 trong các môn chưa có dự án để bắt đầu nhanh:</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {emptySubjects.slice(0, 3).map((subject) => (
                         <button
@@ -625,30 +644,6 @@ export default function TeacherProjectsPage() {
 
       {menuOpen && (
         <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
-      )}
-
-      {/* ── Pipeline Progress Banner ── */}
-      {pipelineProgress && (
-        <div className="fixed bottom-6 right-6 z-50 w-80 bg-white border border-slate-200 rounded-xl shadow-xl p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-800">
-              {pipelineProgress.status === 'completed' && '✅ Hoàn thành!'}
-              {pipelineProgress.status === 'failed' && '❌ Có lỗi xảy ra'}
-              {(pipelineProgress.status === 'queued' || pipelineProgress.status === 'processing') && '⚙️ Đang xử lý...'}
-            </p>
-            <button onClick={() => setPipelineProgress(null)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all duration-300 ${pipelineProgress.status === 'failed' ? 'bg-red-500' : 'bg-indigo-500'}`}
-              style={{ width: `${pipelineProgress.progress}%` }}
-            />
-          </div>
-          {pipelineProgress.detail && <p className="text-xs text-slate-500">{pipelineProgress.detail}</p>}
-          {pipelineProgress.status === 'failed' && pipelineProgress.error && (
-            <p className="text-xs text-red-500">{pipelineProgress.error}</p>
-          )}
-        </div>
       )}
     </div>
   );

@@ -89,12 +89,6 @@ export default function ProjectCard({
             <Clock3 className="w-3.5 h-3.5" />
             {formatDate(project.createdAt)}
           </span>
-          <span
-            className="truncate text-right font-mono text-[11px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={project.projectCode}
-          >
-            {project.projectCode}
-          </span>
         </div>
       </button>
     </motion.div>

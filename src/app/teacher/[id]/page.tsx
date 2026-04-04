@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, AlertCircle, Loader2, ChevronRight,
+  ArrowLeft, AlertCircle, Loader2, ChevronRight, Sparkles,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
@@ -19,6 +19,7 @@ import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
 import VideoConfirmModal from '@/components/projects/VideoConfirmModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
+import { usePipelineProgressStore } from '@/store/usePipelineProgressStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { notify } from '@/components/common';
@@ -45,8 +46,11 @@ export default function ProjectDetailPage() {
 
   const hydrateTaskStore = usePipelineTaskStore((s) => s.hydrate);
   const saveTask = usePipelineTaskStore((s) => s.saveTask);
+  const saveTaskWithProject = usePipelineTaskStore((s) => s.saveTaskWithProject);
   const clearTask = usePipelineTaskStore((s) => s.clearTask);
   const getTaskId = usePipelineTaskStore((s) => s.getTaskId);
+  const setGlobalProgress = usePipelineProgressStore((s) => s.setProgress);
+  const clearGlobalProgress = usePipelineProgressStore((s) => s.clear);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
@@ -96,7 +100,7 @@ export default function ProjectDetailPage() {
         (event.status === 'queued' || event.status === 'processing')
       ) {
         const { type, productCode: pCode } = pendingTaskRef.current;
-        saveTask(type, pCode, event.taskId);
+        saveTaskWithProject(type, pCode, event.taskId, projectCode);
         pendingTaskRef.current = null;
       }
 
@@ -105,11 +109,13 @@ export default function ProjectDetailPage() {
         // Determine type from the store (most reliable)
         const allTasks = usePipelineTaskStore.getState().getAllTasks();
         const storedTask = allTasks.find((t) => t.taskId === event.taskId);
+        let resolvedType: 'evaluation' | 'slides' | 'video' = 'evaluation';
         if (storedTask) {
-          if (storedTask.key.startsWith('video:')) setPipelineType('video');
-          else if (storedTask.key.startsWith('slides:')) setPipelineType('slides');
-          else setPipelineType('evaluation');
+          if (storedTask.key.startsWith('video:')) { setPipelineType('video'); resolvedType = 'video'; }
+          else if (storedTask.key.startsWith('slides:')) { setPipelineType('slides'); resolvedType = 'slides'; }
+          else { setPipelineType('evaluation'); resolvedType = 'evaluation'; }
         }
+        setGlobalProgress(event, resolvedType, projectCode);
         setShowPipelineModal(true);
       }
 
@@ -127,13 +133,21 @@ export default function ProjectDetailPage() {
     }
 
     setPipelineProgress(event);
+    // Update global progress store so pill is visible on other pages
+    if (event.status !== 'completed' && event.status !== 'failed') {
+      const t = event.step?.includes('video') ? 'video'
+              : (event.step?.includes('slide') || event.step?.includes('generating') || event.step?.includes('planning') || event.step?.includes('assembling')) ? 'slides'
+              : 'evaluation';
+      setGlobalProgress(event, t, projectCode);
+    }
     if (event.status === 'completed' || event.status === 'failed') {
+      clearGlobalProgress();
       refetchProducts();
       if (event.step === 'video_completed') {
         queryClient.invalidateQueries({ queryKey: ['video', 'project', projectCode] });
       }
     }
-  }, [saveTask, clearTask, refetchProducts, queryClient, projectCode]);
+  }, [saveTask, saveTaskWithProject, clearTask, clearGlobalProgress, setGlobalProgress, refetchProducts, queryClient, projectCode]);
 
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
@@ -315,7 +329,6 @@ export default function ProjectDetailPage() {
             </button>
             <div className="flex items-center gap-3 mt-1">
               <h1 className="text-2xl font-bold text-gray-900">{project.projectName}</h1>
-              <span className="text-xs text-gray-400 font-mono">{project.projectCode}</span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700">
                 {project.subjectName || project.subjectCode || 'Chưa có môn'}
               </span>
@@ -385,8 +398,23 @@ export default function ProjectDetailPage() {
         open={showPipelineModal}
         progress={pipelineProgress}
         pipelineType={pipelineType}
+        onMinimize={() => setShowPipelineModal(false)}
         onClose={() => { setShowPipelineModal(false); setPipelineProgress(null); }}
       />
+
+      {/* Floating pipeline progress panel (when modal is minimized) */}
+      {!showPipelineModal && pipelineProgress && pipelineProgress.status !== 'completed' && pipelineProgress.status !== 'failed' && (
+        <button
+          onClick={() => setShowPipelineModal(true)}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl transition-all"
+        >
+          <Sparkles className="w-4 h-4 animate-pulse" />
+          <span className="text-sm font-medium">
+            {pipelineType === 'evaluation' ? 'Đánh giá' : pipelineType === 'video' ? 'Tạo video' : 'Tạo slide'}
+          </span>
+          <span className="text-sm font-bold">{pipelineProgress.progress ?? 0}%</span>
+        </button>
+      )}
 
       <AnalysisFormModal
         open={showAnalysisForm}
