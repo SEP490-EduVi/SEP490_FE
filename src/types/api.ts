@@ -338,7 +338,9 @@ export interface SubscriptionPlanDto {
   planName: string;
   price: number;
   durationDays: number;
-  quotaAmount: number;
+  analysisQuotaAmount: number;
+  slideQuotaAmount: number;
+  videoQuotaAmount: number;
   description: string | null;
   isActive: boolean;
 }
@@ -369,7 +371,12 @@ export interface BuySubscriptionResponse {
   planName: string;
   amount: number;
   status: string;
-  quotaAdded: number;
+  analysisQuotaAdded: number;
+  slideQuotaAdded: number;
+  videoQuotaAdded: number;
+  availableAnalysisQuotaAfter: number;
+  availableSlideQuotaAfter: number;
+  availableVideoQuotaAfter: number;
   walletBalanceAfter: number;
   purchasedAt: string;
 }

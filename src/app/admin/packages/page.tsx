@@ -13,7 +13,9 @@ interface PlanFormState {
   description: string;
   durationDays: string;
   price: string;
-  quotaAmount: string;
+  analysisQuotaAmount: string;
+  slideQuotaAmount: string;
+  videoQuotaAmount: string;
 }
 
 const DEFAULT_FORM: PlanFormState = {
@@ -21,7 +23,9 @@ const DEFAULT_FORM: PlanFormState = {
   description: '',
   durationDays: '30',
   price: '0',
-  quotaAmount: '0',
+  analysisQuotaAmount: '0',
+  slideQuotaAmount: '0',
+  videoQuotaAmount: '0',
 };
 
 const PAGE_SIZE = 10;
@@ -99,7 +103,9 @@ export default function AdminPlansPage() {
       description: plan.description ?? '',
       durationDays: String(plan.durationDays),
       price: String(plan.price),
-      quotaAmount: String(plan.quotaAmount),
+      analysisQuotaAmount: String(plan.analysisQuotaAmount),
+      slideQuotaAmount: String(plan.slideQuotaAmount),
+      videoQuotaAmount: String(plan.videoQuotaAmount),
     });
     setFormError('');
     setIsFormOpen(true);
@@ -110,11 +116,15 @@ export default function AdminPlansPage() {
 
     const durationDays = Number(form.durationDays);
     const price = Number(form.price);
-    const quotaAmount = Number(form.quotaAmount);
+    const analysisQuotaAmount = Number(form.analysisQuotaAmount);
+    const slideQuotaAmount = Number(form.slideQuotaAmount);
+    const videoQuotaAmount = Number(form.videoQuotaAmount);
 
     if (!Number.isFinite(durationDays) || durationDays <= 0) return 'Số ngày sử dụng phải lớn hơn 0.';
     if (!Number.isFinite(price) || price < 0) return 'Giá phải lớn hơn hoặc bằng 0.';
-    if (!Number.isFinite(quotaAmount) || quotaAmount < 0) return 'Quota phải lớn hơn hoặc bằng 0.';
+    if (!Number.isFinite(analysisQuotaAmount) || analysisQuotaAmount < 0) return 'Quota phân tích phải lớn hơn hoặc bằng 0.';
+    if (!Number.isFinite(slideQuotaAmount) || slideQuotaAmount < 0) return 'Quota slide phải lớn hơn hoặc bằng 0.';
+    if (!Number.isFinite(videoQuotaAmount) || videoQuotaAmount < 0) return 'Quota video phải lớn hơn hoặc bằng 0.';
 
     return '';
   };
@@ -132,7 +142,9 @@ export default function AdminPlansPage() {
     try {
       const durationDays = Number(form.durationDays);
       const price = Number(form.price);
-      const quotaAmount = Number(form.quotaAmount);
+      const analysisQuotaAmount = Number(form.analysisQuotaAmount);
+      const slideQuotaAmount = Number(form.slideQuotaAmount);
+      const videoQuotaAmount = Number(form.videoQuotaAmount);
 
       if (editingPlan) {
         const payload: UpdatePlanRequest = {
@@ -140,7 +152,9 @@ export default function AdminPlansPage() {
           description: form.description.trim() || undefined,
           durationDays,
           price,
-          quotaAmount,
+          analysisQuotaAmount,
+          slideQuotaAmount,
+          videoQuotaAmount,
         };
         await adminServices.updatePlan(editingPlan.planId, payload);
         notify.success('Cập nhật gói cước thành công.');
@@ -150,7 +164,9 @@ export default function AdminPlansPage() {
           description: form.description.trim() || undefined,
           durationDays,
           price,
-          quotaAmount,
+          analysisQuotaAmount,
+          slideQuotaAmount,
+          videoQuotaAmount,
         };
         await adminServices.createPlan(payload);
         notify.success('Tạo gói cước thành công.');
@@ -246,7 +262,11 @@ export default function AdminPlansPage() {
                     </td>
                     <td className="px-5 py-3 font-medium text-gray-900">{formatVND(plan.price)}</td>
                     <td className="px-5 py-3 text-gray-600">{plan.durationDays} ngày</td>
-                    <td className="px-5 py-3 text-gray-600">{plan.quotaAmount.toLocaleString('vi-VN')}</td>
+                    <td className="px-5 py-3 text-gray-600">
+                      <p>A: {plan.analysisQuotaAmount.toLocaleString('vi-VN')}</p>
+                      <p>S: {plan.slideQuotaAmount.toLocaleString('vi-VN')}</p>
+                      <p>V: {plan.videoQuotaAmount.toLocaleString('vi-VN')}</p>
+                    </td>
                     <td className="px-5 py-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -340,7 +360,7 @@ export default function AdminPlansPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">durationDays</label>
               <input
@@ -362,12 +382,32 @@ export default function AdminPlansPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">quotaAmount</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">analysisQuotaAmount</label>
               <input
                 type="number"
                 min={0}
-                value={form.quotaAmount}
-                onChange={(e) => setForm((prev) => ({ ...prev, quotaAmount: e.target.value }))}
+                value={form.analysisQuotaAmount}
+                onChange={(e) => setForm((prev) => ({ ...prev, analysisQuotaAmount: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">slideQuotaAmount</label>
+              <input
+                type="number"
+                min={0}
+                value={form.slideQuotaAmount}
+                onChange={(e) => setForm((prev) => ({ ...prev, slideQuotaAmount: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">videoQuotaAmount</label>
+              <input
+                type="number"
+                min={0}
+                value={form.videoQuotaAmount}
+                onChange={(e) => setForm((prev) => ({ ...prev, videoQuotaAmount: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
             </div>
