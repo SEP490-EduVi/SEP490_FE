@@ -9,13 +9,16 @@
  *  Row 2 (insert bar): Quick-insert buttons for teachers (Tiêu đề, Văn bản, …)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, LayoutVariant } from '@/types';
 import { exportToEduvi } from '@/lib/exportToEduvi';
+import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
+import { createPlayableGameTask } from '@/services/gamesServices';
+import { getEditedSlideGcsUrl } from '@/services/productServices';
 import {
   Undo2,
   Redo2,
@@ -36,6 +39,9 @@ import {
   Download,
   AlertTriangle,
 } from 'lucide-react';
+
+type TemplateId = (typeof GAME_BLUEPRINTS)[keyof typeof GAME_BLUEPRINTS];
+const LAST_EDITED_SLIDE_URL_KEY = 'eduvi_last_edited_slide_gcs_url';
 
 // ============================================================================
 // INSERT BUTTON — large, icon + label, used in the secondary toolbar
@@ -178,6 +184,11 @@ export function Toolbar() {
   const pendingNavRef = useRef<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+  const [showGameConfigModal, setShowGameConfigModal] = useState(false);
+  const [gameTemplateId, setGameTemplateId] = useState<TemplateId>(GAME_BLUEPRINTS.HOVER_SELECT);
+  const [gameRoundCount, setGameRoundCount] = useState<number>(1);
+  const [gameStatus, setGameStatus] = useState<string>('');
+  const [isGameCreating, setIsGameCreating] = useState(false);
 
   const activeCard = document?.cards.find((c) => c.id === activeCardId);
   const currentAlignment = activeCard?.contentAlignment ?? 'center';
@@ -269,6 +280,57 @@ export function Toolbar() {
     router.push(
       `/teacher/pipeline?projectCode=${encodeURIComponent(currentProjectCode)}&productCode=${encodeURIComponent(currentProductCode)}&step=video`
     );
+  };
+
+  const handleStartGame = async () => {
+    if (!currentProductCode) {
+      setGameStatus('Không xác định được sản phẩm hiện tại.');
+      return;
+    }
+
+    if (isDirty) {
+      setGameStatus('Bạn có thay đổi chưa lưu. Hãy lưu slide trước khi tạo game.');
+      return;
+    }
+
+    const cachedUrl = sessionStorage.getItem(LAST_EDITED_SLIDE_URL_KEY) ?? '';
+    let slideEditedDocumentUrl = cachedUrl;
+
+    if (!slideEditedDocumentUrl.trim()) {
+      try {
+        const gcsUrl = await getEditedSlideGcsUrl(currentProductCode);
+        if (gcsUrl) {
+          slideEditedDocumentUrl = gcsUrl;
+          sessionStorage.setItem(LAST_EDITED_SLIDE_URL_KEY, gcsUrl);
+        }
+      } catch {
+        // Use local cached value if available.
+      }
+    }
+
+    if (!slideEditedDocumentUrl.trim()) {
+      setGameStatus('Chưa tìm thấy dữ liệu slide đã lưu. Vui lòng lưu slide trước rồi thử lại.');
+      return;
+    }
+
+    setGameStatus('Đang gửi yêu cầu tạo game...');
+    setIsGameCreating(true);
+
+    try {
+      const task = await createPlayableGameTask({
+        templateId: gameTemplateId,
+        slideEditedDocumentUrl: slideEditedDocumentUrl.trim(),
+        roundCount: gameRoundCount,
+      });
+
+      setShowGameConfigModal(false);
+      setGameStatus('');
+      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}`);
+    } catch (e) {
+      setGameStatus(e instanceof Error ? e.message : 'Tạo game thất bại');
+    } finally {
+      setIsGameCreating(false);
+    }
   };
 
   return (
@@ -379,7 +441,10 @@ export function Toolbar() {
             {showShareMenu && (
               <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[9999]">
                 <button
-                  onClick={() => { window.location.href = '/teacher/game-maker'; setShowShareMenu(false); }}
+                  onClick={() => {
+                    setShowShareMenu(false);
+                    setShowGameConfigModal(true);
+                  }}
                   className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <Gamepad2 className="w-4 h-4 text-purple-500" />
@@ -555,6 +620,68 @@ export function Toolbar() {
               >
                 <Film className="w-4 h-4" />
                 Xác nhận tạo video
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Game Configuration Modal ─────────────────────────────────────── */}
+      {showGameConfigModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <Gamepad2 className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Tạo game</h3>
+                <p className="text-sm text-gray-500">Chọn cấu hình trước khi bắt đầu tạo mini-game.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Dạng trò chơi</label>
+                <select
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                  value={gameTemplateId}
+                  onChange={(e) => setGameTemplateId(e.target.value as TemplateId)}
+                >
+                  <option value={GAME_BLUEPRINTS.HOVER_SELECT}>HOVER_SELECT</option>
+                  <option value={GAME_BLUEPRINTS.DRAG_DROP}>DRAG_DROP</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Số round</label>
+                <input
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                  type="number"
+                  min={1}
+                  value={gameRoundCount}
+                  onChange={(e) => setGameRoundCount(Math.max(1, Number(e.target.value) || 1))}
+                />
+              </div>
+
+              {!!gameStatus && (
+                <p className="text-sm text-slate-600">{gameStatus}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setShowGameConfigModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleStartGame}
+                disabled={isGameCreating}
+                className="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-colors"
+              >
+                {isGameCreating ? 'Đang tạo...' : 'Bắt đầu'}
               </button>
             </div>
           </div>

@@ -24,8 +24,14 @@ import {
 import AppHeader from '@/components/sidebar/AppHeader';
 import { useBrowseMaterials, usePurchaseMaterial, usePurchasedMaterials } from '@/hooks/useMaterialShopApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
+import { useWalletInfo } from '@/hooks/usePaymentApi';
 import type { MaterialDto } from '@/types/api';
 import { notify, GcsImage } from '@/components/common';
+
+function formatEduCoin(value: number | null | undefined): string {
+  const amount = Number.isFinite(value) ? Number(value) : 0;
+  return `${amount.toLocaleString('vi-VN')} EduCoin`;
+}
 
 const MATERIAL_TYPES = [
   { value: '', label: 'Tất cả loại' },
@@ -81,7 +87,7 @@ function PurchaseModal({
           <div className="flex items-center justify-between pt-1">
             <span className="text-xs text-gray-500">Chi phí</span>
             <span className={`text-base font-bold ${material.price > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
-              {material.price > 0 ? `${material.price.toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
+              {material.price > 0 ? formatEduCoin(material.price) : 'Miễn phí'}
             </span>
           </div>
         </div>
@@ -189,7 +195,7 @@ function ShopMaterialCard({
             <span className="truncate">{material.expertName}</span>
           </span>
           <span className={`font-bold text-sm ${material.price > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
-            {material.price > 0 ? `${material.price.toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
+            {material.price > 0 ? formatEduCoin(material.price) : 'Miễn phí'}
           </span>
         </div>
 
@@ -257,6 +263,7 @@ export default function MaterialShopPage() {
   const { data: materials = [], isLoading, isError } = useBrowseMaterials(browseParams);
   const { data: purchased = [] } = usePurchasedMaterials();
   const purchaseMutation = usePurchaseMaterial();
+  const { data: wallet } = useWalletInfo();
 
   const { data: subjects = [] } = useSubjects();
   const { data: grades = [] } = useGrades();
@@ -303,9 +310,10 @@ export default function MaterialShopPage() {
                 Khám phá tài liệu được tuyển chọn từ các chuyên gia giáo dục
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right space-y-1">
               <p className="text-3xl font-bold">{materials.length}</p>
               <p className="text-blue-200 text-sm">tài liệu khả dụng</p>
+              <p className="text-xs text-blue-100/90">Ví: {formatEduCoin(wallet?.balance)}</p>
             </div>
           </div>
         </motion.div>
@@ -509,7 +517,7 @@ export default function MaterialShopPage() {
                     {/* Price + CTA */}
                     <div className="flex-shrink-0 flex flex-col items-end gap-2">
                       <span className={`text-base font-bold ${m.price > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
-                        {m.price > 0 ? `${m.price.toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
+                        {m.price > 0 ? formatEduCoin(m.price) : 'Miễn phí'}
                       </span>
                       <button
                         onClick={() => setPurchaseTarget(m)}

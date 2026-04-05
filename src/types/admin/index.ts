@@ -118,7 +118,9 @@ export interface PlanResponse {
   description?: string | null;
   durationDays: number;
   price: number;
-  quotaAmount: number;
+  analysisQuotaAmount: number;
+  slideQuotaAmount: number;
+  videoQuotaAmount: number;
   isActive: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -129,7 +131,9 @@ export interface CreatePlanRequest {
   description?: string;
   durationDays: number;
   price: number;
-  quotaAmount: number;
+  analysisQuotaAmount: number;
+  slideQuotaAmount: number;
+  videoQuotaAmount: number;
 }
 
 export interface UpdatePlanRequest {
@@ -137,7 +141,9 @@ export interface UpdatePlanRequest {
   description?: string;
   durationDays?: number;
   price?: number;
-  quotaAmount?: number;
+  analysisQuotaAmount?: number;
+  slideQuotaAmount?: number;
+  videoQuotaAmount?: number;
   isActive?: boolean;
 }
 

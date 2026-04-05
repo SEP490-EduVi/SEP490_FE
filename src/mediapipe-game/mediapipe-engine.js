@@ -19,6 +19,29 @@ const TASKS_VISION_VERSION = '0.10.18';
 const TASKS_VISION_WASM_BASE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/wasm`;
 const HAND_LANDMARKER_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+const PERFORMANCE_PROFILE = (() => {
+  if (typeof globalThis === 'undefined' || !globalThis.navigator) {
+    return { detectFps: 14, renderFps: 24, canvasScale: 0.66 };
+  }
+
+  const nav = globalThis.navigator;
+  const cores = Number(nav.hardwareConcurrency || 4);
+  const memory = Number(nav.deviceMemory || 4);
+  const isLowEndDevice = cores <= 4 || memory <= 4;
+
+  if (isLowEndDevice) {
+    return { detectFps: 10, renderFps: 18, canvasScale: 0.56 };
+  }
+
+  return { detectFps: 14, renderFps: 24, canvasScale: 0.66 };
+})();
+
+const TARGET_DETECTION_FPS = PERFORMANCE_PROFILE.detectFps;
+const TARGET_RENDER_FPS = PERFORMANCE_PROFILE.renderFps;
+const CANVAS_RENDER_SCALE = PERFORMANCE_PROFILE.canvasScale;
+const MAX_TEXT_LAYOUT_CACHE_SIZE = 300;
+const textLayoutCache = new Map();
+const HAND_SMOOTHING_ALPHA = 0.25;
 
 /**
  * @typedef {{x:number,y:number,z?:number}} Landmark
@@ -37,6 +60,18 @@ const HAND_LANDMARKER_MODEL_URL =
 
 function clamp01(v) {
   return Math.max(0, Math.min(1, v));
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function smoothPoint(prev, next, alpha) {
+  if (!prev) return next;
+  return {
+    x: lerp(prev.x, next.x, alpha),
+    y: lerp(prev.y, next.y, alpha),
+  };
 }
 
 function dist2(a, b) {
@@ -76,7 +111,25 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function wrapTextLines(ctx, text, maxWidth, maxLines) {
+function drawGameContentPanel(ctx, canvas, options = {}) {
+  const { width, height } = canvas;
+  const x = options.x ?? width * 0.035;
+  const y = options.y ?? height * 0.06;
+  const w = options.w ?? width * 0.93;
+  const h = options.h ?? height * 0.8;
+  const radius = options.radius ?? 24;
+
+  ctx.save();
+  drawRoundedRect(ctx, x, y, w, h, radius);
+  ctx.fillStyle = 'rgba(15,23,42,0.55)';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function wrapTextLines(ctx, text, maxWidth, maxLines, enableEllipsis = true) {
   const raw = String(text ?? '').trim();
   if (!raw) return [''];
 
@@ -123,7 +176,7 @@ function wrapTextLines(ctx, text, maxWidth, maxLines) {
   // Ellipsis when truncated.
   const consumedWordCount = lines.join(' ').split(/\s+/).filter(Boolean).length;
   const truncated = consumedWordCount < words.length;
-  if (truncated && lines.length > 0) {
+  if (enableEllipsis && truncated && lines.length > 0) {
     const lastIdx = lines.length - 1;
     let last = lines[lastIdx];
     const ellipsis = '...';
@@ -155,10 +208,41 @@ function drawAutoFitTextInRect(ctx, text, rect, options = {}) {
     maxFontPx = 18,
     maxLines = 3,
     fontWeight = 600,
+    ellipsis = true,
   } = options;
 
   const availableWidth = Math.max(12, rect.w - paddingX * 2);
   const availableHeight = Math.max(12, rect.h - paddingY * 2);
+
+  const cacheKey = [
+    String(text ?? ''),
+    Math.round(rect.w),
+    Math.round(rect.h),
+    paddingX,
+    paddingY,
+    minFontPx,
+    maxFontPx,
+    maxLines,
+    fontWeight,
+    ellipsis,
+  ].join('|');
+
+  const cached = textLayoutCache.get(cacheKey);
+  if (cached) {
+    ctx.font = cached.font;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const blockHeight = cached.lines.length * cached.lineHeight;
+    let y = rect.y + rect.h / 2 - blockHeight / 2 + cached.lineHeight / 2;
+    const x = rect.x + rect.w / 2;
+
+    for (const line of cached.lines) {
+      ctx.fillText(line, x, y);
+      y += cached.lineHeight;
+    }
+    return;
+  }
 
   let chosenFont = minFontPx;
   let chosenLineHeight = Math.max(12, Math.round(minFontPx * 1.25));
@@ -170,7 +254,7 @@ function drawAutoFitTextInRect(ctx, text, rect, options = {}) {
     if (allowedLines <= 0) continue;
 
     ctx.font = `${fontWeight} ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-    const lines = wrapTextLines(ctx, text, availableWidth, allowedLines);
+    const lines = wrapTextLines(ctx, text, availableWidth, allowedLines, ellipsis);
     const blockHeight = lines.length * lineHeight;
 
     if (blockHeight <= availableHeight) {
@@ -181,7 +265,8 @@ function drawAutoFitTextInRect(ctx, text, rect, options = {}) {
     }
   }
 
-  ctx.font = `${fontWeight} ${chosenFont}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+  const resolvedFont = `${fontWeight} ${chosenFont}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+  ctx.font = resolvedFont;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -193,6 +278,16 @@ function drawAutoFitTextInRect(ctx, text, rect, options = {}) {
     ctx.fillText(line, x, y);
     y += chosenLineHeight;
   }
+
+  if (textLayoutCache.size >= MAX_TEXT_LAYOUT_CACHE_SIZE) {
+    const oldestKey = textLayoutCache.keys().next().value;
+    if (oldestKey) textLayoutCache.delete(oldestKey);
+  }
+  textLayoutCache.set(cacheKey, {
+    font: resolvedFont,
+    lineHeight: chosenLineHeight,
+    lines: chosenLines,
+  });
 }
 
 async function importTasksVision() {
@@ -228,6 +323,7 @@ export class MediaPipeTracker {
     this.stream = null;
     this.rafId = null;
     this.lastVideoTime = -1;
+    this.lastDetectAtMs = 0;
     this.isReady = false;
   }
 
@@ -235,20 +331,28 @@ export class MediaPipeTracker {
     const { HandLandmarker, FilesetResolver } = await importTasksVision();
 
     const vision = await FilesetResolver.forVisionTasks(TASKS_VISION_WASM_BASE_URL);
-    this.handLandmarker = await HandLandmarker.createFromOptions(vision, {
+    const createLandmarker = async (delegate) => HandLandmarker.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: HAND_LANDMARKER_MODEL_URL,
-        delegate: 'GPU',
+        delegate,
       },
       runningMode: 'VIDEO',
       numHands: this.options.numHands ?? 1,
-      minHandDetectionConfidence: this.options.minHandDetectionConfidence ?? 0.5,
-      minHandPresenceConfidence: this.options.minHandPresenceConfidence ?? 0.5,
-      minTrackingConfidence: this.options.minTrackingConfidence ?? 0.5,
+      minHandDetectionConfidence: this.options.minHandDetectionConfidence ?? 0.35,
+      minHandPresenceConfidence: this.options.minHandPresenceConfidence ?? 0.35,
+      minTrackingConfidence: this.options.minTrackingConfidence ?? 0.35,
     });
 
+    try {
+      this.handLandmarker = await createLandmarker('GPU');
+    } catch (gpuErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[MediaPipe] GPU delegate unavailable, falling back to CPU.', gpuErr);
+      this.handLandmarker = await createLandmarker('CPU');
+    }
+
     this.stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 1280, height: 720, facingMode: 'user' },
+      video: { width: { ideal: 960 }, height: { ideal: 540 }, facingMode: 'user' },
       audio: false,
     });
 
@@ -265,10 +369,13 @@ export class MediaPipeTracker {
 
     const tick = () => {
       if (this.handLandmarker && this.videoEl.readyState >= 2) {
+        const nowMs = performance.now();
+        const minDetectInterval = 1000 / TARGET_DETECTION_FPS;
         const currentTime = this.videoEl.currentTime;
-        if (currentTime !== this.lastVideoTime) {
+        if (currentTime !== this.lastVideoTime && nowMs - this.lastDetectAtMs >= minDetectInterval) {
           this.lastVideoTime = currentTime;
-          const results = this.handLandmarker.detectForVideo(this.videoEl, performance.now());
+          this.lastDetectAtMs = nowMs;
+          const results = this.handLandmarker.detectForVideo(this.videoEl, nowMs);
           this.onFrame(results);
         }
       }
@@ -305,6 +412,7 @@ class HoverSelectGame {
 
     this.correctCompletedAtMs = null;
     this.wrongSelectedAtMs = null;
+    this.promptFontPx = 17;
   }
 
   /** @param {InputFrame} frame */
@@ -385,9 +493,14 @@ class HoverSelectGame {
     ctx.fillRect(0, 0, width, height);
     ctx.restore();
 
+    drawGameContentPanel(ctx, this.canvas, {
+      y: height * 0.06,
+      h: height * 0.78,
+    });
+
     // Prompt
     ctx.fillStyle = '#ffffff';
-    ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.font = `600 ${this.promptFontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, 34, width * 0.9, 24, 2);
@@ -420,8 +533,8 @@ class HoverSelectGame {
       // Text
       ctx.fillStyle = '#ffffff';
       drawAutoFitTextInRect(ctx, c.text, rect, {
-        minFontPx: 11,
-        maxFontPx: 18,
+        minFontPx: 10,
+        maxFontPx: 15,
         maxLines: 3,
         paddingX: 10,
         paddingY: 8,
@@ -502,6 +615,7 @@ class DragDropGame {
     this.wasPinching = false;
 
     this.completedAtMs = null;
+    this.promptFontPx = 17;
   }
 
   _optimizeDropZoneLayout() {
@@ -681,6 +795,29 @@ class DragDropGame {
     }
   }
 
+  _findFocusedLabel(pointerCanvas) {
+    if (!pointerCanvas) return null;
+
+    for (let i = this.items.length - 1; i >= 0; i -= 1) {
+      const it = this.items[i];
+      const rectNorm = {
+        x: it.pos.x - it.size.w / 2,
+        y: it.pos.y - it.size.h / 2,
+        w: it.size.w,
+        h: it.size.h,
+      };
+      const rect = rectToCanvas(rectNorm, this.canvas);
+      if (pointInRect(pointerCanvas, rect)) return it.label;
+    }
+
+    for (const zone of this.playable.dropZones) {
+      const rect = rectToCanvas(zone.zone, this.canvas);
+      if (pointInRect(pointerCanvas, rect)) return zone.label;
+    }
+
+    return null;
+  }
+
   /** @param {{ctx: CanvasRenderingContext2D; frame: InputFrame}} params */
   render({ ctx, frame }) {
     const { width, height } = this.canvas;
@@ -693,8 +830,13 @@ class DragDropGame {
     ctx.fillRect(0, 0, width, height);
     ctx.restore();
 
+    drawGameContentPanel(ctx, this.canvas, {
+      y: height * 0.06,
+      h: height * 0.78,
+    });
+
     ctx.fillStyle = '#ffffff';
-    ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.font = `600 ${this.promptFontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, 34, width * 0.9, 24, 2);
@@ -716,12 +858,13 @@ class DragDropGame {
 
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       drawAutoFitTextInRect(ctx, zone.label, rect, {
-        minFontPx: 9,
-        maxFontPx: 16,
-        maxLines: 4,
-        paddingX: 8,
-        paddingY: 6,
+        minFontPx: 8,
+        maxFontPx: 14,
+        maxLines: 6,
+        paddingX: 7,
+        paddingY: 5,
         fontWeight: 600,
+        ellipsis: false,
       });
       ctx.restore();
     }
@@ -761,12 +904,13 @@ class DragDropGame {
 
       ctx.fillStyle = '#ffffff';
       drawAutoFitTextInRect(ctx, it.label, rect, {
-        minFontPx: 10,
-        maxFontPx: 16,
-        maxLines: 3,
-        paddingX: 8,
-        paddingY: 6,
+        minFontPx: 8,
+        maxFontPx: 14,
+        maxLines: 5,
+        paddingX: 7,
+        paddingY: 5,
         fontWeight: 700,
+        ellipsis: false,
       });
       ctx.restore();
     }
@@ -779,6 +923,36 @@ class DragDropGame {
       ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
       ctx.fillStyle = frame.isPinching ? 'rgba(255,204,77,0.95)' : 'rgba(255,255,255,0.85)';
       ctx.fill();
+      ctx.restore();
+    }
+
+    const focusedLabel = this._findFocusedLabel(frame.indexTip || null);
+    if (focusedLabel) {
+      const panel = {
+        x: width * 0.03,
+        y: height - 98,
+        w: width * 0.62,
+        h: 44,
+      };
+
+      ctx.save();
+      drawRoundedRect(ctx, panel.x, panel.y, panel.w, panel.h, 10);
+      ctx.fillStyle = 'rgba(15,23,42,0.75)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      drawAutoFitTextInRect(ctx, focusedLabel, panel, {
+        minFontPx: 10,
+        maxFontPx: 14,
+        maxLines: 2,
+        paddingX: 10,
+        paddingY: 6,
+        fontWeight: 600,
+        ellipsis: false,
+      });
       ctx.restore();
     }
 
@@ -816,6 +990,9 @@ export class GameEngine {
     this.rafId = null;
     this.lastResults = null;
     this.blueprint = null;
+    this.lastRenderAtMs = 0;
+    this.lastIndexTip = null;
+    this.lastPinchMid = null;
 
     this.rounds = null;
     this.roundIndex = 0;
@@ -902,8 +1079,8 @@ export class GameEngine {
     // Match canvas size to rendered size to keep hit-testing consistent.
     const rect = this.canvasEl.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    this.canvasEl.width = Math.max(2, Math.floor(rect.width * dpr));
-    this.canvasEl.height = Math.max(2, Math.floor(rect.height * dpr));
+    this.canvasEl.width = Math.max(2, Math.floor(rect.width * dpr * CANVAS_RENDER_SCALE));
+    this.canvasEl.height = Math.max(2, Math.floor(rect.height * dpr * CANVAS_RENDER_SCALE));
   }
 
   _buildInputFrame(nowMs) {
@@ -922,8 +1099,10 @@ export class GameEngine {
 
     // index tip (8)
     const indexLm = landmarks[8];
-    const indexTip = mapLandmarkToCanvas(indexLm, this.canvasEl);
-    frame.indexTip = indexTip;
+    const rawIndexTip = mapLandmarkToCanvas(indexLm, this.canvasEl);
+    const smoothedIndexTip = smoothPoint(this.lastIndexTip, rawIndexTip, HAND_SMOOTHING_ALPHA);
+    this.lastIndexTip = smoothedIndexTip;
+    frame.indexTip = smoothedIndexTip;
 
     // pinch (4, 8)
     const thumbLm = landmarks[4];
@@ -940,16 +1119,26 @@ export class GameEngine {
       y: (indexNorm.y + thumbNorm.y) / 2,
     };
 
-    frame.pinchMid = {
+    const rawPinchMid = {
       x: clamp01(1 - midNorm.x), // flip for mirrored canvas
       y: clamp01(midNorm.y),
     };
+    const smoothedPinchMid = smoothPoint(this.lastPinchMid, rawPinchMid, HAND_SMOOTHING_ALPHA);
+    this.lastPinchMid = smoothedPinchMid;
+    frame.pinchMid = smoothedPinchMid;
 
     return frame;
   }
 
   _tick() {
     const nowMs = performance.now();
+    const minRenderInterval = 1000 / TARGET_RENDER_FPS;
+    if (nowMs - this.lastRenderAtMs < minRenderInterval) {
+      this.rafId = requestAnimationFrame(() => this._tick());
+      return;
+    }
+    this.lastRenderAtMs = nowMs;
+
     const frame = this._buildInputFrame(nowMs);
 
     // Canvas element is mirrored via CSS. Mirror the drawing context too to avoid

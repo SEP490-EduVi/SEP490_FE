@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
@@ -43,6 +43,7 @@ function isTerminalStatus(status: string): boolean {
 
 export default function GameMakerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [templateId, setTemplateId] = React.useState<TemplateId>(GAME_BLUEPRINTS.HOVER_SELECT);
   const [roundCount, setRoundCount] = React.useState<number>(1);
@@ -55,6 +56,10 @@ export default function GameMakerPage() {
   const [accessToken, setAccessToken] = React.useState<string | null>(null);
 
   const pollTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasAutoStartedRef = React.useRef(false);
+  const startedTaskFromQueryRef = React.useRef<string | null>(null);
+
+  const shouldAutoStart = searchParams.get('autoStart') === '1';
 
   const stopPolling = React.useCallback(() => {
     if (pollTimerRef.current) {
@@ -101,6 +106,19 @@ export default function GameMakerPage() {
   React.useEffect(() => {
     setAccessToken(localStorage.getItem('accessToken'));
 
+    const templateFromQuery = searchParams.get('templateId');
+    if (
+      templateFromQuery === GAME_BLUEPRINTS.HOVER_SELECT ||
+      templateFromQuery === GAME_BLUEPRINTS.DRAG_DROP
+    ) {
+      setTemplateId(templateFromQuery as TemplateId);
+    }
+
+    const roundFromQuery = Number(searchParams.get('roundCount'));
+    if (!Number.isNaN(roundFromQuery) && roundFromQuery >= 1) {
+      setRoundCount(Math.floor(roundFromQuery));
+    }
+
     const cachedUrl = sessionStorage.getItem(LAST_EDITED_SLIDE_URL_KEY) ?? '';
     setSlideEditedDocumentUrl(cachedUrl);
 
@@ -125,7 +143,7 @@ export default function GameMakerPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [searchParams]);
 
   React.useEffect(() => {
     return () => stopPolling();
@@ -147,7 +165,26 @@ export default function GameMakerPage() {
     [applyProgressUpdate, stopPolling],
   );
 
-  const handleStart = async () => {
+  const resumeExistingTask = React.useCallback(
+    async (existingTaskId: string) => {
+      setTaskId(existingTaskId);
+      setPlayable(null);
+      setIsLoading(true);
+      setStatus('Đang xử lý game...');
+
+      try {
+        const firstStatus = await getGameTaskStatus(existingTaskId);
+        applyProgressUpdate(firstStatus);
+      } catch {
+        // Ignore first-status failure and continue polling.
+      }
+
+      startPolling(existingTaskId);
+    },
+    [applyProgressUpdate, startPolling],
+  );
+
+  const handleStart = React.useCallback(async () => {
     if (!slideEditedDocumentUrl.trim()) {
       setStatus('Chưa tìm thấy dữ liệu slide đã lưu. Vui lòng lưu slide trước rồi thử lại.');
       return;
@@ -185,7 +222,25 @@ export default function GameMakerPage() {
       setStatus(e instanceof Error ? e.message : 'Failed to start game');
       setIsLoading(false);
     }
-  };
+  }, [applyProgressUpdate, roundCount, slideEditedDocumentUrl, startPolling, stopPolling, templateId]);
+
+  React.useEffect(() => {
+    const existingTaskId = searchParams.get('taskId')?.trim();
+    if (!existingTaskId) return;
+    if (startedTaskFromQueryRef.current === existingTaskId) return;
+
+    startedTaskFromQueryRef.current = existingTaskId;
+    void resumeExistingTask(existingTaskId);
+  }, [resumeExistingTask, searchParams]);
+
+  React.useEffect(() => {
+    if (!shouldAutoStart || hasAutoStartedRef.current || isLoading || !!playable) return;
+    if (searchParams.get('taskId')) return;
+    if (!slideEditedDocumentUrl.trim()) return;
+
+    hasAutoStartedRef.current = true;
+    handleStart();
+  }, [handleStart, isLoading, playable, searchParams, shouldAutoStart, slideEditedDocumentUrl]);
 
   const handleEnd = () => {
     stopPolling();

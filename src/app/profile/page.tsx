@@ -20,6 +20,16 @@ import { notify } from '@/components/common';
 // ── Types ──────────────────────────────────────────────────────────────────
 type Tab = 'profile' | 'security' | 'payment' | 'certificate';
 
+function formatEduCoin(value: number | null | undefined): string {
+  const amount = Number.isFinite(value) ? Number(value) : 0;
+  return `${amount.toLocaleString('vi-VN')} EduCoin`;
+}
+
+function formatQuota(value: number | null | undefined): string {
+  const amount = Number.isFinite(value) ? Number(value) : 0;
+  return amount.toLocaleString('vi-VN');
+}
+
 // ── Password strength ──────────────────────────────────────────────────────
 function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; color: string } {
   if (!pw) return { level: 0, label: '', color: '' };
@@ -172,13 +182,18 @@ function ProfilePageInner() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // ── Payment ──────────────────────────────────────────────────────────────
-  const [topUpAmount, setTopUpAmount] = useState('100000');
+  const [topUpAmount, setTopUpAmount] = useState('10000');
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [verifyingOrder, setVerifyingOrder] = useState<number | null>(null);
 
   const { data: plans = [], isLoading: plansLoading } = useSubscriptionPlans();
-  const { data: wallet, isLoading: walletLoading, refetch: refetchWallet } = useWalletInfo();
+  const {
+    data: wallet,
+    isLoading: walletLoading,
+    isError: walletError,
+    refetch: refetchWallet,
+  } = useWalletInfo();
   const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10);
   const topUpWallet = useTopUpWallet();
   const verifyTopUp = useVerifyTopUp();
@@ -249,7 +264,7 @@ function ProfilePageInner() {
     buySubscription.mutate(planId, {
       onSuccess: (res) => {
         notify.success(`Mua gói ${res.planName} thành công!`);
-        setPaymentMessage(`Mua gói ${res.planName} thành công. Số dư còn lại: ${res.walletBalanceAfter.toLocaleString('vi-VN')} EduCoin.`);
+        setPaymentMessage(`Mua gói ${res.planName} thành công. Số dư còn lại: ${formatEduCoin(res.walletBalanceAfter)}.`);
         void refetchWallet();
       },
       onError: (err: unknown) => {
@@ -650,12 +665,31 @@ function ProfilePageInner() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:col-span-1">
                   <p className="text-xs text-gray-500 mb-1">Số dư hiện tại</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {walletLoading ? '...' : `${(wallet?.balance ?? 0).toLocaleString('vi-VN')} EduCoin`}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Cập nhật: {wallet?.lastUpdated ? new Date(wallet.lastUpdated).toLocaleString('vi-VN') : '—'}
-                  </p>
+                  {walletLoading ? (
+                    <p className="text-2xl font-bold text-gray-900">...</p>
+                  ) : walletError ? (
+                    <>
+                      <p className="text-sm font-medium text-red-600">Không tải được dữ liệu ví</p>
+                      <button
+                        onClick={() => void refetchWallet()}
+                        className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        Tải lại ví
+                      </button>
+                    </>
+                  ) : wallet ? (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900">{formatEduCoin(wallet.balance)}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Cập nhật: {wallet.lastUpdated ? new Date(wallet.lastUpdated).toLocaleString('vi-VN') : '—'}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-amber-700">Ví chưa sẵn sàng</p>
+                      <p className="text-xs text-gray-400 mt-1">Bạn có thể nạp tiền để hệ thống khởi tạo ví.</p>
+                    </>
+                  )}
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:col-span-2">
@@ -668,7 +702,7 @@ function ProfilePageInner() {
                       value={topUpAmount}
                       onChange={(e) => setTopUpAmount(e.target.value)}
                       className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                      placeholder="Nhập số tiền (VND)"
+                      placeholder="Nhập số EduCoin muốn nạp"
                     />
                     <button
                       onClick={handleTopUp}
@@ -679,7 +713,7 @@ function ProfilePageInner() {
                       {topUpWallet.isPending ? 'Đang tạo link...' : 'Nạp tiền'}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">Tối thiểu 10.000 VND mỗi lần nạp.</p>
+                  <p className="text-xs text-gray-400 mt-2">Tối thiểu 10.000 EduCoin mỗi lần nạp.</p>
                 </div>
               </div>
 
@@ -722,9 +756,11 @@ function ProfilePageInner() {
                         <p className="text-sm font-semibold text-gray-900">{plan.planName}</p>
                         <p className="text-xs text-gray-500 mt-1 min-h-8">{plan.description || 'Không có mô tả'}</p>
                         <div className="mt-3 space-y-1 text-sm text-gray-600">
-                          <p>Giá: <span className="font-semibold text-gray-900">{plan.price.toLocaleString('vi-VN')} EduCoin</span></p>
+                          <p>Giá: <span className="font-semibold text-gray-900">{formatEduCoin(plan.price)}</span></p>
                           <p>Thời hạn: {plan.durationDays} ngày</p>
-                          <p>Quota: {plan.quotaAmount.toLocaleString('vi-VN')}</p>
+                          <p>Quota phân tích: {formatQuota(plan.analysisQuotaAmount)}</p>
+                          <p>Quota slide: {formatQuota(plan.slideQuotaAmount)}</p>
+                          <p>Quota video: {formatQuota(plan.videoQuotaAmount)}</p>
                         </div>
                         <button
                           onClick={() => handleBuyPlan(plan.planId)}
@@ -763,7 +799,7 @@ function ProfilePageInner() {
                         {transactions.items.map((tx) => (
                           <tr key={tx.transactionId} className="border-t border-gray-100">
                             <td className="px-5 py-3 text-gray-700">{tx.transactionType}</td>
-                            <td className="px-5 py-3 text-gray-900 font-medium">{tx.amount.toLocaleString('vi-VN')}</td>
+                            <td className="px-5 py-3 text-gray-900 font-medium">{formatEduCoin(tx.amount)}</td>
                             <td className="px-5 py-3 text-gray-600">{tx.status}</td>
                             <td className="px-5 py-3 text-gray-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
                           </tr>
