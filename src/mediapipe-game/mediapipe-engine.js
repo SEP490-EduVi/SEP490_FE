@@ -30,10 +30,10 @@ const PERFORMANCE_PROFILE = (() => {
   const isLowEndDevice = cores <= 4 || memory <= 4;
 
   if (isLowEndDevice) {
-    return { detectFps: 10, renderFps: 18, canvasScale: 0.56 };
+    return { detectFps: 20, renderFps: 40, canvasScale: 0.75 };
   }
 
-  return { detectFps: 14, renderFps: 24, canvasScale: 0.66 };
+  return { detectFps: 30, renderFps: 60, canvasScale: 1.0 };
 })();
 
 const TARGET_DETECTION_FPS = PERFORMANCE_PROFILE.detectFps;
@@ -41,7 +41,25 @@ const TARGET_RENDER_FPS = PERFORMANCE_PROFILE.renderFps;
 const CANVAS_RENDER_SCALE = PERFORMANCE_PROFILE.canvasScale;
 const MAX_TEXT_LAYOUT_CACHE_SIZE = 300;
 const textLayoutCache = new Map();
-const HAND_SMOOTHING_ALPHA = 0.25;
+const HAND_SMOOTHING_ALPHA = 0.55;
+
+const CHOICE_BADGE_LABELS = ['A', 'B', 'C', 'D'];
+const CHOICE_BADGE_COLORS = [
+  'rgba(59,130,246,0.9)',
+  'rgba(139,92,246,0.9)',
+  'rgba(16,185,129,0.9)',
+  'rgba(245,158,11,0.9)',
+];
+
+// Kahoot-style fixed zones used when htmlMode=true for HoverSelectGame.
+// Four quadrants: A(top-left), B(top-right), C(bottom-left), D(bottom-right).
+// These MUST match the CSS absolute positions in HoverSelectGamePlayer.
+const HOVER_SELECT_HTML_ZONES = [
+  { x: 0,     y: 0.44,  w: 0.495, h: 0.27  }, // A – top-left
+  { x: 0.505, y: 0.44,  w: 0.495, h: 0.27  }, // B – top-right
+  { x: 0,     y: 0.725, w: 0.495, h: 0.27  }, // C – bottom-left
+  { x: 0.505, y: 0.725, w: 0.495, h: 0.27  }, // D – bottom-right
+];
 
 /**
  * @typedef {{x:number,y:number,z?:number}} Landmark
@@ -52,7 +70,8 @@ const HAND_SMOOTHING_ALPHA = 0.25;
  *   landmarks: Landmark[] | null;
  *   hasHand: boolean;
  *   isPinching: boolean;
- *   pinchMid?: {x:number,y:number};
+ *   isPointing: boolean;
+ *   palmCenter?: {x:number,y:number};
  *   indexTip?: {x:number,y:number};
  *   nowMs: number;
  * }} InputFrame
@@ -78,6 +97,40 @@ function dist2(a, b) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Detects a closed-fist gesture from MediaPipe hand landmarks.
+ * Returns true when ≥3 of the 4 fingers are curled inward toward the palm.
+ * Uses tip-to-wrist vs PIP-to-wrist distance so it works at any hand orientation.
+ * @param {Landmark[]} landmarks
+ */
+/**
+ * Detects a single-index-finger pointing gesture (☝️).
+ * Index finger is extended; at least 2 of the other 3 fingers are curled.
+ * Used as the "grab" gesture in DragDropGame.
+ * @param {Landmark[]} landmarks
+ */
+function detectIndexPointing(landmarks) {
+  if (!landmarks || landmarks.length < 21) return false;
+  const wrist     = landmarks[0];
+  const handScale = dist2(wrist, landmarks[9]); // wrist → middle MCP
+  if (handScale < 0.01) return false;
+
+  // Index finger must be clearly extended (tip much further from wrist than PIP)
+  const indexExtended = dist2(landmarks[8], wrist) > dist2(landmarks[6], wrist) + handScale * 0.10;
+
+  // At least 2 of the other 3 fingers must be curled
+  const others = [
+    { tip: 12, pip: 10 }, // middle
+    { tip: 16, pip: 14 }, // ring
+    { tip: 20, pip: 18 }, // pinky
+  ];
+  let curled = 0;
+  for (const { tip, pip } of others) {
+    if (dist2(landmarks[tip], wrist) <= dist2(landmarks[pip], wrist) + handScale * 0.30) curled++;
+  }
+  return indexExtended && curled >= 2;
 }
 
 function mapLandmarkToCanvas(landmark, canvas) {
@@ -338,9 +391,9 @@ export class MediaPipeTracker {
       },
       runningMode: 'VIDEO',
       numHands: this.options.numHands ?? 1,
-      minHandDetectionConfidence: this.options.minHandDetectionConfidence ?? 0.35,
-      minHandPresenceConfidence: this.options.minHandPresenceConfidence ?? 0.35,
-      minTrackingConfidence: this.options.minTrackingConfidence ?? 0.35,
+      minHandDetectionConfidence: this.options.minHandDetectionConfidence ?? 0.5,
+      minHandPresenceConfidence: this.options.minHandPresenceConfidence ?? 0.5,
+      minTrackingConfidence: this.options.minTrackingConfidence ?? 0.5,
     });
 
     try {
@@ -352,7 +405,7 @@ export class MediaPipeTracker {
     }
 
     this.stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 960 }, height: { ideal: 540 }, facingMode: 'user' },
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user', frameRate: { ideal: 30 } },
       audio: false,
     });
 
@@ -400,10 +453,11 @@ class HoverSelectGame {
   /**
    * @param {{ playable: any; settings: any; canvas: HTMLCanvasElement }} params
    */
-  constructor({ playable, settings, canvas }) {
+  constructor({ playable, settings, canvas, htmlMode = false }) {
     this.playable = playable;
     this.settings = settings;
     this.canvas = canvas;
+    this.htmlMode = htmlMode;
 
     this.hoveringChoiceId = null;
     this.hoverStartMs = 0;
@@ -412,7 +466,9 @@ class HoverSelectGame {
 
     this.correctCompletedAtMs = null;
     this.wrongSelectedAtMs = null;
-    this.promptFontPx = 17;
+    this.wrongAttempts = 0;
+    this._pendingWarning = null;
+    this.promptFontPx = 24;
   }
 
   /** @param {InputFrame} frame */
@@ -440,8 +496,10 @@ class HoverSelectGame {
     const tip = frame.indexTip;
     let hit = null;
 
-    for (const c of this.playable.choices) {
-      const rect = rectToCanvas(c.zone, this.canvas);
+    for (let ci = 0; ci < this.playable.choices.length; ci++) {
+      const c = this.playable.choices[ci];
+      const zone = this.htmlMode ? (HOVER_SELECT_HTML_ZONES[ci] ?? c.zone) : c.zone;
+      const rect = rectToCanvas(zone, this.canvas);
       if (pointInRect(tip, rect)) {
         hit = c.id;
         break;
@@ -457,18 +515,31 @@ class HoverSelectGame {
     if (hit !== this.hoveringChoiceId) {
       this.hoveringChoiceId = hit;
       this.hoverStartMs = frame.nowMs;
-      return;
+      // When already pointing (1 finger), skip the early return so select logic runs
+      if (!frame.isPointing) return;
     }
 
     const elapsed = frame.nowMs - this.hoverStartMs;
-    if (elapsed >= this.settings.hoverHoldMs) {
+    // 1-finger point = instant confirm (150 ms debounce); open hand = normal dwell timer
+    const shouldSelect = frame.isPointing
+      ? elapsed >= 150
+      : elapsed >= this.settings.hoverHoldMs;
+    if (shouldSelect) {
       this.selectedChoiceId = hit;
       this.isCorrect = hit === this.playable.correctChoiceId;
 
       if (this.isCorrect) {
         if (this.correctCompletedAtMs == null) this.correctCompletedAtMs = frame.nowMs;
       } else {
-        this.wrongSelectedAtMs = frame.nowMs;
+        this.wrongAttempts += 1;
+        if (this.wrongAttempts >= 2) {
+          // Max attempts reached — force complete this round as failed
+          this.correctCompletedAtMs = frame.nowMs;
+        } else {
+          // First wrong attempt — allow retry after brief feedback
+          this._pendingWarning = 'Còn 1 lần thử! Hãy chọn lại.';
+          this.wrongSelectedAtMs = frame.nowMs;
+        }
       }
     }
   }
@@ -481,6 +552,19 @@ class HoverSelectGame {
     return this.correctCompletedAtMs;
   }
 
+  getResult() {
+    return { correct: this.isCorrect ? 1 : 0, total: 1 };
+  }
+
+  getPendingWarning() {
+    if (this._pendingWarning) {
+      const msg = this._pendingWarning;
+      this._pendingWarning = null;
+      return msg;
+    }
+    return null;
+  }
+
   /** @param {{ctx: CanvasRenderingContext2D; frame: InputFrame}} params */
   render({ ctx, frame }) {
     const { width, height } = this.canvas;
@@ -489,9 +573,38 @@ class HoverSelectGame {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(0, 0, width, height);
+    if (!this.htmlMode) {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(0, 0, width, height);
+    }
     ctx.restore();
+
+    if (this.htmlMode) {
+      // HTML mode: only draw the finger cursor + hover arc — UI is rendered by React
+      if (frame.hasHand && frame.indexTip) {
+        const p = frame.indexTip;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (this.hoveringChoiceId && !this.selectedChoiceId) {
+          const elapsed = frame.nowMs - this.hoverStartMs;
+          const t = clamp01(elapsed / this.settings.hoverHoldMs);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t);
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+          ctx.lineWidth = 5;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      return;
+    }
 
     drawGameContentPanel(ctx, this.canvas, {
       y: height * 0.06,
@@ -500,17 +613,20 @@ class HoverSelectGame {
 
     // Prompt
     ctx.fillStyle = '#ffffff';
-    ctx.font = `600 ${this.promptFontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.font = `700 ${this.promptFontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, 34, width * 0.9, 24, 2);
+    drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, height * 0.10, width * 0.88, 30, 2);
 
     // Choices
-    for (const c of this.playable.choices) {
-      const rect = rectToCanvas(c.zone, this.canvas);
-
+    for (let ci = 0; ci < this.playable.choices.length; ci++) {
+      const c = this.playable.choices[ci];
+      const rawRect = rectToCanvas(c.zone, this.canvas);
+      const capH = Math.min(rawRect.h, 74);
+      const rect = { ...rawRect, y: rawRect.y + (rawRect.h - capH) / 2, h: capH };
       const isHover = this.hoveringChoiceId === c.id;
       const isSelected = this.selectedChoiceId === c.id;
+      const badgeColor = CHOICE_BADGE_COLORS[ci] ?? 'rgba(255,255,255,0.5)';
 
       ctx.save();
       drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 14);
@@ -523,22 +639,36 @@ class HoverSelectGame {
       ctx.fill();
 
       ctx.lineWidth = isHover ? 3 : 2;
-      ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.55)';
+      ctx.strokeStyle = isHover ? badgeColor : 'rgba(255,255,255,0.40)';
       ctx.stroke();
 
-      // Clip text inside choice box to avoid crossing into neighboring choices.
+      // Clip to box
       drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 14);
       ctx.clip();
 
-      // Text
+      // A/B/C/D badge
+      const bSize = Math.max(22, Math.min(rect.h * 0.44, 30));
+      const bX = rect.x + 8;
+      const bY = rect.y + (rect.h - bSize) / 2;
+      drawRoundedRect(ctx, bX, bY, bSize, bSize, 6);
+      ctx.fillStyle = badgeColor;
+      ctx.fill();
       ctx.fillStyle = '#ffffff';
-      drawAutoFitTextInRect(ctx, c.text, rect, {
+      ctx.font = `800 ${Math.round(bSize * 0.56)}px system-ui, -apple-system`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(CHOICE_BADGE_LABELS[ci] ?? '', bX + bSize / 2, bY + bSize / 2);
+
+      // Choice text (shifted right to not overlap badge)
+      const textRect = { x: rect.x + bSize + 14, y: rect.y, w: rect.w - bSize - 22, h: rect.h };
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      drawAutoFitTextInRect(ctx, c.text, textRect, {
         minFontPx: 10,
-        maxFontPx: 15,
+        maxFontPx: 16,
         maxLines: 3,
-        paddingX: 10,
+        paddingX: 6,
         paddingY: 8,
-        fontWeight: 600,
+        fontWeight: 400,
       });
       ctx.restore();
     }
@@ -574,7 +704,11 @@ class HoverSelectGame {
       ctx.fillStyle = '#ffffff';
       ctx.font = '600 18px system-ui, -apple-system, Segoe UI, Roboto, Arial';
       ctx.textAlign = 'center';
-      const msg = this.isCorrect ? 'Đúng rồi!' : 'Chưa đúng, thử lại nhé!';
+      const msg = this.isCorrect
+        ? 'Đúng rồi!'
+        : this.wrongAttempts >= 2
+        ? 'Hết lượt! Chuyển câu tiếp...'
+        : 'Chưa đúng! Còn 1 lần thử.';
       ctx.fillText(msg, width / 2, height - 22);
       ctx.restore();
     }
@@ -583,246 +717,221 @@ class HoverSelectGame {
 
 class DragDropGame {
   /**
+   * Matching-pairs game: user pinches a left-column item and draws a bezier
+   * line to the matching right-column zone. Replaces the old drag-to-box mechanic.
+   *
    * @param {{ playable: any; settings: any; canvas: HTMLCanvasElement }} params
    */
   constructor({ playable, settings, canvas }) {
-    // Clone so layout optimization does not mutate external payload/state.
     this.playable = {
       ...playable,
-      items: (playable.items ?? []).map((it) => ({
-        ...it,
-        start: { ...it.start },
-        size: { ...it.size },
-      })),
-      dropZones: (playable.dropZones ?? []).map((z) => ({
-        ...z,
-        zone: { ...z.zone },
-      })),
+      items:     (playable.items     ?? []).map((it) => ({ ...it })),
+      dropZones: (playable.dropZones ?? []).map((z)  => ({ ...z  })),
     };
     this.settings = settings;
-    this.canvas = canvas;
+    this.canvas   = canvas;
 
-    this._optimizeDropZoneLayout();
-    this._optimizeItemLayout();
+    // Limit to 4 pairs per round for legibility
+    const MAX_PAIRS = 4;
+    const allItems = this.playable.items.slice(0, MAX_PAIRS);
+    const validZoneIds = new Set(allItems.map((it) => it.id));
+    const allZones = this.playable.dropZones.filter((z) => validZoneIds.has(z.acceptsItemId)).slice(0, MAX_PAIRS);
+    this.playable.items = allItems;
+    this.playable.dropZones = allZones;
 
-    this.items = this.playable.items.map((it) => ({
-      ...it,
-      pos: { x: it.start.x, y: it.start.y },
-      placedZoneId: null,
-    }));
+    // Shuffle zones visually so position alone can't solve the puzzle
+    this._shuffledZones = [...this.playable.dropZones].sort(() => Math.random() - 0.5);
 
-    this.grabbedItemId = null;
-    this.wasPinching = false;
+    // Per-pair accent colors (cycle if more pairs than colors)
+    this._pairColors = [
+      { line: '#60a5fa', glow: 'rgba(96,165,250,0.55)', card: 'rgba(59,130,246,0.22)', border: 'rgba(96,165,250,0.75)' },
+      { line: '#a78bfa', glow: 'rgba(167,139,250,0.55)', card: 'rgba(139,92,246,0.22)', border: 'rgba(167,139,250,0.75)' },
+      { line: '#34d399', glow: 'rgba(52,211,153,0.55)', card: 'rgba(16,185,129,0.22)', border: 'rgba(52,211,153,0.75)' },
+      { line: '#fb923c', glow: 'rgba(251,146,60,0.55)', card: 'rgba(234,88,12,0.22)', border: 'rgba(251,146,60,0.75)' },
+    ];
+
+    // connections[itemId] = zoneId  (finalized pairings)
+    this.connections = {};
+
+    // item currently being connected (rubber-band line follows cursor)
+    this.activeItemId   = null;
+    this.wasPinching    = false;
+    this._noHandFrames  = 0;
+
+    // Flash-red feedback: { itemId, expiresMs }
+    this._wrongFlash = null;
 
     this.completedAtMs = null;
-    this.promptFontPx = 17;
+    this.promptFontPx  = 17;
+
+    // Animated dot pulse phase (seconds)
+    this._pulsePhase = 0;
+    this._lastPulseMs = 0;
   }
 
-  _optimizeDropZoneLayout() {
-    const zones = this.playable.dropZones;
-    if (!Array.isArray(zones) || zones.length < 3) return;
+  // ── Layout helpers ──────────────────────────────────────────────────────────
 
-    const yValues = zones.map((z) => z.zone.y + z.zone.h / 2);
-    const isSameRow = Math.max(...yValues) - Math.min(...yValues) <= 0.18;
-    if (!isSameRow) return;
-
-    const sorted = [...zones].sort((a, b) => a.zone.x - b.zone.x);
-    let minGap = Infinity;
-    for (let i = 0; i < sorted.length - 1; i += 1) {
-      const a = sorted[i].zone;
-      const b = sorted[i + 1].zone;
-      minGap = Math.min(minGap, b.x - (a.x + a.w));
-    }
-
-    // Existing spacing is good enough.
-    if (minGap >= 0.02) return;
-
-    const n = sorted.length;
-    const sidePadding = 0.05;
-    const targetGap = 0.02;
-    const availableWidth = 1 - sidePadding * 2 - targetGap * (n - 1);
-    const oldAvgW = sorted.reduce((sum, z) => sum + z.zone.w, 0) / n;
-    const targetW = Math.max(0.11, Math.min(oldAvgW, availableWidth / n));
-
-    let x = sidePadding;
-    for (const zone of sorted) {
-      zone.zone.x = x;
-      zone.zone.w = targetW;
-      x += targetW + targetGap;
-    }
+  /**
+   * Returns canvas-pixel rect for a cell in one of the two columns.
+   * colIdx 0 = left (items), 1 = right (zones).
+   */
+  _columnRect(colIdx, rowIdx, n) {
+    const c = this.canvas;
+    // Keep in sync with the panel bounds computed in render()
+    const PANEL_TOP  = 0.14;   // fraction of canvas height
+    const HINT_BAR_H = 38;     // px — must match hint bar in render()
+    const panelY  = PANEL_TOP * c.height;
+    const panelH  = c.height - HINT_BAR_H - 10 - panelY;  // 10px gap above hint bar
+    const topY    = panelY + 34;   // space for column header text
+    const bottomY = panelY + panelH - 14;  // generous bottom padding
+    const availH  = bottomY - topY;
+    const gap     = Math.max(8, Math.min(14, availH * 0.02));
+    // No hard minimum — let height shrink so cards never overflow panel
+    const rowH    = Math.max(32, (availH - gap * (n - 1)) / n);
+    const y       = topY + rowIdx * (rowH + gap);
+    // Column left edges chosen so right edges align with panel right border
+    const colW    = 0.41 * c.width;
+    const colX    = colIdx === 0 ? 0.02 * c.width : 0.56 * c.width;
+    return { x: colX, y, w: colW, h: rowH };
   }
 
-  _optimizeItemLayout() {
-    const items = this.playable.items;
-    if (!Array.isArray(items) || items.length < 3) return;
-
-    const yValues = items.map((it) => it.start.y);
-    const isSameRow = Math.max(...yValues) - Math.min(...yValues) <= 0.2;
-    if (!isSameRow) return;
-
-    const sorted = [...items].sort((a, b) => a.start.x - b.start.x);
-    let minGap = Infinity;
-    for (let i = 0; i < sorted.length - 1; i += 1) {
-      const aLeft = sorted[i].start.x - sorted[i].size.w / 2;
-      const aRight = sorted[i].start.x + sorted[i].size.w / 2;
-      const bLeft = sorted[i + 1].start.x - sorted[i + 1].size.w / 2;
-      minGap = Math.min(minGap, bLeft - aRight);
-    }
-
-    if (minGap >= 0.018) return;
-
-    const n = sorted.length;
-    const sidePadding = 0.06;
-    const targetGap = 0.02;
-    const availableWidth = 1 - sidePadding * 2 - targetGap * (n - 1);
-    const oldAvgW = sorted.reduce((sum, it) => sum + it.size.w, 0) / n;
-    const targetW = Math.max(0.1, Math.min(oldAvgW, availableWidth / n));
-
-    let centerX = sidePadding + targetW / 2;
-    for (const it of sorted) {
-      it.size.w = targetW;
-      it.start.x = centerX;
-      centerX += targetW + targetGap;
-    }
+  _itemConnectionPoint(idx, n) {
+    const r = this._columnRect(0, idx, n);
+    return { x: r.x + r.w, y: r.y + r.h / 2 };
   }
+
+  _zoneConnectionPoint(idx, n) {
+    const r = this._columnRect(1, idx, n);
+    return { x: r.x, y: r.y + r.h / 2 };
+  }
+
+  // ── Update ──────────────────────────────────────────────────────────────────
 
   /** @param {InputFrame} frame */
   update(frame) {
-    if (!frame.hasHand || !frame.pinchMid) {
-      this._release();
-      this.wasPinching = false;
+    const items = this.playable.items;
+    const zones = this._shuffledZones;
+    const n     = items.length;
+    const zn    = zones.length;
+
+    if (!frame.hasHand) {
+      this._noHandFrames += 1;
+      // Tolerate up to 6 missed frames (~100 ms at 60fps) before releasing grab
+      if (this._noHandFrames > 6) {
+        this.activeItemId  = null;
+        this.wasPinching   = false;
+        this._lastPointPos = null;
+      }
       return;
     }
+    this._noHandFrames = 0;
 
-    const pinch = frame.pinchMid;
+    // Cursor always tracks palm center whenever hand is visible
+    if (!frame.palmCenter) return;
+    const px = frame.palmCenter.x;
+    const py = frame.palmCenter.y;
 
-    if (frame.isPinching && !this.wasPinching) {
-      // Pinch started: pick nearest item under pinch
-      const pick = this._pickItemAt(pinch);
-      this.grabbedItemId = pick;
+    // ── While pointing (1 finger): freeze position for release snap ──────────
+    if (frame.isPointing) {
+      this._lastPointPos = { x: px, y: py };
     }
 
-    if (frame.isPinching && this.grabbedItemId) {
-      const item = this.items.find((i) => i.id === this.grabbedItemId);
-      if (item) {
-        item.pos.x = clamp01(pinch.x);
-        item.pos.y = clamp01(pinch.y);
+    // Tight grab padding — avoids accidentally hitting adjacent items.
+    // Generous release padding — easier to snap to a zone.
+    const grabPad = 4;
+    const snapPad = Math.max(10, this.canvas.width * 0.025);
+
+    // ── Pointing START: grab left-column item ────────────────────────────────
+    if (frame.isPointing && !this.wasPinching) {
+      this.activeItemId = null;
+      for (let i = 0; i < n; i++) {
+        const r = this._columnRect(0, i, n);
+        if (
+          px >= r.x - grabPad && px <= r.x + r.w + grabPad &&
+          py >= r.y - grabPad && py <= r.y + r.h + grabPad
+        ) {
+          delete this.connections[items[i].id]; // allow re-draw
+          this.activeItemId = items[i].id;
+          break;
+        }
       }
     }
 
-    if (!frame.isPinching && this.wasPinching) {
-      // Pinch released
-      this._snapIfOverZone();
-      this._release();
+    // ── Hand open RELEASE: snap using the FROZEN pointing position ────────────
+    // Use the last known pointing position so the snap point doesn't drift
+    // as fingers spread open during the gesture transition.
+    if (!frame.isPointing && this.wasPinching && this.activeItemId) {
+      const snapPos = this._lastPointPos ?? { x: px, y: py };
+      const sx = snapPos.x;
+      const sy = snapPos.y;
+      let matched = false;
+      for (let i = 0; i < zn; i++) {
+        const r = this._columnRect(1, i, zn);
+        if (
+          sx >= r.x - snapPad && sx <= r.x + r.w + snapPad &&
+          sy >= r.y - snapPad && sy <= r.y + r.h + snapPad
+        ) {
+          this.connections[this.activeItemId] = zones[i].id;
+          // Flash red if wrong pair
+          const zone = this.playable.dropZones.find((z) => z.id === zones[i].id);
+          if (zone && zone.acceptsItemId !== this.activeItemId) {
+            this._wrongFlash = { itemId: this.activeItemId, expiresMs: frame.nowMs + 500 };
+            // Remove the wrong connection after the flash
+            const wrongItemId = this.activeItemId;
+            setTimeout(() => { delete this.connections[wrongItemId]; }, 500);
+          }
+          matched = true;
+          break;
+        }
+      }
+      this.activeItemId  = null;
+      this._lastPointPos = null;
     }
 
+    this.wasPinching = frame.isPointing;
+
+    // All items connected → game complete
     if (this.completedAtMs == null) {
-      const allPlaced = this.items.length > 0 && this.items.every((i) => Boolean(i.placedZoneId));
-      if (allPlaced) this.completedAtMs = frame.nowMs;
-    }
-
-    this.wasPinching = frame.isPinching;
-  }
-
-  isComplete() {
-    return this.completedAtMs != null;
-  }
-
-  getCompletedAtMs() {
-    return this.completedAtMs;
-  }
-
-  _release() {
-    this.grabbedItemId = null;
-  }
-
-  _pickItemAt(pinchNorm) {
-    // prioritize items not placed yet
-    const candidates = [...this.items].sort((a, b) => (a.placedZoneId ? 1 : 0) - (b.placedZoneId ? 1 : 0));
-
-    for (const it of candidates) {
-      const rectNorm = {
-        x: it.pos.x - it.size.w / 2,
-        y: it.pos.y - it.size.h / 2,
-        w: it.size.w,
-        h: it.size.h,
-      };
-      const rect = rectToCanvas(rectNorm, this.canvas);
-      const pinch = {
-        x: pinchNorm.x * this.canvas.width,
-        y: pinchNorm.y * this.canvas.height,
-      };
-      if (pointInRect(pinch, rect)) return it.id;
-    }
-    return null;
-  }
-
-  _snapIfOverZone() {
-    if (!this.grabbedItemId) return;
-
-    const item = this.items.find((i) => i.id === this.grabbedItemId);
-    if (!item) return;
-
-    const itemRectNorm = {
-      x: item.pos.x - item.size.w / 2,
-      y: item.pos.y - item.size.h / 2,
-      w: item.size.w,
-      h: item.size.h,
-    };
-
-    const itemCenter = {
-      x: item.pos.x,
-      y: item.pos.y,
-    };
-
-    for (const zone of this.playable.dropZones) {
-      const z = zone.zone;
-      const inside =
-        itemCenter.x >= z.x &&
-        itemCenter.x <= z.x + z.w &&
-        itemCenter.y >= z.y &&
-        itemCenter.y <= z.y + z.h;
-
-      if (!inside) continue;
-
-      // snap to zone center
-      item.pos.x = z.x + z.w / 2;
-      item.pos.y = z.y + z.h / 2;
-      item.placedZoneId = zone.id;
-
-      // if wrong zone, keep placed but highlight later (simple)
-      return;
+      const allConnected = n > 0 && items.every((it) => Boolean(this.connections[it.id]));
+      if (allConnected) this.completedAtMs = frame.nowMs;
     }
   }
 
-  _findFocusedLabel(pointerCanvas) {
-    if (!pointerCanvas) return null;
+  isComplete()       { return this.completedAtMs != null; }
+  getCompletedAtMs() { return this.completedAtMs; }
 
-    for (let i = this.items.length - 1; i >= 0; i -= 1) {
-      const it = this.items[i];
-      const rectNorm = {
-        x: it.pos.x - it.size.w / 2,
-        y: it.pos.y - it.size.h / 2,
-        w: it.size.w,
-        h: it.size.h,
-      };
-      const rect = rectToCanvas(rectNorm, this.canvas);
-      if (pointInRect(pointerCanvas, rect)) return it.label;
+  getResult() {
+    let correct = 0;
+    for (const it of this.playable.items) {
+      const connectedZoneId = this.connections[it.id];
+      if (!connectedZoneId) continue;
+      const zone = this.playable.dropZones.find((z) => z.id === connectedZoneId);
+      if (zone && zone.acceptsItemId === it.id) correct += 1;
     }
-
-    for (const zone of this.playable.dropZones) {
-      const rect = rectToCanvas(zone.zone, this.canvas);
-      if (pointInRect(pointerCanvas, rect)) return zone.label;
-    }
-
-    return null;
+    return { correct, total: this.playable.items.length };
   }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   /** @param {{ctx: CanvasRenderingContext2D; frame: InputFrame}} params */
   render({ ctx, frame }) {
     const { width, height } = this.canvas;
+    const items = this.playable.items;
+    const zones = this._shuffledZones;
+    const n     = items.length;
+    const zn    = zones.length;
+    const nowMs = frame.nowMs;
 
-    // Background (clear with identity transform, then restore current transform)
+    // Advance dot pulse animation
+    const dtMs = this._lastPulseMs ? Math.min(nowMs - this._lastPulseMs, 50) : 0;
+    this._pulsePhase = (this._pulsePhase + dtMs / 1200) % 1;
+    this._lastPulseMs = nowMs;
+    const pulseSin = Math.sin(this._pulsePhase * Math.PI * 2); // -1 to 1
+
+    // Expire wrong flash
+    if (this._wrongFlash && nowMs > this._wrongFlash.expiresMs) this._wrongFlash = null;
+
+    // Clear
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
@@ -830,141 +939,305 @@ class DragDropGame {
     ctx.fillRect(0, 0, width, height);
     ctx.restore();
 
-    drawGameContentPanel(ctx, this.canvas, {
-      y: height * 0.06,
-      h: height * 0.78,
-    });
+    // Content panel — keep in sync with _columnRect constants
+    const PANEL_TOP  = 0.14;
+    const HINT_BAR_H = 38;
+    const panelY = height * PANEL_TOP;
+    const panelH = height - HINT_BAR_H - 10 - panelY;
+    // Panel is wide enough to fully contain both columns (left col x=2%, right col right edge=97%)
+    drawGameContentPanel(ctx, this.canvas, { x: width * 0.01, y: panelY, w: width * 0.98, h: panelH });
 
+    // ── Prompt (centered, above panel) ───────────────────────────────────────
     ctx.fillStyle = '#ffffff';
     ctx.font = `600 ${this.promptFontPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    drawCenteredMultilineText(ctx, this.playable.prompt, width / 2, 34, width * 0.9, 24, 2);
+    // Reserve right side for timer — constrain text to left 80% of width
+    drawCenteredMultilineText(ctx, this.playable.prompt, width * 0.43, panelY / 2, width * 0.72, 22, 2);
 
-    // Drop zones
-    for (const zone of this.playable.dropZones) {
-      const rect = rectToCanvas(zone.zone, this.canvas);
-
-      ctx.save();
-      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 16);
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 16);
-      ctx.clip();
-
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      drawAutoFitTextInRect(ctx, zone.label, rect, {
-        minFontPx: 8,
-        maxFontPx: 14,
-        maxLines: 6,
-        paddingX: 7,
-        paddingY: 5,
-        fontWeight: 600,
-        ellipsis: false,
-      });
-      ctx.restore();
-    }
-
-    // Items
-    for (const it of this.items) {
-      const rectNorm = {
-        x: it.pos.x - it.size.w / 2,
-        y: it.pos.y - it.size.h / 2,
-        w: it.size.w,
-        h: it.size.h,
-      };
-      const rect = rectToCanvas(rectNorm, this.canvas);
-      const isGrabbed = this.grabbedItemId === it.id;
-
-      // correct placement check
-      let placedCorrect = null;
-      if (it.placedZoneId) {
-        const zone = this.playable.dropZones.find((z) => z.id === it.placedZoneId);
-        placedCorrect = zone ? zone.acceptsItemId === it.id : null;
-      }
-
-      ctx.save();
-      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 14);
-
-      if (placedCorrect === true) ctx.fillStyle = 'rgba(16,185,129,0.30)';
-      else if (placedCorrect === false) ctx.fillStyle = 'rgba(239,68,68,0.30)';
-      else ctx.fillStyle = isGrabbed ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.12)';
-
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-      ctx.lineWidth = isGrabbed ? 3 : 2;
-      ctx.stroke();
-
-      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 14);
-      ctx.clip();
-
-      ctx.fillStyle = '#ffffff';
-      drawAutoFitTextInRect(ctx, it.label, rect, {
-        minFontPx: 8,
-        maxFontPx: 14,
-        maxLines: 5,
-        paddingX: 7,
-        paddingY: 5,
-        fontWeight: 700,
-        ellipsis: false,
-      });
-      ctx.restore();
-    }
-
-    // Pinch cursor
-    if (frame.hasHand && frame.indexTip) {
-      ctx.save();
-      const p = frame.indexTip;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = frame.isPinching ? 'rgba(255,204,77,0.95)' : 'rgba(255,255,255,0.85)';
-      ctx.fill();
-      ctx.restore();
-    }
-
-    const focusedLabel = this._findFocusedLabel(frame.indexTip || null);
-    if (focusedLabel) {
-      const panel = {
-        x: width * 0.03,
-        y: height - 98,
-        w: width * 0.62,
-        h: 44,
-      };
-
-      ctx.save();
-      drawRoundedRect(ctx, panel.x, panel.y, panel.w, panel.h, 10);
-      ctx.fillStyle = 'rgba(15,23,42,0.75)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      drawAutoFitTextInRect(ctx, focusedLabel, panel, {
-        minFontPx: 10,
-        maxFontPx: 14,
-        maxLines: 2,
-        paddingX: 10,
-        paddingY: 6,
-        fontWeight: 600,
-        ellipsis: false,
-      });
-      ctx.restore();
-    }
-
-    // Hint
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, height - 42, width, 42);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = '500 14px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    // ── Column headers ────────────────────────────────────────────────────────
+    const col1CenterX = width * 0.02 + width * 0.41 / 2;
+    const col2CenterX = width * 0.56 + width * 0.41 / 2;
+    const headerY = panelY + 14;
+    ctx.font = '700 11px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Gắp = chụm ngón cái + trỏ (pinch) và kéo thả.', width / 2, height - 21);
+    ctx.fillText('KHÁI NIỆM', col1CenterX, headerY);
+    ctx.fillText('NỐI VỚI', col2CenterX, headerY);
+
+    // Compute layout bounds used by both columns
+    const COL_TOP_Y  = panelY + 28;
+    const COL_BOT_Y  = panelY + panelH - 8;
+
+    // ── Finalized connection lines (draw BEHIND cards) ────────────────────────
+    for (let ii = 0; ii < n; ii++) {
+      const it           = items[ii];
+      const connectedZId = this.connections[it.id];
+      if (!connectedZId) continue;
+      const zi = zones.findIndex((z) => z.id === connectedZId);
+      if (zi < 0) continue;
+
+      const from = this._itemConnectionPoint(ii, n);
+      const to   = this._zoneConnectionPoint(zi, zn);
+      const zone = this.playable.dropZones.find((z) => z.id === connectedZId);
+      const ok   = zone?.acceptsItemId === it.id;
+      const color = this._pairColors[ii % this._pairColors.length];
+      const isFlashing = this._wrongFlash && this._wrongFlash.itemId === it.id;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      const cx = (from.x + to.x) / 2;
+      ctx.bezierCurveTo(cx, from.y, cx, to.y, to.x, to.y);
+      ctx.strokeStyle  = isFlashing ? '#f87171' : ok ? color.line : '#f87171';
+      ctx.lineWidth    = 4;
+      ctx.shadowBlur   = 14;
+      ctx.shadowColor  = isFlashing ? 'rgba(248,113,113,0.7)' : ok ? color.glow : 'rgba(248,113,113,0.7)';
+      ctx.stroke();
+      ctx.restore();
+
+      // Checkmark or X near midpoint of line
+      if (ok) {
+        const mx = (from.x + to.x) / 2;
+        const my = (from.y + to.y) / 2;
+        ctx.save();
+        ctx.font = 'bold 13px system-ui';
+        ctx.fillStyle = color.line;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = color.glow;
+        ctx.fillText('✓', mx, my - 10);
+        ctx.restore();
+      }
+    }
+
+    // ── Rubber-band line while dragging ──────────────────────────────────────
+    if (this.activeItemId) {
+      const ii = items.findIndex((i) => i.id === this.activeItemId);
+      if (ii >= 0) {
+        const from = this._itemConnectionPoint(ii, n);
+        const endPos = this._lastPointPos ?? frame.palmCenter;
+        if (endPos) {
+          const tx = endPos.x;
+          const ty = endPos.y;
+          const color = this._pairColors[ii % this._pairColors.length];
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          const cx = (from.x + tx) / 2;
+          ctx.bezierCurveTo(cx, from.y, cx, ty, tx, ty);
+          ctx.strokeStyle = color.line;
+          ctx.lineWidth   = 3;
+          ctx.globalAlpha = 0.80;
+          ctx.setLineDash([10, 6]);
+          ctx.shadowBlur  = 10;
+          ctx.shadowColor = color.glow;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+      }
+    }
+
+    // ── Left column: items ────────────────────────────────────────────────────
+    for (let i = 0; i < n; i++) {
+      const it           = items[i];
+      const rect         = this._columnRect(0, i, n);
+      const isActive     = this.activeItemId === it.id;
+      const connectedZId = this.connections[it.id];
+      const isFlashing   = this._wrongFlash && this._wrongFlash.itemId === it.id;
+      let placedCorrect  = null;
+      if (connectedZId) {
+        const zone    = this.playable.dropZones.find((z) => z.id === connectedZId);
+        placedCorrect = zone?.acceptsItemId === it.id;
+      }
+      const color = this._pairColors[i % this._pairColors.length];
+
+      ctx.save();
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 10);
+
+      // Fill
+      if (isFlashing)             ctx.fillStyle = 'rgba(239,68,68,0.35)';
+      else if (placedCorrect === true)  ctx.fillStyle = color.card;
+      else if (isActive)          ctx.fillStyle = 'rgba(255,255,255,0.20)';
+      else                        ctx.fillStyle = 'rgba(255,255,255,0.09)';
+      ctx.fill();
+
+      // Border
+      if (isFlashing)             ctx.strokeStyle = '#f87171';
+      else if (placedCorrect === true)  ctx.strokeStyle = color.border;
+      else if (isActive)          ctx.strokeStyle = 'rgba(255,255,255,0.90)';
+      else                        ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+      ctx.lineWidth = (isActive || placedCorrect === true || isFlashing) ? 2.5 : 1.5;
+      if (isActive) {
+        ctx.shadowBlur  = 10;
+        ctx.shadowColor = 'rgba(255,255,255,0.40)';
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // "Drag handle" chevron on left edge when not yet connected
+      if (!connectedZId && !isActive) {
+        ctx.font = '10px system-ui';
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('〉', rect.x + rect.w - 16, rect.y + rect.h / 2);
+      }
+
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 10);
+      ctx.clip();
+      ctx.fillStyle = '#ffffff';
+      drawAutoFitTextInRect(ctx, it.label, rect, {
+        minFontPx: 9, maxFontPx: 14, maxLines: 2,
+        paddingX: 12, paddingY: 6, fontWeight: 700, ellipsis: true,
+      });
+      ctx.restore();
+
+      // ── Port dot — right edge (larger, colored, pulsing when unconnected) ──
+      const dotX  = rect.x + rect.w;
+      const dotY  = rect.y + rect.h / 2;
+      let dotR, dotColor, dotGlow;
+      if (isActive) {
+        dotR = 9; dotColor = '#ffffff'; dotGlow = 'rgba(255,255,255,0.5)';
+      } else if (placedCorrect === true) {
+        dotR = 8; dotColor = color.line; dotGlow = color.glow;
+      } else if (isFlashing) {
+        dotR = 8; dotColor = '#f87171'; dotGlow = 'rgba(248,113,113,0.5)';
+      } else {
+        // Pulse: animate between 7 and 9
+        dotR = 7 + pulseSin * 2; dotColor = color.line; dotGlow = color.glow;
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotR + 4, 0, Math.PI * 2);
+      ctx.fillStyle = dotGlow.replace(')', ', 0.15)').replace('rgba(', 'rgba(');
+      // Draw outer glow ring for unconnected dots
+      if (!connectedZId) {
+        ctx.arc(dotX, dotY, dotR + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = dotColor;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.35 + pulseSin * 0.15;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = dotColor;
+      ctx.shadowBlur  = 8;
+      ctx.shadowColor = dotGlow;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Right column: zones ───────────────────────────────────────────────────
+    for (let i = 0; i < zn; i++) {
+      const zone           = zones[i];
+      const rect           = this._columnRect(1, i, zn);
+      const incomingItemId = Object.keys(this.connections).find((id) => this.connections[id] === zone.id) ?? null;
+      let placedCorrect    = null;
+      let pairIdx          = -1;
+      if (incomingItemId) {
+        placedCorrect = zone.acceptsItemId === incomingItemId;
+        pairIdx       = items.findIndex((it) => it.id === incomingItemId);
+      }
+      const isFlashing = this._wrongFlash && this._wrongFlash.itemId === incomingItemId;
+      const color = pairIdx >= 0 ? this._pairColors[pairIdx % this._pairColors.length] : null;
+
+      ctx.save();
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 10);
+      if (isFlashing)                  ctx.fillStyle = 'rgba(239,68,68,0.30)';
+      else if (placedCorrect === true)  ctx.fillStyle = color.card;
+      else                             ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fill();
+
+      ctx.strokeStyle =
+        isFlashing          ? '#f87171' :
+        placedCorrect === true ? color.border :
+        'rgba(255,255,255,0.25)';
+      ctx.lineWidth = (placedCorrect === true || isFlashing) ? 2.5 : 1.5;
+      ctx.stroke();
+
+      drawRoundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 10);
+      ctx.clip();
+      ctx.fillStyle = placedCorrect === true ? '#ffffff' : 'rgba(255,255,255,0.80)';
+      drawAutoFitTextInRect(ctx, zone.label, rect, {
+        minFontPx: 9, maxFontPx: 14, maxLines: 2,
+        paddingX: 12, paddingY: 6, fontWeight: 600, ellipsis: true,
+      });
+      ctx.restore();
+
+      // ── Port dot — left edge ──────────────────────────────────────────────
+      const dotX = rect.x;
+      const dotY = rect.y + rect.h / 2;
+      let dotR, dotColor, dotGlow;
+      if (isFlashing) {
+        dotR = 8; dotColor = '#f87171'; dotGlow = 'rgba(248,113,113,0.5)';
+      } else if (placedCorrect === true) {
+        dotR = 8; dotColor = color.line; dotGlow = color.glow;
+      } else {
+        dotR = 7 + pulseSin * 1.5; dotColor = 'rgba(255,255,255,0.50)'; dotGlow = 'rgba(255,255,255,0.2)';
+      }
+      ctx.save();
+      if (!incomingItemId) {
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, dotR + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = dotColor;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.25 + pulseSin * 0.1;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = dotColor;
+      ctx.shadowBlur  = 8;
+      ctx.shadowColor = dotGlow;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Cursor ────────────────────────────────────────────────────────────────
+    if (frame.hasHand && frame.palmCenter) {
+      const p = frame.palmCenter;
+      ctx.save();
+      if (frame.isPointing) {
+        // 1-finger pointing = grab mode — blue filled circle with glow ring
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(96,165,250,0.30)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(96,165,250,0.95)';
+        ctx.fill();
+      } else {
+        // Hand visible, no grab gesture = move mode — white dot with ring
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ── Hint bar ──────────────────────────────────────────────────────────────
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, height - 38, width, 38);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.font = '500 12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('☝️ Giơ 1 ngón trỏ vào ô trái để chọn  •  Kéo sang ô phải  •  Xòe tay để nối', width / 2, height - 19);
     ctx.restore();
   }
 }
@@ -977,14 +1250,26 @@ export class GameEngine {
    *  playable: any;
    *  tracker: MediaPipeTracker;
    *  onStatus?: (msg: string) => void;
+   *  onFinish?: (result: { correct: number; total: number }) => void;
+   *  onRoundChange?: (roundIndex: number, totalRounds: number, lastResult: { correct: number; total: number } | null) => void;
+   *  onAttemptWarning?: (msg: string) => void;
+   *  onHoverChange?: (choiceId: string | null) => void;
+   *  onChoiceSelected?: (choiceId: string, isCorrect: boolean) => void;
+   *  htmlMode?: boolean;
    * }} params
    */
-  constructor({ canvasEl, videoEl, playable, tracker, onStatus }) {
+  constructor({ canvasEl, videoEl, playable, tracker, onStatus, onFinish, onRoundChange, onAttemptWarning, onHoverChange, onChoiceSelected, htmlMode = false }) {
     this.canvasEl = canvasEl;
     this.videoEl = videoEl;
     this.playable = playable;
     this.tracker = tracker;
     this.onStatus = onStatus ?? (() => {});
+    this.onFinish = onFinish ?? (() => {});
+    this.onRoundChange = onRoundChange ?? (() => {});
+    this.onAttemptWarning = onAttemptWarning ?? (() => {});
+    this.onHoverChange = onHoverChange ?? null;
+    this.onChoiceSelected = onChoiceSelected ?? null;
+    this.htmlMode = htmlMode;
 
     this.ctx = canvasEl.getContext('2d');
     this.rafId = null;
@@ -997,6 +1282,10 @@ export class GameEngine {
     this.rounds = null;
     this.roundIndex = 0;
     this.isFinished = false;
+    this._roundResults = [];
+    this.totalRounds = 0;
+    this._lastHoverChoiceId = undefined;
+    this._lastSelectedChoiceId = undefined;
 
     this._handleResize = this._handleResize.bind(this);
   }
@@ -1022,6 +1311,8 @@ export class GameEngine {
     this.rounds = Array.isArray(payload) ? payload : [payload];
     this.roundIndex = 0;
     this.isFinished = false;
+    this._roundResults = [];
+    this.totalRounds = this.rounds.length;
     this._createBlueprintForRound();
 
     this._tick();
@@ -1042,20 +1333,24 @@ export class GameEngine {
         playable: roundPayload,
         settings: this.playable.settings,
         canvas: this.canvasEl,
+        htmlMode: this.htmlMode,
       });
-      return;
-    }
-
-    if (templateId === GAME_BLUEPRINTS.DRAG_DROP) {
+    } else if (templateId === GAME_BLUEPRINTS.DRAG_DROP) {
       this.blueprint = new DragDropGame({
         playable: roundPayload,
         settings: this.playable.settings,
         canvas: this.canvasEl,
       });
-      return;
+    } else {
+      throw new Error(`Unsupported templateId: ${templateId}`);
     }
 
-    throw new Error(`Unsupported templateId: ${templateId}`);
+    const lastResult = this._roundResults.length > 0
+      ? this._roundResults[this._roundResults.length - 1]
+      : null;
+    this._lastHoverChoiceId = undefined;
+    this._lastSelectedChoiceId = undefined;
+    this.onRoundChange(this.roundIndex, this.totalRounds, lastResult);
   }
 
   dispose() {
@@ -1072,7 +1367,29 @@ export class GameEngine {
     this.roundIndex = 0;
     this.isFinished = false;
 
+    if (this.onHoverChange) this.onHoverChange(null);
+
     if (this.ctx) this.ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
+  }
+
+  skipCurrentRound() {
+    if (this.isFinished || !this.blueprint) return;
+
+    const result = typeof this.blueprint.getResult === 'function'
+      ? this.blueprint.getResult()
+      : { correct: 0, total: 1 };
+    this._roundResults.push(result);
+
+    this.roundIndex += 1;
+    if (this.rounds && this.roundIndex < this.rounds.length) {
+      this._createBlueprintForRound();
+    } else {
+      this.blueprint = null;
+      this.isFinished = true;
+      const totalCorrect = this._roundResults.reduce((s, r) => s + r.correct, 0);
+      const totalItems = this._roundResults.reduce((s, r) => s + r.total, 0);
+      this.onFinish({ correct: totalCorrect, total: totalItems, rounds: [...this._roundResults] });
+    }
   }
 
   _handleResize() {
@@ -1091,11 +1408,17 @@ export class GameEngine {
     const frame = {
       landmarks,
       hasHand,
-      isPinching: false,
+      isPinching:  false,
+      isPointing:  false,
+      palmCenter:  null,
       nowMs,
     };
 
-    if (!hasHand) return frame;
+    if (!hasHand) {
+      this._pinchHysteresisActive    = false;
+      this._pointingHysteresisActive = false;
+      return frame;
+    }
 
     // index tip (8)
     const indexLm = landmarks[8];
@@ -1110,9 +1433,12 @@ export class GameEngine {
     const thumbNorm = { x: thumbLm.x, y: thumbLm.y };
 
     const pinchDistance = dist2(indexNorm, thumbNorm);
-    const threshold = this.playable.settings?.pinchThreshold ?? 0.045;
-
-    frame.isPinching = pinchDistance < threshold;
+    // Hysteresis: larger threshold to release than to start, prevents flickering
+    const pinchThreshold = this.playable.settings?.pinchThreshold ?? 0.065;
+    const releaseThreshold = pinchThreshold * 1.4;
+    const wasPinching = this._pinchHysteresisActive ?? false;
+    frame.isPinching = wasPinching ? pinchDistance < releaseThreshold : pinchDistance < pinchThreshold;
+    this._pinchHysteresisActive = frame.isPinching;
 
     const midNorm = {
       x: (indexNorm.x + thumbNorm.x) / 2,
@@ -1126,6 +1452,26 @@ export class GameEngine {
     const smoothedPinchMid = smoothPoint(this.lastPinchMid, rawPinchMid, HAND_SMOOTHING_ALPHA);
     this.lastPinchMid = smoothedPinchMid;
     frame.pinchMid = smoothedPinchMid;
+
+    // ── Palm center cursor (always computed when hand is present) ─────────────
+    // Centroid of wrist + 4 MCPs gives a stable position that doesn't jump
+    // when individual fingers move. Used as the cursor for DragDropGame.
+    const palmNorm = {
+      x: (landmarks[0].x + landmarks[5].x + landmarks[9].x + landmarks[13].x + landmarks[17].x) / 5,
+      y: (landmarks[0].y + landmarks[5].y + landmarks[9].y + landmarks[13].y + landmarks[17].y) / 5,
+    };
+    frame.palmCenter = {
+      x: (1 - palmNorm.x) * this.canvasEl.width,
+      y: palmNorm.y * this.canvasEl.height,
+    };
+
+    // ── Index-pointing gesture (1 finger = grab) ─────────────────────────────
+    const rawIsPointing = detectIndexPointing(landmarks);
+    const wasPointing   = this._pointingHysteresisActive ?? false;
+    // 2-frame persistence to smooth out momentary detection drops
+    this._pointingMissedFrames = rawIsPointing ? 0 : (this._pointingMissedFrames ?? 0) + 1;
+    frame.isPointing = rawIsPointing || (wasPointing && this._pointingMissedFrames <= 2);
+    this._pointingHysteresisActive = frame.isPointing;
 
     return frame;
   }
@@ -1148,6 +1494,26 @@ export class GameEngine {
 
     if (this.blueprint) {
       this.blueprint.update(frame);
+
+      const _warning = typeof this.blueprint.getPendingWarning === 'function'
+        ? this.blueprint.getPendingWarning()
+        : null;
+      if (_warning) this.onAttemptWarning(_warning);
+
+      // Fire hover/selection callbacks (used by HoverSelectGamePlayer in htmlMode)
+      if (this.htmlMode) {
+        const hId = this.blueprint.hoveringChoiceId ?? null;
+        if (hId !== this._lastHoverChoiceId) {
+          this._lastHoverChoiceId = hId;
+          if (this.onHoverChange) this.onHoverChange(hId);
+        }
+        const sId = this.blueprint.selectedChoiceId ?? null;
+        if (sId && sId !== this._lastSelectedChoiceId) {
+          this._lastSelectedChoiceId = sId;
+          if (this.onChoiceSelected) this.onChoiceSelected(sId, this.blueprint.isCorrect === true);
+        }
+      }
+
       this.blueprint.render({ ctx: this.ctx, frame });
 
       const isComplete = typeof this.blueprint.isComplete === 'function' ? this.blueprint.isComplete() : false;
@@ -1155,29 +1521,23 @@ export class GameEngine {
         typeof this.blueprint.getCompletedAtMs === 'function' ? this.blueprint.getCompletedAtMs() : null;
 
       if (isComplete && completedAtMs != null && nowMs - completedAtMs >= 700) {
+        const roundResult = typeof this.blueprint.getResult === 'function'
+          ? this.blueprint.getResult()
+          : { correct: 0, total: 0 };
+        this._roundResults.push(roundResult);
+
         this.roundIndex += 1;
         if (this.rounds && this.roundIndex < this.rounds.length) {
           this._createBlueprintForRound();
         } else {
           this.blueprint = null;
           this.isFinished = true;
+          const totalCorrect = this._roundResults.reduce((s, r) => s + r.correct, 0);
+          const totalItems = this._roundResults.reduce((s, r) => s + r.total, 0);
+          this.onFinish({ correct: totalCorrect, total: totalItems, rounds: [...this._roundResults] });
+          return; // Stop the render loop — React will show the result overlay
         }
       }
-    }
-
-    if (this.isFinished) {
-      // Simple overlay.
-      const w = this.canvasEl.width;
-      const h = this.canvasEl.height;
-      this.ctx.save();
-      this.ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      this.ctx.fillRect(0, h / 2 - 44, w, 88);
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = '700 22px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      this.ctx.textAlign = 'center';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillText('Hoàn thành!', w / 2, h / 2);
-      this.ctx.restore();
     }
 
     this.rafId = requestAnimationFrame(() => this._tick());
