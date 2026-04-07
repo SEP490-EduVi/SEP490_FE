@@ -113,3 +113,34 @@ export async function uploadMaterialFilesToGcs(input: {
     previewUrl,
   };
 }
+
+/**
+ * Upload avatar image to GCS via Next.js server route (browser → server → GCS).
+ * POST /api/gcs/avatar-upload with FormData → server saves to GCS directly.
+ * Returns the public HTTPS URL to store as avatarUrl in the backend.
+ */
+export async function uploadAvatarToGcs(
+  file: File,
+  userId?: string | number,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (userId !== undefined && userId !== null) {
+    formData.append('userId', String(userId));
+  }
+
+  const res = await fetch('/api/gcs/avatar-upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      (body as { error?: string }).error ?? `Avatar upload failed (${res.status})`,
+    );
+  }
+
+  const { publicUrl } = await res.json();
+  return publicUrl as string;
+}

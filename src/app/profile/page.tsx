@@ -2,18 +2,20 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, ShieldCheck, CheckCircle,
   Eye, EyeOff, Loader2, AlertCircle, Camera,
   Upload, Trash2, FileText, Clock, CheckCircle2, XCircle,
   Mail, Phone, BadgeCheck, LockKeyhole, Wallet, CreditCard,
-  PencilLine, X, Check,
+  PencilLine, X, Check, ArrowRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetMeService, useChangePasswordService, useUpdateMeService } from '@/services/authServices';
+import { uploadAvatarToGcs } from '@/services/gcsServices';
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
-import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
+import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions, useUserQuota } from '@/hooks/usePaymentApi';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { notify } from '@/components/common';
 
@@ -108,6 +110,7 @@ function ProfilePageInner() {
   const [avatarImgError, setAvatarImgError] = useState(false);
   useEffect(() => { setAvatarImgError(false); }, [info?.avatarUrl]);
   const [avatarLocalPreview, setAvatarLocalPreview] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
   const openEdit = () => {
@@ -121,18 +124,30 @@ function ProfilePageInner() {
   const handleAvatarFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) { notify.error('Chỉ chấp nhận file ảnh.'); return; }
     if (file.size > 5 * 1024 * 1024) { notify.error('File ảnh tối đa 5 MB.'); return; }
+
+    // Show local preview immediately
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setAvatarLocalPreview(dataUrl);
-      setEditAvatarUrl(dataUrl);
-    };
+    reader.onload = (ev) => setAvatarLocalPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+
+    // Upload to GCS
+    setAvatarUploading(true);
+    uploadAvatarToGcs(file, info?.userId)
+      .then((publicUrl) => {
+        setEditAvatarUrl(publicUrl);
+      })
+      .catch((err: unknown) => {
+        const msg = (err instanceof Error ? err.message : null) ?? 'Upload ảnh thất bại.';
+        notify.error(msg);
+        setAvatarLocalPreview(null);
+      })
+      .finally(() => setAvatarUploading(false));
   };
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editFullName.trim()) { notify.error('Họ và tên không được để trống.'); return; }
+    if (avatarUploading) { notify.error('Vui lòng chờ ảnh tải lên xong.'); return; }
     updateMe.mutate(
       { fullName: editFullName.trim(), phoneNumber: editPhone.trim(), avatarUrl: editAvatarUrl.trim() },
       {
@@ -140,6 +155,7 @@ function ProfilePageInner() {
           if (res?.result) setUser(res.result);
           notify.success('Cập nhật hồ sơ thành công!');
           setIsEditing(false);
+          window.location.reload();
         },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -195,6 +211,7 @@ function ProfilePageInner() {
     refetch: refetchWallet,
   } = useWalletInfo();
   const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10);
+  const { data: userQuota, isLoading: quotaLoading } = useUserQuota();
   const topUpWallet = useTopUpWallet();
   const verifyTopUp = useVerifyTopUp();
   const buySubscription = useBuySubscription();
@@ -347,9 +364,9 @@ function ProfilePageInner() {
                     {isMeLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : initial}
                   </div>
                 )}
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                {/* <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Camera className="w-3.5 h-3.5 text-gray-500" />
-                </div>
+                </div> */}
               </div>
 
               {/* Name + meta */}
@@ -391,8 +408,32 @@ function ProfilePageInner() {
               </div>
             </div>
 
+            {/* Quota summary — teacher only */}
+            {role === 'teacher' && (
+              <div className="flex flex-wrap items-center gap-2 mt-4 pb-3 border-b border-gray-100 -mx-8 px-8">
+                {quotaLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                ) : userQuota ? (
+                  <>
+                    {[
+                      { label: 'Phân tích', available: userQuota.availableAnalysisQuota, total: userQuota.totalAnalysisQuota, color: 'bg-blue-100 text-blue-700' },
+                      { label: 'Slide', available: userQuota.availableSlideQuota, total: userQuota.totalSlideQuota, color: 'bg-violet-100 text-violet-700' },
+                      { label: 'Video', available: userQuota.availableVideoQuota, total: userQuota.totalVideoQuota, color: 'bg-rose-100 text-rose-700' },
+                    ].map((q) => (
+                      <span key={q.label} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${q.color}`}>
+                        <span className="font-semibold">{q.available.toLocaleString('vi-VN')}</span>
+                        <span className="opacity-60">/</span>
+                        <span className="opacity-70">{q.total.toLocaleString('vi-VN')}</span>
+                        <span className="ml-0.5">{q.label}</span>
+                      </span>
+                    ))}
+                  </>
+                ) : null}
+              </div>
+            )}
+
             {/* Tab bar (underline style) */}
-            <div className="flex items-center gap-0 mt-4 border-b border-gray-100 -mx-8 px-8">
+            <div className="flex items-center gap-0 mt-0 border-b border-gray-100 -mx-8 px-8">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.key;
@@ -514,9 +555,10 @@ function ProfilePageInner() {
                           <button
                             type="button"
                             onClick={() => avatarFileInputRef.current?.click()}
-                            className="px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            disabled={avatarUploading}
+                            className="px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                          Chọn ảnh
+                            {avatarUploading ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Đang tải lên...</span> : 'Chọn ảnh'}
                           </button>
                           <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, GIF · Tối đa 5 MB</p>
                         </div>
@@ -532,15 +574,15 @@ function ProfilePageInner() {
                     <div className="flex items-center gap-3 pt-2">
                       <button
                         type="submit"
-                        disabled={updateMe.isPending}
+                        disabled={updateMe.isPending || avatarUploading}
                         className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {updateMe.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        {updateMe.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        {updateMe.isPending ? 'Đang lưu...' : avatarUploading ? 'Đợi ảnh tải lên...' : 'Lưu thay đổi'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setAvatarLocalPreview(null); setIsEditing(false); }}
+                        onClick={() => { setAvatarLocalPreview(null); setAvatarUploading(false); setIsEditing(false); }}
                         disabled={updateMe.isPending}
                         className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl text-sm font-medium transition-colors"
                       >
@@ -717,6 +759,55 @@ function ProfilePageInner() {
                 </div>
               </div>
 
+              {/* Quota section */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Quota sử dụng</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {userQuota ? `Cập nhật: ${new Date(userQuota.updatedAt).toLocaleString('vi-VN')}` : 'Lượt dùng tính năng AI của bạn'}
+                    </p>
+                  </div>
+                </div>
+                {quotaLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                  </div>
+                ) : userQuota ? (
+                  <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      { label: 'Phân tích AI', total: userQuota.totalAnalysisQuota, available: userQuota.availableAnalysisQuota, used: userQuota.usedAnalysisQuota, color: 'blue' },
+                      { label: 'Tạo Slide', total: userQuota.totalSlideQuota, available: userQuota.availableSlideQuota, used: userQuota.usedSlideQuota, color: 'violet' },
+                      { label: 'Tạo Video', total: userQuota.totalVideoQuota, available: userQuota.availableVideoQuota, used: userQuota.usedVideoQuota, color: 'rose' },
+                    ].map((q) => {
+                      const pct = q.total > 0 ? Math.round((q.used / q.total) * 100) : 0;
+                      const barColor = q.color === 'blue' ? 'bg-blue-500' : q.color === 'violet' ? 'bg-violet-500' : 'bg-rose-500';
+                      const textColor = q.color === 'blue' ? 'text-blue-600' : q.color === 'violet' ? 'text-violet-600' : 'text-rose-600';
+                      return (
+                        <div key={q.label} className="bg-gray-50 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-gray-600">{q.label}</span>
+                            <span className={`text-xs font-semibold ${textColor}`}>{pct}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2.5">
+                            <div
+                              className={`${barColor} h-2 rounded-full transition-all`}
+                              style={{ width: `${Math.min(pct, 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-500">
+                            <span>Còn lại: <span className="font-semibold text-gray-800">{q.available.toLocaleString('vi-VN')}</span></span>
+                            <span>Tổng: {q.total.toLocaleString('vi-VN')}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="px-6 py-6 text-sm text-gray-400">Không có dữ liệu quota.</p>
+                )}
+              </div>
+
               <AnimatePresence>
                 {paymentError && (
                   <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -739,40 +830,18 @@ function ProfilePageInner() {
                 )}
               </AnimatePresence>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-50">
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 p-6 flex items-center justify-between gap-4">
+                <div>
                   <h3 className="text-sm font-semibold text-gray-900">Gói subscription</h3>
-                  <p className="text-xs text-gray-400 mt-1">Chọn gói để mua bằng EduCoin trong ví.</p>
+                  <p className="text-xs text-gray-500 mt-1">Xem và mua các gói EduCoin để sử dụng tính năng AI.</p>
                 </div>
-
-                {plansLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                  </div>
-                ) : (
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {plans.filter((p) => p.isActive).map((plan) => (
-                      <div key={plan.planId} className="rounded-xl border border-gray-200 p-4 bg-white">
-                        <p className="text-sm font-semibold text-gray-900">{plan.planName}</p>
-                        <p className="text-xs text-gray-500 mt-1 min-h-8">{plan.description || 'Không có mô tả'}</p>
-                        <div className="mt-3 space-y-1 text-sm text-gray-600">
-                          <p>Giá: <span className="font-semibold text-gray-900">{formatEduCoin(plan.price)}</span></p>
-                          <p>Thời hạn: {plan.durationDays} ngày</p>
-                          <p>Quota phân tích: {formatQuota(plan.analysisQuotaAmount)}</p>
-                          <p>Quota slide: {formatQuota(plan.slideQuotaAmount)}</p>
-                          <p>Quota video: {formatQuota(plan.videoQuotaAmount)}</p>
-                        </div>
-                        <button
-                          onClick={() => handleBuyPlan(plan.planId)}
-                          disabled={buySubscription.isPending || role !== 'teacher'}
-                          className="mt-4 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {buySubscription.isPending ? 'Đang xử lý...' : role !== 'teacher' ? 'Chỉ dành cho giáo viên' : 'Mua gói'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <Link
+                  href="/subscription"
+                  className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                >
+                  Xem bảng giá
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

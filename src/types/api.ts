@@ -222,7 +222,7 @@ export interface GenerateSlidesInput {
 }
 
 // ─── Games ───────────────────────────────────────────────────────────────
-export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP';
+export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP' | 'RUNNER_QUIZ' | 'SNAKE_QUIZ' | 'RUNNER_RACE' | 'SNAKE_DUEL';
 
 export interface CreatePlayableGameTaskInput {
   templateId: GameTemplateId;
@@ -391,6 +391,19 @@ export interface TransactionHistoryDto {
   status: string;
   description: string | null;
   createdAt: string;
+}
+
+export interface UserQuotaDto {
+  totalAnalysisQuota: number;
+  availableAnalysisQuota: number;
+  usedAnalysisQuota: number;
+  totalSlideQuota: number;
+  availableSlideQuota: number;
+  usedSlideQuota: number;
+  totalVideoQuota: number;
+  availableVideoQuota: number;
+  usedVideoQuota: number;
+  updatedAt: string;
 }
 
 // ─── Staff Review ─────────────────────────────────────────────────────────

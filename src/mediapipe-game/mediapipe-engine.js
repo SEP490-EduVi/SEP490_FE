@@ -14,6 +14,24 @@
  */
 
 import { GAME_BLUEPRINTS } from './api-contracts.js';
+import { KeyboardInput } from './keyboard-input.js';
+import { DualKeyboardInput } from './dual-keyboard-input.js';
+import { RunnerQuizGame } from './runner-quiz-game.js';
+import { SnakeQuizGame } from './snake-quiz-game.js';
+import { RunnerRaceGame } from './runner-race-game.js';
+import { SnakeDuelGame } from './snake-duel-game.js';
+
+const KEYBOARD_BLUEPRINTS = new Set([
+  GAME_BLUEPRINTS.RUNNER_QUIZ,
+  GAME_BLUEPRINTS.SNAKE_QUIZ,
+  GAME_BLUEPRINTS.RUNNER_RACE,
+  GAME_BLUEPRINTS.SNAKE_DUEL,
+]);
+
+const DUAL_KEYBOARD_BLUEPRINTS = new Set([
+  GAME_BLUEPRINTS.RUNNER_RACE,
+  GAME_BLUEPRINTS.SNAKE_DUEL,
+]);
 
 const TASKS_VISION_VERSION = '0.10.18';
 const TASKS_VISION_WASM_BASE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/wasm`;
@@ -1299,6 +1317,10 @@ export class GameEngine {
     this.lastIndexTip = null;
     this.lastPinchMid = null;
 
+    // Keyboard input for non-camera blueprints
+    this._keyboard     = new KeyboardInput();
+    this._dualKeyboard = new DualKeyboardInput();
+
     this.rounds = null;
     this.roundIndex = 0;
     this.isFinished = false;
@@ -1316,19 +1338,46 @@ export class GameEngine {
     this._handleResize();
     window.addEventListener('resize', this._handleResize);
 
-    // Bind tracker callback to store results
-    this.tracker.onFrame = (results) => {
-      this.lastResults = results;
-    };
+    const isKeyboardGame = KEYBOARD_BLUEPRINTS.has(this.playable.templateId);
 
-    this.onStatus('Đang khởi tạo camera...');
-    await this.tracker.init();
-    this.tracker.start();
+    if (!isKeyboardGame) {
+      // Bind tracker callback to store results
+      this.tracker.onFrame = (results) => {
+        this.lastResults = results;
+      };
+    }
 
-    this.onStatus('Đang chạy game...');
+    if (isKeyboardGame) {
+      // No camera needed — just attach keyboard and start
+      const win = this.canvasEl.ownerDocument.defaultView ?? window;
+      this._keyboard.attach(win);
+      if (DUAL_KEYBOARD_BLUEPRINTS.has(this.playable.templateId)) {
+        this._dualKeyboard.attach(win);
+      }
+      this.onStatus('Đang chạy game...');
+    } else {
+      this.onStatus('Đang khởi tạo camera...');
+      await this.tracker.init();
+      this.tracker.start();
+      this.onStatus('Đang chạy game...');
+    }
 
     const payload = this.playable.payload;
-    this.rounds = Array.isArray(payload) ? payload : [payload];
+
+    // RUNNER_QUIZ / SNAKE_QUIZ / RUNNER_RACE / SNAKE_DUEL expect playable.questions.
+    // BE may return payload as a flat array of question objects — wrap into one round.
+    const QUESTIONS_BASED_BLUEPRINTS = new Set([
+      GAME_BLUEPRINTS.RUNNER_QUIZ,
+      GAME_BLUEPRINTS.SNAKE_QUIZ,
+      GAME_BLUEPRINTS.RUNNER_RACE,
+      GAME_BLUEPRINTS.SNAKE_DUEL,
+    ]);
+    let normalizedPayload = payload;
+    if (QUESTIONS_BASED_BLUEPRINTS.has(this.playable.templateId) && Array.isArray(payload)) {
+      normalizedPayload = { questions: payload };
+    }
+
+    this.rounds = Array.isArray(normalizedPayload) ? normalizedPayload : [normalizedPayload];
     this.roundIndex = 0;
     this.isFinished = false;
     this._roundResults = [];
@@ -1361,6 +1410,34 @@ export class GameEngine {
         settings: this.playable.settings,
         canvas: this.canvasEl,
       });
+    } else if (templateId === GAME_BLUEPRINTS.RUNNER_QUIZ) {
+      this.blueprint = new RunnerQuizGame({
+        playable: roundPayload,
+        settings: this.playable.settings,
+        canvas: this.canvasEl,
+        keyboard: this._keyboard,
+      });
+    } else if (templateId === GAME_BLUEPRINTS.SNAKE_QUIZ) {
+      this.blueprint = new SnakeQuizGame({
+        playable: roundPayload,
+        settings: this.playable.settings,
+        canvas: this.canvasEl,
+        keyboard: this._keyboard,
+      });
+    } else if (templateId === GAME_BLUEPRINTS.RUNNER_RACE) {
+      this.blueprint = new RunnerRaceGame({
+        playable: roundPayload,
+        settings: this.playable.settings,
+        canvas: this.canvasEl,
+        keyboard: this._dualKeyboard,
+      });
+    } else if (templateId === GAME_BLUEPRINTS.SNAKE_DUEL) {
+      this.blueprint = new SnakeDuelGame({
+        playable: roundPayload,
+        settings: this.playable.settings,
+        canvas: this.canvasEl,
+        keyboard: this._dualKeyboard,
+      });
     } else {
       throw new Error(`Unsupported templateId: ${templateId}`);
     }
@@ -1378,7 +1455,9 @@ export class GameEngine {
     this.rafId = null;
 
     window.removeEventListener('resize', this._handleResize);
-    this.tracker.stop();
+    this._keyboard.detach();
+    this._dualKeyboard.detach();
+    if (this.tracker) this.tracker.stop();
 
     this.lastResults = null;
     this.blueprint = null;
@@ -1505,12 +1584,19 @@ export class GameEngine {
     }
     this.lastRenderAtMs = nowMs;
 
-    const frame = this._buildInputFrame(nowMs);
+    const isKeyboardGame = KEYBOARD_BLUEPRINTS.has(this.playable.templateId);
+    const frame = isKeyboardGame
+      ? { nowMs, hasHand: false, isPinching: false, landmarks: null }
+      : this._buildInputFrame(nowMs);
 
-    // Canvas element is mirrored via CSS. Mirror the drawing context too to avoid
-    // mirrored (reversed) text, while still drawing with flipped X coordinates.
-    // Net effect: UI looks normal, but interaction aligns with mirrored video.
-    this.ctx.setTransform(-1, 0, 0, 1, this.canvasEl.width, 0);
+    if (!isKeyboardGame) {
+      // Canvas element is mirrored via CSS. Mirror the drawing context too to avoid
+      // mirrored (reversed) text, while still drawing with flipped X coordinates.
+      // Net effect: UI looks normal, but interaction aligns with mirrored video.
+      this.ctx.setTransform(-1, 0, 0, 1, this.canvasEl.width, 0);
+    } else {
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
 
     if (this.blueprint) {
       this.blueprint.update(frame);
@@ -1534,7 +1620,7 @@ export class GameEngine {
         }
       }
 
-      this.blueprint.render({ ctx: this.ctx, frame });
+      this.blueprint.render({ ctx: this.ctx, frame, nowMs });
 
       const isComplete = typeof this.blueprint.isComplete === 'function' ? this.blueprint.isComplete() : false;
       const completedAtMs =

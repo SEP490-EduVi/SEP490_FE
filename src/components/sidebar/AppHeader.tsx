@@ -7,7 +7,7 @@ import {
   BookOpen, User, LogOut, ChevronDown, Settings,
   FolderKanban, ShieldCheck, FileText, Layers, Film,
   LayoutDashboard, Users, Package, ShoppingCart, Wallet,
-  Library, Store, Menu, X,
+  Library, Store, Menu, X, CreditCard,
 } from 'lucide-react';
 import { useAuthStore, type AppRole } from '@/store/useAuthStore';
 import { useLogoutService } from '@/services/authServices';
@@ -26,6 +26,7 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
     { href: '/teacher',               label: 'Tổng quan',  icon: LayoutDashboard },
     { href: '/teacher/projects',      label: 'Dự án',      icon: FolderKanban    },
     { href: '/material-shop',         label: 'Cửa hàng',   icon: Store           },
+    { href: '/subscription',          label: 'Gói dịch vụ', icon: CreditCard      },
   ],
   expert: [
     { href: '/expert',             label: 'Tổng quan',  icon: LayoutDashboard },
@@ -40,10 +41,10 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
     { href: '/admin/wallets',  label: 'Ví',               icon: Wallet          },
   ],
   staff: [
-    { href: '/staff', label: 'Bảng điều khiển', icon: LayoutDashboard },
-    { href: '/staff/verifications', label: 'Duyệt hồ sơ', icon: ShieldCheck },
-    { href: '/staff/materials', label: 'Duyệt học liệu', icon: FileText },
-  ],
+  { href: '/staff', label: 'Bảng điều khiển', icon: LayoutDashboard },
+  { href: '/staff/verifications', label: 'Duyệt hồ sơ', icon: ShieldCheck },
+  { href: '/staff/materials', label: 'Duyệt học liệu', icon: FileText },
+],
   guest: [],
 };
 
@@ -253,6 +254,27 @@ export default function AppHeader() {
                   >
                     <Library className="w-4 h-4 text-emerald-400" />
                     Thư viện
+                  </button>
+                </>
+              )}
+
+              {role === 'staff' && (
+                <>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/staff/verifications'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-amber-500" />
+                    Duyệt hồ sơ
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/staff/materials'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <FileText className="w-4 h-4 text-blue-500" />
+                    Duyệt học liệu
                   </button>
                 </>
               )}

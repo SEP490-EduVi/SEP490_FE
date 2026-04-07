@@ -7,6 +7,7 @@ import type {
   TopUpInput,
   TopUpResponse,
   TransactionHistoryDto,
+  UserQuotaDto,
   WalletDto,
 } from '@/types/api';
 
@@ -77,4 +78,9 @@ export async function getWalletTransactions(page = 1, pageSize = 20): Promise<Wa
     params: { page, pageSize },
   });
   return normalizeTransactionsResult(data.result);
+}
+
+export async function getUserQuota(): Promise<UserQuotaDto> {
+  const { data } = await api.get<ApiResponse<UserQuotaDto>>(API_ENDPOINTS.PAYMENT.USER_QUOTA);
+  return data.result;
 }
