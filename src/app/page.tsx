@@ -1,214 +1,213 @@
 'use client';
 
-/**
- * Trang Chủ EduVi
- * ===============
- * 
- * Trang bắt đầu để lựa chọn giữa:
- * 1. Trình chỉnh sửa Prompt - Tạo bài thuyết trình bằng AI (giống Gamma)
- * 2. Trình chỉnh sửa Slide - Chỉnh sửa slide trực tiếp bằng kéo thả
- * 
- * Workflow:
- * Trang chủ → Trình Prompt → Tạo nội dung → Trình Slide
- */
-
 import React, { useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  FileText,
   Zap,
   ArrowRight,
   CheckCircle,
   Palette,
   ImagePlus,
   Edit3,
+  BookOpen,
+  Video,
+  BarChart3,
+  Globe,
+  Users,
+  Shield,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useQueryClient } from '@tanstack/react-query';
+import PublicHeader from '@/components/common/PublicHeader';
+import PublicFooter from '@/components/common/PublicFooter';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, role, isHydrated, hydrate, logout } = useAuthStore();
-  const queryClient = useQueryClient();
+  const { hydrate } = useAuthStore();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
-  const handleGoDashboard = () => {
-    if (role === 'admin') {
-      router.push('/admin');
-      return;
-    }
-    if (role === 'teacher') {
-      router.push('/teacher');
-      return;
-    }
-    if (role === 'expert') {
-      router.push('/expert');
-      return;
-    }
-    router.push('/');
-  };
-
-  const handleLogout = () => {
-    queryClient.clear();
-    logout();
-    router.push('/login');
-  };
-
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="px-8 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">EduVi</h1>
-          </div>
-          <nav className="flex items-center gap-4">
-            <button 
-            onClick={() => router.push('/expert/certificate')}
-            className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-              Trợ giúp
-            </button>
+    <div className="min-h-screen flex flex-col bg-white">
+      <PublicHeader />
 
-            {isHydrated && user ? (
-              <>
-                <button
-                  onClick={handleGoDashboard}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Trang của tôi
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Đăng xuất
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => router.push('/login')}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Đăng nhập
-                </button>
-                <button
-                  onClick={() => router.push('/register')}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Đăng ký
-                </button>
-              </>
-            )}
-          </nav>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200/30 rounded-full blur-3xl" />
         </div>
-      </header>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
+              <Zap className="w-4 h-4" />
+              Nền tảng giáo dục thông minh #1 Việt Nam
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+              Tạo bài giảng chuyên nghiệp{' '}
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                cùng AI
+              </span>
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+              EduVi giúp giáo viên tạo slide bài giảng, video giảng dạy và nội dung tương tác chỉ trong vài phút với sức mạnh của trí tuệ nhân tạo.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => router.push('/register')}
+                className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
+              >
+                Bắt đầu miễn phí
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => router.push('/subscription')}
+                className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
+              >
+                Xem bảng giá
+              </button>
+            </div>
+            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-500">
+              <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Không cần thẻ tín dụng</span>
+              <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Dùng thử miễn phí</span>
+              <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Hủy bất kỳ lúc nào</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-8">
-        <div className="max-w-6xl w-full">
-          {/* Hero Section */}
+      {/* Tính năng chính */}
+      <section className="py-20 sm:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-gray-900 mb-4">
-              Tạo bài thuyết trình và video cùng AI
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Mọi thứ bạn cần để tạo bài giảng xuất sắc
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Chọn cách bắt đầu: dùng AI để tạo nội dung hoặc vào chỉnh sửa ngay
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Từ ý tưởng đến bài giảng hoàn chỉnh, EduVi đồng hành cùng bạn
             </p>
           </div>
 
-          {/* Options */}
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Prompt Editor Option */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Card 1 */}
             <div
               onClick={() => router.push('/projects')}
-              className="group cursor-pointer bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-transparent hover:border-blue-500"
+              className="group cursor-pointer bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100 hover:border-blue-300 hover:shadow-xl transition-all"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Zap className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mb-5">
+                <Zap className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                Trình Chỉnh Sửa Prompt AI
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Mô tả điều bạn muốn tạo và để AI sinh ra bố cục bài thuyết trình hoàn chỉnh
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Tạo bài giảng bằng AI</h3>
+              <p className="text-gray-600 mb-4 leading-relaxed">
+                Chỉ cần mô tả chủ đề, AI sẽ tạo ra bố cục bài giảng, nội dung slide và gợi ý hình ảnh phù hợp.
               </p>
-              <div className="flex items-center text-blue-600 font-medium group-hover:gap-3 gap-2 transition-all">
-                <span>Bắt đầu với AI</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Đề xuất cho người mới bắt đầu</span>
-                </div>
-              </div>
+              <span className="inline-flex items-center text-blue-600 font-medium group-hover:gap-3 gap-2 transition-all text-sm">
+                Bắt đầu với AI <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
             </div>
 
-            {/* Slide Editor Option */}
+            {/* Card 2 */}
             <div
               onClick={() => router.push('/Test')}
-              className="group cursor-pointer bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-transparent hover:border-purple-500"
+              className="group cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Edit3 className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mb-5">
+                <Edit3 className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                Trình Chỉnh Sửa Slide
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Vào chỉnh sửa ngay với trình kéo thả mạnh mẽ và thư viện tài nguyên
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Chỉnh sửa Slide trực quan</h3>
+              <p className="text-gray-600 mb-4 leading-relaxed">
+                Trình chỉnh sửa kéo thả mạnh mẽ với thư viện mẫu và tài nguyên giáo dục phong phú.
               </p>
-              <div className="flex items-center text-purple-600 font-medium group-hover:gap-3 gap-2 transition-all">
-                <span>Bắt đầu chỉnh sửa</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Toàn quyền kiểm soát thiết kế</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Features */}
-          <div className="mt-20 grid grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Zap className="w-6 h-6 text-blue-600" />
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-1">Được hỗ trợ bởi AI</h4>
-              <p className="text-sm text-gray-600">Tạo nội dung bằng prompt thông minh</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Palette className="w-6 h-6 text-purple-600" />
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-1">Kéo và thả</h4>
-              <p className="text-sm text-gray-600">Trình chỉnh sửa trực quan, dễ dùng</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <ImagePlus className="w-6 h-6 text-pink-600" />
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-1">Nội dung đa phương tiện</h4>
-              <p className="text-sm text-gray-600">Thêm video, PDF, biểu đồ và nhiều hơn nữa</p>
+              <span className="inline-flex items-center text-purple-600 font-medium group-hover:gap-3 gap-2 transition-all text-sm">
+                Mở trình chỉnh sửa <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
             </div>
           </div>
         </div>
-      </main>
+      </section>
 
-      {/* Footer */}
-      <footer className="px-8 py-6 text-center text-sm text-gray-500">
-        <p>&copy; 2026 EduVi. Tạo bài thuyết trình đẹp cùng AI.</p>
-      </footer>
+      {/* Tại sao chọn EduVi */}
+      <section className="py-20 sm:py-28 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Tại sao chọn EduVi?
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Được thiết kế đặc biệt cho giáo viên và nhà giáo dục Việt Nam
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { icon: Zap, title: 'AI thông minh', desc: 'Tự động tạo nội dung bài giảng từ tài liệu đầu vào của bạn', bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+              { icon: Palette, title: 'Thiết kế chuyên nghiệp', desc: 'Hàng trăm mẫu slide đẹp mắt, phù hợp với nhiều môn học', bgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
+              { icon: Video, title: 'Tạo video bài giảng', desc: 'Chuyển đổi slide thành video giảng dạy chất lượng cao tự động', bgColor: 'bg-pink-100', iconColor: 'text-pink-600' },
+              { icon: BookOpen, title: 'Kho tài liệu phong phú', desc: 'Thư viện tài liệu giáo dục được đóng góp bởi cộng đồng chuyên gia', bgColor: 'bg-green-100', iconColor: 'text-green-600' },
+              { icon: BarChart3, title: 'Phân tích chương trình', desc: 'AI phân tích và đánh giá nội dung theo khung chương trình chuẩn', bgColor: 'bg-orange-100', iconColor: 'text-orange-600' },
+              { icon: Globe, title: 'Tiếng Việt hoàn toàn', desc: 'Giao diện và nội dung AI được tối ưu hoàn toàn cho tiếng Việt', bgColor: 'bg-cyan-100', iconColor: 'text-cyan-600' },
+            ].map((item, i) => (
+              <div key={i} className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+                <div className={`w-12 h-12 ${item.bgColor} rounded-lg flex items-center justify-center mb-4`}>
+                  <item.icon className={`w-6 h-6 ${item.iconColor}`} />
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-2">{item.title}</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Số liệu */}
+      <section className="py-16 bg-gradient-to-r from-blue-600 to-indigo-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+            {[
+              { value: '10,000+', label: 'Giáo viên tin dùng' },
+              { value: '50,000+', label: 'Bài giảng đã tạo' },
+              { value: '100+', label: 'Trường học đối tác' },
+              { value: '4.8/5', label: 'Đánh giá trung bình' },
+            ].map((stat, i) => (
+              <div key={i}>
+                <div className="text-3xl sm:text-4xl font-extrabold mb-1">{stat.value}</div>
+                <div className="text-sm text-blue-100">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 sm:py-28 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            Sẵn sàng nâng tầm bài giảng của bạn?
+          </h2>
+          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            Tham gia cùng hàng nghìn giáo viên đang sử dụng EduVi để tạo ra những bài giảng ấn tượng.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => router.push('/register')}
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
+            >
+              Đăng ký miễn phí ngay
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <Link
+              href="/contact"
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-center"
+            >
+              Liên hệ tư vấn
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <PublicFooter />
     </div>
   );
 }

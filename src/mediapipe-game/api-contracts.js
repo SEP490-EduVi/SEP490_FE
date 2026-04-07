@@ -14,10 +14,14 @@
 export const GAME_BLUEPRINTS = /** @type {const} */ ({
   HOVER_SELECT: 'HOVER_SELECT',
   DRAG_DROP: 'DRAG_DROP',
+  RUNNER_QUIZ: 'RUNNER_QUIZ',
+  SNAKE_QUIZ: 'SNAKE_QUIZ',
+  RUNNER_RACE: 'RUNNER_RACE',
+  SNAKE_DUEL: 'SNAKE_DUEL',
 });
 
 /**
- * @typedef {'HOVER_SELECT'|'DRAG_DROP'} GameBlueprintTemplateId
+ * @typedef {'HOVER_SELECT'|'DRAG_DROP'|'RUNNER_QUIZ'|'SNAKE_QUIZ'|'RUNNER_RACE'|'SNAKE_DUEL'} GameBlueprintTemplateId
  */
 
 /**
@@ -118,6 +122,292 @@ export const GAME_BLUEPRINTS = /** @type {const} */ ({
  *   payload: HoverSelectPlayable | DragDropPlayable | Array<HoverSelectPlayable | DragDropPlayable>;
  * }} PlayableGameResponse
  */
+
+// ─── RUNNER_QUIZ types ────────────────────────────────────────────────────────
+
+/**
+ * @typedef {{
+ *   id: string;
+ *   text: string;
+ * }} QuizChoice
+ */
+
+/**
+ * One question that appears when the runner hits a checkpoint.
+ * @typedef {{
+ *   id: string;
+ *   prompt: string;
+ *   choices: QuizChoice[];
+ *   correctChoiceId: string;
+ * }} RunnerQuestion
+ */
+
+/**
+ * @typedef {'castle'|'forest'|'sky'} RunnerTheme
+ */
+
+/**
+ * BE -> FE payload for RUNNER_QUIZ.
+ * Teacher sends slide references; BE generates questions and returns this.
+ * @typedef {{
+ *   questions: RunnerQuestion[];
+ *   theme?: RunnerTheme;
+ *   characterName?: string;
+ * }} RunnerQuizPlayable
+ */
+
+// ─── SNAKE_QUIZ types ─────────────────────────────────────────────────────────
+
+/**
+ * @typedef {'slow'|'normal'|'fast'} SnakeSpeed
+ */
+
+/**
+ * @typedef {'classic'|'neon'|'garden'} SnakeTheme
+ */
+
+/**
+ * BE -> FE payload for SNAKE_QUIZ.
+ * @typedef {{
+ *   questions: RunnerQuestion[];
+ *   gridSize?: number;
+ *   speed?: SnakeSpeed;
+ *   theme?: SnakeTheme;
+ * }} SnakeQuizPlayable
+ */
+
+// ─── Mock API responses (FE development / demo without BE) ───────────────────
+
+/** @returns {import('./api-contracts.js').PlayableGameResponse} */
+export function createMockRunnerQuiz() {
+  return {
+    gameId: 'mock-runner-001',
+    templateId: 'RUNNER_QUIZ',
+    version: '1.0',
+    settings: {
+      mirror: false,
+      timeLimitSec: 0,
+      hoverHoldMs: 0,
+      pinchThreshold: 0,
+    },
+    scene: { title: 'Giải cứu Công chúa!' },
+    payload: /** @type {RunnerQuizPlayable} */ ({
+      theme: 'castle',
+      characterName: 'Mario',
+      questions: [
+        {
+          id: 'q1',
+          prompt: 'Việt Nam có bao nhiêu tỉnh thành?',
+          choices: [
+            { id: 'a', text: '58 tỉnh thành' },
+            { id: 'b', text: '63 tỉnh thành' },
+            { id: 'c', text: '60 tỉnh thành' },
+            { id: 'd', text: '55 tỉnh thành' },
+          ],
+          correctChoiceId: 'b',
+        },
+        {
+          id: 'q2',
+          prompt: 'Thủ đô của Việt Nam là?',
+          choices: [
+            { id: 'a', text: 'Hải Phòng' },
+            { id: 'b', text: 'Đà Nẵng' },
+            { id: 'c', text: 'Hà Nội' },
+            { id: 'd', text: 'TP. Hồ Chí Minh' },
+          ],
+          correctChoiceId: 'c',
+        },
+        {
+          id: 'q3',
+          prompt: 'Sông nào dài nhất Việt Nam?',
+          choices: [
+            { id: 'a', text: 'Sông Hồng' },
+            { id: 'b', text: 'Sông Mê Kông' },
+            { id: 'c', text: 'Sông Đà' },
+            { id: 'd', text: 'Sông Mã' },
+          ],
+          correctChoiceId: 'b',
+        },
+      ],
+    }),
+  };
+}
+
+/** @returns {import('./api-contracts.js').PlayableGameResponse} */
+export function createMockSnakeQuiz() {
+  return {
+    gameId: 'mock-snake-001',
+    templateId: 'SNAKE_QUIZ',
+    version: '1.0',
+    settings: {
+      mirror: false,
+      timeLimitSec: 0,
+      hoverHoldMs: 0,
+      pinchThreshold: 0,
+    },
+    scene: { title: 'Rắn Học Giỏi' },
+    payload: /** @type {SnakeQuizPlayable} */ ({
+      gridSize: 20,
+      speed: 'normal',
+      theme: 'neon',
+      questions: [
+        {
+          id: 'q1',
+          prompt: '2 + 2 = ?',
+          choices: [
+            { id: 'a', text: '3' },
+            { id: 'b', text: '4' },
+            { id: 'c', text: '5' },
+            { id: 'd', text: '6' },
+          ],
+          correctChoiceId: 'b',
+        },
+        {
+          id: 'q2',
+          prompt: 'Con vật nào là vua của rừng xanh?',
+          choices: [
+            { id: 'a', text: 'Hổ' },
+            { id: 'b', text: 'Voi' },
+            { id: 'c', text: 'Sư tử' },
+            { id: 'd', text: 'Gấu' },
+          ],
+          correctChoiceId: 'c',
+        },
+        {
+          id: 'q3',
+          prompt: 'Ngôn ngữ lập trình nào được tạo ra bởi Brendan Eich?',
+          choices: [
+            { id: 'a', text: 'Python' },
+            { id: 'b', text: 'JavaScript' },
+            { id: 'c', text: 'Java' },
+            { id: 'd', text: 'C++' },
+          ],
+          correctChoiceId: 'b',
+        },
+        {
+          id: 'q4',
+          prompt: 'Trái đất có mấy châu lục?',
+          choices: [
+            { id: 'a', text: '5' },
+            { id: 'b', text: '6' },
+            { id: 'c', text: '7' },
+            { id: 'd', text: '8' },
+          ],
+          correctChoiceId: 'c',
+        },
+      ],
+    }),
+  };
+}
+
+/** @returns {import('./api-contracts.js').PlayableGameResponse} */
+export function createMockRunnerRace() {
+  return {
+    gameId: 'mock-runner-race-001',
+    templateId: 'RUNNER_RACE',
+    version: '1.0',
+    settings: { mirror: false, timeLimitSec: 0, hoverHoldMs: 0, pinchThreshold: 0 },
+    scene: { title: 'Cuộc Đua 2 Người!' },
+    payload: /** @type {RunnerQuizPlayable} */ ({
+      theme: 'castle',
+      characterName: 'P1 vs P2',
+      questions: [
+        {
+          id: 'q1',
+          prompt: 'Việt Nam có bao nhiêu tỉnh thành?',
+          choices: [
+            { id: 'a', text: '58 tỉnh thành' },
+            { id: 'b', text: '63 tỉnh thành' },
+            { id: 'c', text: '60 tỉnh thành' },
+            { id: 'd', text: '55 tỉnh thành' },
+          ],
+          correctChoiceId: 'b',
+        },
+        {
+          id: 'q2',
+          prompt: 'Thủ đô của Nhật Bản là?',
+          choices: [
+            { id: 'a', text: 'Osaka' },
+            { id: 'b', text: 'Kyoto' },
+            { id: 'c', text: 'Tokyo' },
+            { id: 'd', text: 'Nagoya' },
+          ],
+          correctChoiceId: 'c',
+        },
+        {
+          id: 'q3',
+          prompt: 'Núi cao nhất thế giới là?',
+          choices: [
+            { id: 'a', text: 'K2' },
+            { id: 'b', text: 'Everest' },
+            { id: 'c', text: 'Kangchenjunga' },
+            { id: 'd', text: 'Lhotse' },
+          ],
+          correctChoiceId: 'b',
+        },
+      ],
+    }),
+  };
+}
+
+/** @returns {import('./api-contracts.js').PlayableGameResponse} */
+export function createMockSnakeDuel() {
+  return {
+    gameId: 'mock-snake-duel-001',
+    templateId: 'SNAKE_DUEL',
+    version: '1.0',
+    settings: { mirror: false, timeLimitSec: 0, hoverHoldMs: 0, pinchThreshold: 0 },
+    scene: { title: 'Snake Duel 2 Người!' },
+    payload: /** @type {SnakeQuizPlayable} */ ({
+      questions: [
+        {
+          id: 'q1',
+          prompt: '2 × 8 = ?',
+          choices: [
+            { id: 'a', text: '14' },
+            { id: 'b', text: '16' },
+            { id: 'c', text: '18' },
+            { id: 'd', text: '12' },
+          ],
+          correctChoiceId: 'b',
+        },
+        {
+          id: 'q2',
+          prompt: 'Con vật nào là vua của rừng xanh?',
+          choices: [
+            { id: 'a', text: 'Hổ' },
+            { id: 'b', text: 'Voi' },
+            { id: 'c', text: 'Sư tử' },
+            { id: 'd', text: 'Gấu' },
+          ],
+          correctChoiceId: 'c',
+        },
+        {
+          id: 'q3',
+          prompt: 'Ngôn ngữ lập trình nào được tạo ra bởi Brendan Eich?',
+          choices: [
+            { id: 'a', text: 'Python' },
+            { id: 'b', text: 'JavaScript' },
+            { id: 'c', text: 'Java' },
+            { id: 'd', text: 'C++' },
+          ],
+          correctChoiceId: 'b',
+        },
+        {
+          id: 'q4',
+          prompt: 'Trái đất có mấy châu lục?',
+          choices: [
+            { id: 'a', text: '5' },
+            { id: 'b', text: '6' },
+            { id: 'c', text: '7' },
+            { id: 'd', text: '8' },
+          ],
+          correctChoiceId: 'c',
+        },
+      ],
+    }),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // JSON Schemas (handover cho BE team)

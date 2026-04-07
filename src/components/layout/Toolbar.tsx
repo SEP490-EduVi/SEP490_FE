@@ -648,8 +648,12 @@ export function Toolbar() {
                   value={gameTemplateId}
                   onChange={(e) => setGameTemplateId(e.target.value as TemplateId)}
                 >
-                  <option value={GAME_BLUEPRINTS.HOVER_SELECT}>HOVER_SELECT</option>
-                  <option value={GAME_BLUEPRINTS.DRAG_DROP}>DRAG_DROP</option>
+                  <option value={GAME_BLUEPRINTS.HOVER_SELECT}>HOVER_SELECT — Chọn đáp án bằng tay</option>
+                  <option value={GAME_BLUEPRINTS.DRAG_DROP}>DRAG_DROP — Kéo thả đáp án</option>
+                  <option value={GAME_BLUEPRINTS.RUNNER_QUIZ}>RUNNER_QUIZ — Mario chạy quiz (1 người)</option>
+                  <option value={GAME_BLUEPRINTS.SNAKE_QUIZ}>SNAKE_QUIZ — Rắn quiz (1 người)</option>
+                  <option value={GAME_BLUEPRINTS.RUNNER_RACE}>RUNNER_RACE — Mario đua 2 người</option>
+                  <option value={GAME_BLUEPRINTS.SNAKE_DUEL}>SNAKE_DUEL — Rắn đấu 2 người</option>
                 </select>
               </div>
 

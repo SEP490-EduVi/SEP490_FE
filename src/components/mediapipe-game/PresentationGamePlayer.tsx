@@ -6,10 +6,14 @@
  * Reads playable.templateId and delegates to the appropriate game player:
  *  HOVER_SELECT -> HoverSelectGamePlayer (Kahoot-style HTML UI)
  *  DRAG_DROP    -> DragDropGamePlayer    (canvas-based UI)
+ *  RUNNER_QUIZ / SNAKE_QUIZ / RUNNER_RACE / SNAKE_DUEL -> KeyboardGamePlayer
  */
 
 import { HoverSelectGamePlayer } from './HoverSelectGamePlayer';
 import { DragDropGamePlayer } from './DragDropGamePlayer';
+import { KeyboardGamePlayer } from './KeyboardGamePlayer';
+
+const KEYBOARD_TEMPLATES = new Set(['RUNNER_QUIZ', 'SNAKE_QUIZ', 'RUNNER_RACE', 'SNAKE_DUEL']);
 
 type Props = {
   playable: any;
@@ -26,6 +30,10 @@ export function PresentationGamePlayer({ playable, onEnd, onReplay }: Props) {
 
   if (templateId === 'DRAG_DROP') {
     return <DragDropGamePlayer playable={playable} onEnd={onEnd} onReplay={onReplay} />;
+  }
+
+  if (templateId && KEYBOARD_TEMPLATES.has(templateId)) {
+    return <KeyboardGamePlayer playable={playable} onEnd={onEnd} onReplay={onReplay} />;
   }
 
   return (

@@ -5,6 +5,7 @@ import type { TopUpInput } from '@/types/api';
 const PLAN_QUERY_KEY = 'payment-plans';
 const WALLET_QUERY_KEY = 'payment-wallet';
 const TX_QUERY_KEY = 'payment-transactions';
+const QUOTA_QUERY_KEY = 'payment-user-quota';
 
 export function useSubscriptionPlans() {
   return useQuery({
@@ -52,5 +53,12 @@ export function useBuySubscription() {
       qc.invalidateQueries({ queryKey: [WALLET_QUERY_KEY] });
       qc.invalidateQueries({ queryKey: [TX_QUERY_KEY] });
     },
+  });
+}
+
+export function useUserQuota() {
+  return useQuery({
+    queryKey: [QUOTA_QUERY_KEY],
+    queryFn: paymentService.getUserQuota,
   });
 }

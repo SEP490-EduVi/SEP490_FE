@@ -203,6 +203,7 @@ export const API_ENDPOINTS = {
     VERIFY_TOP_UP: (orderCode: number) => buildPaymentEndpoint(`/top-up/verify/${orderCode}`),
     BUY_SUBSCRIPTION: buildPaymentEndpoint('/buy-subscription'),
     TRANSACTIONS: buildPaymentEndpoint('/transactions'),
+    USER_QUOTA: buildPaymentEndpoint('/user-quota'),
   },
 
 } as const;
