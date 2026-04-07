@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { X, Camera, RefreshCw } from 'lucide-react';
+import { X, Camera, RefreshCw, Pause, Play, Dices } from 'lucide-react';
 import { GameEngine, MediaPipeTracker } from '@/mediapipe-game/mediapipe-engine.js';
+import { ClassRollPanel } from './ClassRollPanel';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,8 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
   const [scorePlus, setScorePlus]               = React.useState<{ amount: number; key: number } | null>(null);
   const scorePlusTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const timeLeftRef = React.useRef(ROUND_TIMER_SECONDS);
+  const [isPaused, setIsPaused]         = React.useState(false);
+  const [showRoll, setShowRoll]         = React.useState(false);
 
   // Current round data from playable
   const rounds: any[] = React.useMemo(
@@ -125,14 +128,14 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
   // ── Timer countdown ─────────────────────────────────────────────────────────
 
   React.useEffect(() => {
-    if (!roundInfo || gameResult || cameraError) return;
+    if (!roundInfo || gameResult || cameraError || isPaused) return;
     if (timeLeft <= 0) {
       engineRef.current?.skipCurrentRound();
       return;
     }
     const t = setTimeout(() => setTimeLeft((v) => v - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, roundInfo, gameResult, cameraError]);
+  }, [timeLeft, roundInfo, gameResult, cameraError, isPaused]);
 
   // ── Engine init ─────────────────────────────────────────────────────────────
 
@@ -190,6 +193,8 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
         }
       } catch (e) {
         if (cancelled) return;
+        // AbortError means a new srcObject load interrupted play() — not a real error
+        if (e instanceof DOMException && e.name === 'AbortError') return;
         console.error(e);
         const msg = e instanceof Error ? e.message : 'Failed to start game';
         const isPermission =
@@ -270,7 +275,33 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
         )}
 
         {/* Right: end button */}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {/* Dice — class roll */}
+          {roundInfo && !gameResult && (
+            <button
+              type="button"
+              title="Quay số ngẫu nhiên"
+              onClick={() => setShowRoll(true)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/60 hover:text-white transition-colors"
+              style={{ background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.35)' }}
+            >
+              <Dices size={15} strokeWidth={2} />
+            </button>
+          )}
+
+          {/* Pause / Resume */}
+          {roundInfo && !gameResult && (
+            <button
+              type="button"
+              title={isPaused ? 'Tiếp tục' : 'Tạm dừng'}
+              onClick={() => setIsPaused((p) => !p)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/60 hover:text-white transition-colors"
+              style={{ background: isPaused ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.08)', border: isPaused ? '1px solid rgba(34,197,94,0.45)' : '1px solid rgba(255,255,255,0.12)' }}
+            >
+              {isPaused ? <Play size={14} strokeWidth={2.5} /> : <Pause size={14} strokeWidth={2.5} />}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowEndConfirm(true)}
@@ -567,9 +598,33 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
           <HoverResultScreen result={gameResult} score={score} onEnd={onEnd} onReplay={onReplay} />
         )}
 
-        {/* ── End confirm dialog ── */}
-        {showEndConfirm && (
+        {/* ── Pause overlay ── */}
+        {isPaused && !gameResult && !cameraError && (
           <div
+            className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4"
+            style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)' }}
+            >
+              <Pause size={28} className="text-white" />
+            </div>
+            <p className="text-white font-bold text-xl">Đã tạm dừng</p>
+            <button
+              type="button"
+              onClick={() => setIsPaused(false)}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm text-white transition-transform hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 16px rgba(34,197,94,0.4)' }}
+            >
+              <Play size={15} strokeWidth={2.5} />
+              Tiếp tục
+            </button>
+          </div>
+        )}
+
+        {/* ── End confirm dialog ── */}
+        {showEndConfirm && (          <div
             className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
             style={{ background: 'rgba(0,0,0,0.75)' }}
           >
@@ -611,6 +666,9 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
           </div>
         )}
       </div>
+
+      {/* Class roll panel */}
+      {showRoll && <ClassRollPanel onClose={() => setShowRoll(false)} />}
     </div>
   );
 }

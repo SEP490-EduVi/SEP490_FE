@@ -378,12 +378,16 @@ export class MediaPipeTracker {
     this.lastVideoTime = -1;
     this.lastDetectAtMs = 0;
     this.isReady = false;
+    this._cancelled = false;
   }
 
   async init() {
     const { HandLandmarker, FilesetResolver } = await importTasksVision();
+    if (this._cancelled) return;
 
     const vision = await FilesetResolver.forVisionTasks(TASKS_VISION_WASM_BASE_URL);
+    if (this._cancelled) return;
+
     const createLandmarker = async (delegate) => HandLandmarker.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: HAND_LANDMARKER_MODEL_URL,
@@ -403,11 +407,20 @@ export class MediaPipeTracker {
       console.warn('[MediaPipe] GPU delegate unavailable, falling back to CPU.', gpuErr);
       this.handLandmarker = await createLandmarker('CPU');
     }
+    if (this._cancelled) return;
 
     this.stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user', frameRate: { ideal: 30 } },
       audio: false,
     });
+
+    // If stop() was called while we were awaiting getUserMedia, release the
+    // tracks we just acquired and bail out silently.
+    if (this._cancelled) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+      return;
+    }
 
     this.videoEl.srcObject = this.stream;
     await this.videoEl.play();
@@ -439,8 +452,16 @@ export class MediaPipeTracker {
   }
 
   stop() {
+    this._cancelled = true;
+
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
+
+    // Pause and detach the video element BEFORE stopping tracks.
+    // This prevents a pending play() from a previous init() from
+    // interrupting a new init() that starts immediately after.
+    try { this.videoEl.pause(); } catch (_) {}
+    try { this.videoEl.srcObject = null; } catch (_) {}
 
     if (this.stream) {
       this.stream.getTracks().forEach((t) => t.stop());
@@ -739,8 +760,13 @@ class DragDropGame {
     this.playable.items = allItems;
     this.playable.dropZones = allZones;
 
-    // Shuffle zones visually so position alone can't solve the puzzle
-    this._shuffledZones = [...this.playable.dropZones].sort(() => Math.random() - 0.5);
+    // Shuffle zones visually so position alone can't solve the puzzle (Fisher-Yates)
+    const _sz = [...this.playable.dropZones];
+    for (let _i = _sz.length - 1; _i > 0; _i--) {
+      const _j = Math.floor(Math.random() * (_i + 1));
+      [_sz[_i], _sz[_j]] = [_sz[_j], _sz[_i]];
+    }
+    this._shuffledZones = _sz;
 
     // Per-pair accent colors (cycle if more pairs than colors)
     this._pairColors = [
@@ -992,8 +1018,8 @@ class DragDropGame {
       ctx.bezierCurveTo(cx, from.y, cx, to.y, to.x, to.y);
       ctx.strokeStyle  = isFlashing ? '#f87171' : ok ? color.line : '#f87171';
       ctx.lineWidth    = 4;
-      ctx.shadowBlur   = 14;
-      ctx.shadowColor  = isFlashing ? 'rgba(248,113,113,0.7)' : ok ? color.glow : 'rgba(248,113,113,0.7)';
+      ctx.shadowBlur   = 8;
+      ctx.shadowColor  = isFlashing ? 'rgba(248,113,113,0.6)' : ok ? color.glow : 'rgba(248,113,113,0.6)';
       ctx.stroke();
       ctx.restore();
 
@@ -1032,7 +1058,7 @@ class DragDropGame {
           ctx.lineWidth   = 3;
           ctx.globalAlpha = 0.80;
           ctx.setLineDash([10, 6]);
-          ctx.shadowBlur  = 10;
+          ctx.shadowBlur  = 6;
           ctx.shadowColor = color.glow;
           ctx.stroke();
           ctx.setLineDash([]);
@@ -1099,35 +1125,31 @@ class DragDropGame {
       // ── Port dot — right edge (larger, colored, pulsing when unconnected) ──
       const dotX  = rect.x + rect.w;
       const dotY  = rect.y + rect.h / 2;
-      let dotR, dotColor, dotGlow;
+      let dotR, dotColor;
       if (isActive) {
-        dotR = 9; dotColor = '#ffffff'; dotGlow = 'rgba(255,255,255,0.5)';
+        dotR = 9; dotColor = '#ffffff';
       } else if (placedCorrect === true) {
-        dotR = 8; dotColor = color.line; dotGlow = color.glow;
+        dotR = 8; dotColor = color.line;
       } else if (isFlashing) {
-        dotR = 8; dotColor = '#f87171'; dotGlow = 'rgba(248,113,113,0.5)';
+        dotR = 8; dotColor = '#f87171';
       } else {
         // Pulse: animate between 7 and 9
-        dotR = 7 + pulseSin * 2; dotColor = color.line; dotGlow = color.glow;
+        dotR = 7 + pulseSin * 2; dotColor = color.line;
       }
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, dotR + 4, 0, Math.PI * 2);
-      ctx.fillStyle = dotGlow.replace(')', ', 0.15)').replace('rgba(', 'rgba(');
-      // Draw outer glow ring for unconnected dots
+      // Outer ring for unconnected dots (no shadow — keeps render fast)
       if (!connectedZId) {
-        ctx.arc(dotX, dotY, dotR + 4, 0, Math.PI * 2);
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, dotR + 3, 0, Math.PI * 2);
         ctx.strokeStyle = dotColor;
         ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.35 + pulseSin * 0.15;
+        ctx.globalAlpha = 0.30 + pulseSin * 0.15;
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
       ctx.beginPath();
       ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
       ctx.fillStyle = dotColor;
-      ctx.shadowBlur  = 8;
-      ctx.shadowColor = dotGlow;
       ctx.fill();
       ctx.restore();
     }
@@ -1172,18 +1194,18 @@ class DragDropGame {
       // ── Port dot — left edge ──────────────────────────────────────────────
       const dotX = rect.x;
       const dotY = rect.y + rect.h / 2;
-      let dotR, dotColor, dotGlow;
+      let dotR, dotColor;
       if (isFlashing) {
-        dotR = 8; dotColor = '#f87171'; dotGlow = 'rgba(248,113,113,0.5)';
+        dotR = 8; dotColor = '#f87171';
       } else if (placedCorrect === true) {
-        dotR = 8; dotColor = color.line; dotGlow = color.glow;
+        dotR = 8; dotColor = color.line;
       } else {
-        dotR = 7 + pulseSin * 1.5; dotColor = 'rgba(255,255,255,0.50)'; dotGlow = 'rgba(255,255,255,0.2)';
+        dotR = 7 + pulseSin * 1.5; dotColor = 'rgba(255,255,255,0.60)';
       }
       ctx.save();
       if (!incomingItemId) {
         ctx.beginPath();
-        ctx.arc(dotX, dotY, dotR + 4, 0, Math.PI * 2);
+        ctx.arc(dotX, dotY, dotR + 3, 0, Math.PI * 2);
         ctx.strokeStyle = dotColor;
         ctx.lineWidth = 1;
         ctx.globalAlpha = 0.25 + pulseSin * 0.1;
@@ -1193,8 +1215,6 @@ class DragDropGame {
       ctx.beginPath();
       ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
       ctx.fillStyle = dotColor;
-      ctx.shadowBlur  = 8;
-      ctx.shadowColor = dotGlow;
       ctx.fill();
       ctx.restore();
     }

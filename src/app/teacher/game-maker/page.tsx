@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { PresentationGamePlayer } from '@/components/mediapipe-game/PresentationGamePlayer';
+import { GameEditorView } from '@/components/mediapipe-game/GameEditorView';
 import { useGameHub } from '@/hooks/useGameHub';
 import { getGameTaskStatus } from '@/services/gamesServices';
 import type { GameProgressDto } from '@/types/api';
@@ -40,6 +41,7 @@ export default function GameMakerPage() {
 
   const [taskId, setTaskId] = useState<string | null>(null);
   const [playable, setPlayable] = useState<unknown | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -74,6 +76,7 @@ export default function GameMakerPage() {
         if (result) {
           stopPolling();
           setPlayable(result);
+          setIsEditing(true);
           setIsLoading(false);
           setStatusText('');
         }
@@ -135,23 +138,32 @@ export default function GameMakerPage() {
     setTaskId(null);
     setIsLoading(false);
     setStatusText('');
+    setIsEditing(false);
     router.back();
   }, [router, stopPolling]);
 
   const handleReplay = useCallback(() => {
-    stopPolling();
-    taskIdRef.current = null;
-    setPlayable(null);
-    setTaskId(null);
-    setIsLoading(false);
-    setStatusText('');
-    router.back();
-  }, [router, stopPolling]);
+    // Return to edit screen instead of navigating away
+    setIsEditing(true);
+  }, []);
 
   // ── render ────────────────────────────────────────────────────────────────
 
-  // Fullscreen game player
-  if (playable) {
+  // Edit screen — shown first after game generation
+  if (playable && isEditing) {
+    return (
+      <GameEditorView
+        playable={playable as any}
+        onStart={(edited) => {
+          setPlayable(edited);
+          setIsEditing(false);
+        }}
+      />
+    );
+  }
+
+  // Fullscreen game player — shown after user clicks "Bắt đầu"
+  if (playable && !isEditing) {
     return (
       <div className="fixed inset-0 z-50 bg-black">
         <PresentationGamePlayer
