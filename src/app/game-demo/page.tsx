@@ -1,7 +1,5 @@
 'use client';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 type GameType = 'RUNNER_QUIZ' | 'SNAKE_QUIZ' | 'RUNNER_RACE' | 'SNAKE_DUEL' | null;
