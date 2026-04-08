@@ -8,12 +8,30 @@ import { getMaterialReviewDetail } from '@/services/staffServices';
 import { notify, resolveGcsUrl } from '@/components/common';
 
 function InlinePreview({ url, type }: { url: string; type: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
+        <p className="text-sm text-gray-600">Không thể hiển thị trực tiếp nội dung này.</p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+        >
+          Mở nội dung ở tab mới
+        </a>
+      </div>
+    );
+  }
+
   const t = type?.toLowerCase();
   if (t === 'video') {
     return (
       <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 bg-black">
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-        <video src={url} controls className="w-full max-h-[480px]" />
+        <video src={url} controls className="w-full max-h-[480px]" onError={() => setFailed(true)} />
       </div>
     );
   }
@@ -21,14 +39,14 @@ function InlinePreview({ url, type }: { url: string; type: string }) {
     return (
       <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt="Xem trước" className="max-h-[480px] w-full object-contain" />
+        <img src={url} alt="Xem trước" className="max-h-[480px] w-full object-contain" onError={() => setFailed(true)} />
       </div>
     );
   }
   // document / slide / audio / fallback → iframe
   return (
     <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-      <iframe src={url} className="w-full h-[560px]" title="Xem trước nội dung" />
+      <iframe src={url} className="w-full h-[560px]" title="Xem trước nội dung" onError={() => setFailed(true)} />
     </div>
   );
 }
