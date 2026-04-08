@@ -12,6 +12,9 @@ import {
   createTextBlock,
   createHeadingBlock,
   createImageBlock,
+  createQuizBlock,
+  createFlashcardBlock,
+  createFillBlankBlock,
 } from '@/data/mock-data';
 
 /**
@@ -38,6 +41,25 @@ export function createBlockByType(blockType: BlockType): IBlock {
         },
         children: [],
       };
+    case BlockType.QUIZ:
+      return createQuizBlock(id, '', [
+        {
+          id: `q-${uuidv4()}`,
+          question: '',
+          options: [
+            { id: `opt-${uuidv4()}`, text: '' },
+            { id: `opt-${uuidv4()}`, text: '' },
+            { id: `opt-${uuidv4()}`, text: '' },
+            { id: `opt-${uuidv4()}`, text: '' },
+          ],
+          correctIndex: -1,
+          explanation: '',
+        },
+      ]);
+    case BlockType.FLASHCARD:
+      return createFlashcardBlock(id, 'Khái niệm', 'Định nghĩa chi tiết của khái niệm...');
+    case BlockType.FILL_BLANK:
+      return createFillBlankBlock(id, '[Từ khoá] là một khái niệm quan trọng trong [lĩnh vực].');
     default:
       return createTextBlock(id, '<p>Điền nội dung tại đây...</p>');
   }

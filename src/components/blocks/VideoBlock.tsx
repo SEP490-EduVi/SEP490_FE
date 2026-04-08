@@ -22,6 +22,7 @@ interface VideoBlockProps {
   content: IVideoContent;
   isSelected?: boolean;
   onSelect?: () => void;
+  isActiveSlide?: boolean;
 }
 
 function getYouTubeId(url: string): string | null {
@@ -67,11 +68,14 @@ export function VideoBlock({
   content,
   isSelected = false,
   onSelect,
+  isActiveSlide = false,
 }: VideoBlockProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
   const appMode = useDocumentStore((state) => state.appMode);
   const isPresenting = appMode === 'PRESENT';
+  // Only autoplay when this block's slide is the currently active presentation slide
+  const shouldAutoplay = isPresenting && isActiveSlide;
   const [urlMode, setUrlMode] = useState(false);
   const [urlValue, setUrlValue] = useState('');
 
@@ -232,7 +236,7 @@ export function VideoBlock({
   const effectiveContent: IVideoContent = resolvedSrc && content.provider === 'direct'
     ? { ...content, src: resolvedSrc }
     : content;
-  const embedUrl = getEmbedUrl(effectiveContent, isPresenting);
+  const embedUrl = getEmbedUrl(effectiveContent, shouldAutoplay);
 
   return (
     <div
@@ -268,7 +272,7 @@ export function VideoBlock({
             src={embedUrl}
             className="absolute inset-0 w-full h-full"
             controls
-            autoPlay={isPresenting}
+            autoPlay={shouldAutoplay}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white">

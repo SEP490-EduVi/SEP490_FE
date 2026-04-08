@@ -95,6 +95,7 @@ export interface DocumentState {
   addCardFromTemplate: (templateType: string) => void;
   addBlockToCard: (cardId: string, blockType: BlockType) => void;
   addLayoutToCard: (cardId: string, variant: LayoutVariant) => void;
+  wrapNodeInLayout: (cardId: string, nodeId: string, variant: LayoutVariant) => void;
   addBlockToLayout: (layoutId: string, blockType: BlockType) => void;
   
   // Update Actions

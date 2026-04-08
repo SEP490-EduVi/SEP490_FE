@@ -487,7 +487,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 bg-gray-900/80 border-b border-white/10">
-            <div className="flex items-center gap-3 min-w-0 flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                 <Film className="w-4 h-4 text-white" />
               </div>

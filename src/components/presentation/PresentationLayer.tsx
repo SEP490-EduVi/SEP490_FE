@@ -23,7 +23,7 @@ import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { NodeRenderer } from '@/components/renderer/NodeRenderer';
+import { NodeRenderer, ActiveSlideProvider } from '@/components/renderer/NodeRenderer';
 import { ILayout, IBlock, BlockType, isBlock } from '@/types';
 import {
   ChevronLeft,
@@ -214,9 +214,11 @@ export function PresentationLayer() {
                   )}>
                     <div className="w-full space-y-6">
                       {currentCard.children && currentCard.children.length > 0 ? (
-                        currentCard.children.map((child) => (
-                          <NodeRenderer key={child.id} node={child} depth={0} />
-                        ))
+                        <ActiveSlideProvider>
+                          {currentCard.children.map((child) => (
+                            <NodeRenderer key={child.id} node={child} depth={0} />
+                          ))}
+                        </ActiveSlideProvider>
                       ) : (
                         <div className="text-center text-gray-400 py-12">
                           <p className="text-lg">Slide này chưa có nội dung</p>

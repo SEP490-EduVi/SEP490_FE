@@ -444,6 +444,18 @@ export function createCardActions(
       const targetCard = document.cards.find((c) => c.id === cardId);
       if (targetCard?.isVideoSlide) return;
 
+      // Prevent adding blocks to slides that already contain an interactive block
+      // (Quiz / Flashcard / FillBlank slides are meant to be standalone)
+      const FORBIDDEN_TYPES = [BlockType.QUIZ, BlockType.FLASHCARD, BlockType.FILL_BLANK];
+      const hasForbiddenBlock = (nodes: (ILayout | IBlock)[]): boolean => {
+        for (const node of nodes) {
+          if (node.type === NodeType.BLOCK && FORBIDDEN_TYPES.includes(node.content.type)) return true;
+          if (node.type === NodeType.LAYOUT && hasForbiddenBlock(node.children)) return true;
+        }
+        return false;
+      };
+      if (targetCard && hasForbiddenBlock(targetCard.children)) return;
+
       const newBlock = createBlockByType(blockType);
 
       const newDoc = {
@@ -489,6 +501,47 @@ export function createCardActions(
       setDocumentWithHistory(newDoc, {
         selectedNodeId: newLayout.id,
       });
+    },
+
+    /**
+     * Wrap the selected node (at card's top-level) into a new layout.
+     * The node becomes the first child of the new layout, placed at the
+     * same position it occupied in the card.
+     */
+    wrapNodeInLayout: (cardId: string, nodeId: string, variant: LayoutVariant) => {
+      const { document } = get();
+      if (!document) return;
+
+      const targetCard = document.cards.find((c) => c.id === cardId);
+      if (!targetCard || targetCard.isVideoSlide) return;
+
+      const nodeIdx = targetCard.children.findIndex((c) => c.id === nodeId);
+      if (nodeIdx === -1) return;
+
+      const nodeToWrap = targetCard.children[nodeIdx];
+
+      const newLayout: ILayout = {
+        id: `layout-${uuidv4()}`,
+        type: NodeType.LAYOUT,
+        variant,
+        gap: 4,
+        children: [nodeToWrap],
+      };
+
+      const newChildren = [...targetCard.children];
+      newChildren[nodeIdx] = newLayout;
+
+      const newDoc = {
+        ...document,
+        cards: document.cards.map((card) =>
+          card.id === cardId
+            ? { ...card, children: newChildren }
+            : card
+        ),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setDocumentWithHistory(newDoc, { selectedNodeId: newLayout.id });
     },
 
     addBlockToLayout: (layoutId: string, blockType: BlockType) => {
