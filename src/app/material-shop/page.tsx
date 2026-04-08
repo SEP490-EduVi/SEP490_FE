@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag,
@@ -27,6 +27,7 @@ import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import { useWalletInfo } from '@/hooks/usePaymentApi';
 import type { MaterialDto } from '@/types/api';
 import { notify, GcsImage } from '@/components/common';
+import { resolveGcsUrl } from '@/components/common/GcsImage';
 
 function formatEduCoin(value: number | null | undefined): string {
   const amount = Number.isFinite(value) ? Number(value) : 0;
@@ -125,15 +126,211 @@ function PurchaseModal({
   );
 }
 
+function MaterialDetailModal({
+  material,
+  owned,
+  onClose,
+  onBuy,
+}: {
+  material: MaterialDto;
+  owned: boolean;
+  onClose: () => void;
+  onBuy: () => void;
+}) {
+  const typeBadge = TYPE_BADGE[material.type] ?? TYPE_BADGE['other'];
+  const [resolvedResourceUrl, setResolvedResourceUrl] = useState<string>('');
+  const [resolvingResource, setResolvingResource] = useState(false);
+  const [resourceError, setResourceError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    const resolve = async () => {
+      if (!material.resourceUrl) {
+        setResolvedResourceUrl('');
+        setResourceError('');
+        return;
+      }
+
+      setResolvingResource(true);
+      setResolvedResourceUrl('');
+      setResourceError('');
+      try {
+        const resolved = await resolveGcsUrl(material.resourceUrl);
+        if (!mounted) return;
+        setResolvedResourceUrl(resolved);
+      } catch {
+        if (!mounted) return;
+        setResourceError('Không thể tải resource để xem trước.');
+      } finally {
+        if (mounted) setResolvingResource(false);
+      }
+    };
+
+    void resolve();
+    return () => {
+      mounted = false;
+    };
+  }, [material.resourceUrl]);
+
+  const getPreviewKind = () => {
+    const source = (resolvedResourceUrl || material.resourceUrl || '').toLowerCase();
+    if (material.type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/.test(source)) return 'video';
+    if (material.type === 'image' || /\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?|$)/.test(source)) return 'image';
+    return 'other';
+  };
+
+  const previewKind = getPreviewKind();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+      >
+        <div className="relative h-56 bg-gradient-to-br from-blue-50 to-indigo-100">
+          {material.previewUrl ? (
+            <GcsImage src={material.previewUrl} alt={material.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <BookOpen className="w-12 h-12 text-blue-200" />
+            </div>
+          )}
+
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/55"
+            aria-label="Đóng chi tiết"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="absolute left-3 top-3 flex items-center gap-2">
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/90 ${typeBadge.color}`}>
+              {typeBadge.label}
+            </span>
+            {owned && (
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/95 text-white inline-flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Đã sở hữu
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">{material.title}</h3>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5" />{material.expertName || 'Không rõ tác giả'}</span>
+                <span>•</span>
+                <span>{material.subjectName || '-'}</span>
+                <span>•</span>
+                <span>{material.gradeName || '-'}</span>
+              </div>
+            </div>
+            <div className={`text-lg font-bold whitespace-nowrap ${material.price > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
+              {material.price > 0 ? formatEduCoin(material.price) : 'Miễn phí'}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {material.description && material.description.toLowerCase() !== 'string'
+                ? material.description
+                : 'Chưa có mô tả cho tài liệu này.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="rounded-lg border border-gray-100 p-3">
+              <p className="text-xs text-gray-500">Mã tài liệu</p>
+              <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-3">
+              <p className="text-xs text-gray-500">Ngày tạo</p>
+              <p className="font-medium text-gray-800">{material.createdAt ? new Date(material.createdAt).toLocaleString('vi-VN') : '-'}</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500 mb-1">Resource</p>
+              {/* <p className="text-sm font-medium text-gray-800 break-all">{material.resourceUrl || '-'}</p> */}
+
+            {resolvingResource && (
+              <p className="mt-2 text-xs text-slate-500 inline-flex items-center gap-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Đang tải preview resource...
+              </p>
+            )}
+
+            {resourceError && <p className="mt-2 text-xs text-red-600">{resourceError}</p>}
+
+            {!!resolvedResourceUrl && (
+              <div className="mt-3">
+                {previewKind === 'image' && (
+                  <img src={resolvedResourceUrl} alt={material.title} className="w-full max-h-[280px] object-contain rounded-lg bg-white" />
+                )}
+
+                {previewKind === 'video' && (
+                  <video controls className="w-full max-h-[280px] rounded-lg bg-black" src={resolvedResourceUrl} />
+                )}
+
+                {previewKind === 'other' && (
+                  <a
+                    href={resolvedResourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                  >
+                    Mở file resource
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200"
+            >
+              Đóng
+            </button>
+            <button
+              onClick={onBuy}
+              disabled={owned}
+              className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
+                owned
+                  ? 'bg-emerald-50 text-emerald-600 cursor-default'
+                  : material.price > 0
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
+              }`}
+            >
+              {owned ? 'Đã sở hữu' : material.price > 0 ? 'Mua tài liệu' : 'Nhận miễn phí'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Material Card ─────────────────────────────────────────────────────────
 
 function ShopMaterialCard({
   material,
   owned,
+  onViewDetail,
   onBuy,
 }: {
   material: MaterialDto;
   owned: boolean;
+  onViewDetail: () => void;
   onBuy: () => void;
 }) {
   const typeBadge = TYPE_BADGE[material.type] ?? TYPE_BADGE['other'];
@@ -144,7 +341,8 @@ function ShopMaterialCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col"
+      onClick={onViewDetail}
+      className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col cursor-pointer"
     >
       {/* Thumbnail */}
       <div className="relative h-40 bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden flex-shrink-0">
@@ -201,7 +399,10 @@ function ShopMaterialCard({
 
         {/* CTA */}
         <button
-          onClick={onBuy}
+          onClick={(e) => {
+            e.stopPropagation();
+            onBuy();
+          }}
           disabled={owned}
           className={`w-full py-2 rounded-xl text-xs font-bold transition-all duration-150 flex items-center justify-center gap-1.5 mt-1 ${
             owned
@@ -238,6 +439,7 @@ export default function MaterialShopPage() {
   const [gradeCode, setGradeCode] = useState('');
   const [type, setType] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [detailTarget, setDetailTarget] = useState<MaterialDto | null>(null);
   const [purchaseTarget, setPurchaseTarget] = useState<MaterialDto | null>(null);
 
   // Debounce keyword for API params by using local state separately
@@ -471,6 +673,7 @@ export default function MaterialShopPage() {
                   key={m.materialCode}
                   material={m}
                   owned={ownedCodes.has(m.materialCode)}
+                  onViewDetail={() => setDetailTarget(m)}
                   onBuy={() => setPurchaseTarget(m)}
                 />
               ))}
@@ -489,7 +692,8 @@ export default function MaterialShopPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97 }}
-                    className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition-shadow flex items-center gap-4"
+                    onClick={() => setDetailTarget(m)}
+                    className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition-shadow flex items-center gap-4 cursor-pointer"
                   >
                     {/* Thumbnail */}
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -520,7 +724,10 @@ export default function MaterialShopPage() {
                         {m.price > 0 ? formatEduCoin(m.price) : 'Miễn phí'}
                       </span>
                       <button
-                        onClick={() => setPurchaseTarget(m)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPurchaseTarget(m);
+                        }}
                         disabled={owned}
                         className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${
                           owned
@@ -542,6 +749,20 @@ export default function MaterialShopPage() {
       </main>
 
       {/* ── Purchase Modal ── */}
+      <AnimatePresence>
+        {detailTarget && (
+          <MaterialDetailModal
+            material={detailTarget}
+            owned={ownedCodes.has(detailTarget.materialCode)}
+            onClose={() => setDetailTarget(null)}
+            onBuy={() => {
+              setDetailTarget(null);
+              setPurchaseTarget(detailTarget);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {purchaseTarget && (
           <PurchaseModal

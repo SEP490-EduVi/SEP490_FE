@@ -62,6 +62,23 @@ const MATERIAL_TYPE_LABEL: Record<string, string> = {
   audio: 'Âm thanh',
 };
 
+function pickPreviewSource(type: string, previewUrl?: string | null, resourceUrl?: string | null) {
+  const t = (type || '').toLowerCase();
+  if (t === 'video' || t === 'audio' || t === 'document' || t === 'slide') {
+    return resourceUrl || previewUrl || null;
+  }
+  if (t === 'image') {
+    return previewUrl || resourceUrl || null;
+  }
+  return resourceUrl || previewUrl || null;
+}
+
+async function resolvePreviewUrl(rawUrl: string): Promise<string> {
+  if (!rawUrl) throw new Error('Missing preview url');
+  if (!rawUrl.startsWith('gs://')) return rawUrl;
+  return resolveGcsUrl(rawUrl);
+}
+
 export default function StaffMaterialsPage() {
   const { data = [], isLoading, isError } = usePendingMaterials();
   const reviewMaterial = useReviewMaterial();
@@ -89,18 +106,18 @@ export default function StaffMaterialsPage() {
       return;
     }
 
-    const rawUrl = previewUrl || resourceUrl;
+    const rawUrl = pickPreviewSource(type, previewUrl, resourceUrl);
     try {
       setPreviewLoading(materialCode);
       let resolved: string | null = null;
 
       if (rawUrl) {
-        try { resolved = await resolveGcsUrl(rawUrl); } catch { resolved = rawUrl; }
+        resolved = await resolvePreviewUrl(rawUrl);
       } else {
         const detail = await getMaterialReviewDetail(materialCode);
-        const raw = detail.previewUrl || detail.resourceUrl;
+        const raw = pickPreviewSource(type || detail.type || '', detail.previewUrl, detail.resourceUrl);
         if (raw) {
-          try { resolved = await resolveGcsUrl(raw); } catch { resolved = raw; }
+          resolved = await resolvePreviewUrl(raw);
         }
       }
 
