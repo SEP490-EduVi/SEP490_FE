@@ -46,7 +46,7 @@ const TEMPLATE_CONTROLS: Record<string, { label: string; keys: string }[]> = {
   ],
   SNAKE_DUEL: [
     { label: 'P1 điều hướng', keys: 'W A S D' },
-    { label: 'P1 trả lời', keys: 'Z X C V' },
+    { label: 'P1 trả lời', keys: 'Z X C V / 1 2 3 4' },
     { label: 'P2 điều hướng', keys: '↑ ↓ ← →' },
     { label: 'P2 trả lời', keys: '1 2 3 4' },
   ],

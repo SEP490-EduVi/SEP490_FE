@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Zap, Star, Crown, Loader2, ArrowRight } from 'lucide-react';
 import PublicHeader from '@/components/common/PublicHeader';
@@ -43,10 +43,17 @@ function formatPrice(price: number): string {
 
 export default function SubscriptionPage() {
   const router = useRouter();
-  const { user, isHydrated } = useAuthStore();
-  const { data: plans, isLoading, error } = useSubscriptionPlans();
+  const { user, role, isHydrated } = useAuthStore();
+  const isStaff = role === 'staff';
+  const { data: plans, isLoading, error } = useSubscriptionPlans({ enabled: !isStaff });
   const { mutate: buyPlan, isPending: isBuying } = useBuySubscription();
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isHydrated && isStaff) {
+      router.replace('/staff');
+    }
+  }, [isHydrated, isStaff, router]);
 
   const activePlans = plans?.filter((p) => p.isActive && p.description && !p.description.includes('Test')) ?? [];
 

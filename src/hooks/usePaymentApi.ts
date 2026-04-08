@@ -7,24 +7,31 @@ const WALLET_QUERY_KEY = 'payment-wallet';
 const TX_QUERY_KEY = 'payment-transactions';
 const QUOTA_QUERY_KEY = 'payment-user-quota';
 
-export function useSubscriptionPlans() {
+interface PaymentQueryOptions {
+  enabled?: boolean;
+}
+
+export function useSubscriptionPlans(options?: PaymentQueryOptions) {
   return useQuery({
     queryKey: [PLAN_QUERY_KEY],
     queryFn: paymentService.getSubscriptionPlans,
+    enabled: options?.enabled ?? true,
   });
 }
 
-export function useWalletInfo() {
+export function useWalletInfo(options?: PaymentQueryOptions) {
   return useQuery({
     queryKey: [WALLET_QUERY_KEY],
     queryFn: paymentService.getWalletInfo,
+    enabled: options?.enabled ?? true,
   });
 }
 
-export function useWalletTransactions(page = 1, pageSize = 10) {
+export function useWalletTransactions(page = 1, pageSize = 10, options?: PaymentQueryOptions) {
   return useQuery({
     queryKey: [TX_QUERY_KEY, page, pageSize],
     queryFn: () => paymentService.getWalletTransactions(page, pageSize),
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -56,9 +63,10 @@ export function useBuySubscription() {
   });
 }
 
-export function useUserQuota() {
+export function useUserQuota(options?: PaymentQueryOptions) {
   return useQuery({
     queryKey: [QUOTA_QUERY_KEY],
     queryFn: paymentService.getUserQuota,
+    enabled: options?.enabled ?? true,
   });
 }

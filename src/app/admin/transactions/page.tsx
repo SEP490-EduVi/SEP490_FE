@@ -7,6 +7,34 @@ import { AdminTransactionResponse } from '@/types/admin';
 
 const PAGE_SIZE = 10;
 const formatVND = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
+const toStartOfDayIso = (date: string) => (date ? new Date(`${date}T00:00:00`).toISOString() : undefined);
+const toEndOfDayIso = (date: string) => (date ? new Date(`${date}T23:59:59`).toISOString() : undefined);
+
+const getTxStatusLabel = (status?: number | string, statusName?: string | null) => {
+  if (typeof status === 'number') {
+    if (status === 1) return 'Hoàn tất';
+    if (status === 0) return 'Đang xử lý';
+    if (status === 2) return 'Đã hủy';
+  }
+
+  if (typeof status === 'string' && status.trim()) {
+    const s = status.trim().toLowerCase();
+    if (s === 'completed' || s === 'success' || s === 'succeeded') return 'Hoàn tất';
+    if (s === 'pending' || s === 'processing' || s === 'inprogress') return 'Đang xử lý';
+    if (s === 'cancel' || s === 'cancelled' || s === 'canceled') return 'Đã hủy';
+    return status;
+  }
+
+  return statusName || 'Không xác định';
+};
+
+const getTxStatusClass = (status?: number | string, statusName?: string | null) => {
+  const label = getTxStatusLabel(status, statusName);
+  if (label === 'Hoàn tất') return 'bg-emerald-50 text-emerald-700';
+  if (label === 'Đang xử lý') return 'bg-amber-50 text-amber-700';
+  if (label === 'Đã hủy') return 'bg-red-50 text-red-600';
+  return 'bg-gray-100 text-gray-500';
+};
 
 export default function AdminTransactionsPage() {
   const [items, setItems] = useState<AdminTransactionResponse[]>([]);
@@ -30,9 +58,9 @@ export default function AdminTransactionsPage() {
       const res = await adminServices.listTransactions({
         userId: userId ? Number(userId) : undefined,
         type: transactionType || undefined,
-        status: status || undefined,
-        fromDate: fromDate || undefined,
-        toDate: toDate || undefined,
+        status: status ? Number(status) : undefined,
+        fromDate: toStartOfDayIso(fromDate),
+        toDate: toEndOfDayIso(toDate),
         page: targetPage,
         pageSize: PAGE_SIZE,
       });
@@ -40,7 +68,7 @@ export default function AdminTransactionsPage() {
       const result = res.result;
       const rows = result.data ?? result.items ?? [];
       setItems(rows);
-      setTotal(result.total ?? result.totalItems ?? rows.length);
+      setTotal(result.total ?? result.totalItems ?? result.totalCount ?? rows.length);
       setPage(result.page ?? result.currentPage ?? targetPage);
       setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
     } catch (err) {
@@ -76,13 +104,16 @@ export default function AdminTransactionsPage() {
           placeholder="Loại giao dịch"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
-        <input
-          type="text"
+        <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          placeholder="Trạng thái"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-        />
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="1">Hoàn tất</option>
+          <option value="0">Đang xử lý</option>
+          <option value="2">Đã hủy</option>
+        </select>
         <input
           type="date"
           value={fromDate}
@@ -135,10 +166,14 @@ export default function AdminTransactionsPage() {
                 items.map((tx) => (
                   <tr key={tx.transactionId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{tx.transactionId}</td>
-                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.userCode || `Người dùng ${tx.userId}`}</td>
+                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.username || tx.userCode || (tx.userId ? `Người dùng ${tx.userId}` : '-')}</td>
                     <td className="px-5 py-3 text-gray-600">{tx.transactionType}</td>
-                    <td className="px-5 py-3 text-gray-600">{tx.status}</td>
-                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(tx.amount)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getTxStatusClass(tx.status, tx.statusName)}`}>
+                        {getTxStatusLabel(tx.status, tx.statusName)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(tx.amount ?? 0)}</td>
                     <td className="px-5 py-3 text-gray-500">{tx.createdAt ? new Date(tx.createdAt).toLocaleString('vi-VN') : '-'}</td>
                   </tr>
                 ))

@@ -2,7 +2,7 @@
 
 // src/app/login/page.tsx
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { Loader2 } from 'lucide-react';
@@ -19,6 +19,10 @@ export default function LoginPage() {
   const [form, setForm] = useState<LoginInput>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [logoLoadError, setLogoLoadError] = useState(false);
+  const [gsiLoaded, setGsiLoaded] = useState(false);
+  const googleInitializedRef = useRef(false);
+  const initializedClientIdRef = useRef<string | null>(null);
 
   const router = useRouter();
   const { mutate: login, isPending } = useLoginService();
@@ -79,46 +83,29 @@ export default function LoginPage() {
       return;
     }
 
-    const bootGoogleSignIn = () => {
-      const google = (window as any).google;
-      if (!google?.accounts?.id) {
+    const google = (window as any).google;
+    if (!google?.accounts?.id) {
+      if (!gsiLoaded) {
+        setErrorMsg('Google Sign-In chưa sẵn sàng. Vui lòng thử lại sau vài giây.');
+      } else {
         setErrorMsg('Không thể tải Google Sign-In. Vui lòng kiểm tra mạng hoặc tắt ad-block.');
-        return;
       }
+      return;
+    }
 
-      setErrorMsg('');
+    const isSameClient = initializedClientIdRef.current === googleClientId;
+    if (!googleInitializedRef.current || !isSameClient) {
       google.accounts.id.initialize({
         client_id: googleClientId,
         callback: handleGoogleCredential,
       });
-      google.accounts.id.prompt();
-    };
-
-    const google = (window as any).google;
-    if (google?.accounts?.id) {
-      bootGoogleSignIn();
-      return;
+      googleInitializedRef.current = true;
+      initializedClientIdRef.current = googleClientId;
     }
 
-    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]') as HTMLScriptElement | null;
-    if (existingScript) {
-      existingScript.addEventListener('load', bootGoogleSignIn, { once: true });
-      existingScript.addEventListener(
-        'error',
-        () => setErrorMsg('Không tải được Google Sign-In. Vui lòng thử lại sau.'),
-        { once: true }
-      );
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = bootGoogleSignIn;
-    script.onerror = () => setErrorMsg('Không tải được Google Sign-In. Vui lòng thử lại sau.');
-    document.head.appendChild(script);
-  }, [googleClientId, handleGoogleCredential]);
+    setErrorMsg('');
+    google.accounts.id.prompt();
+  }, [googleClientId, handleGoogleCredential, gsiLoaded]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -148,12 +135,23 @@ export default function LoginPage() {
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
+        onLoad={() => setGsiLoaded(true)}
+        onError={() => setErrorMsg('Không tải được Google Sign-In. Vui lòng thử lại sau.')}
       />
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
         {/* Logo / Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-3xl font-bold text-indigo-600 tracking-tight">EduVi</h1>
+        <div className="text-center space-y-2">
+          {!logoLoadError ? (
+            <img
+              src="/image.png"
+              alt="Eduvision"
+              className="h-14 w-auto object-contain mx-auto"
+              onError={() => setLogoLoadError(true)}
+            />
+          ) : (
+            <h1 className="text-3xl font-bold text-indigo-600 tracking-tight">Eduvision</h1>
+          )}
           <p className="text-sm text-slate-500">Đăng nhập vào tài khoản của bạn</p>
         </div>
 

@@ -326,7 +326,10 @@ export class RunnerRaceGame {
     this.cameraScrollX = maxScroll;
 
     const q = this.questions[this.questionIndex];
-    if (!q) return;
+    if (!q) {
+      this._setState('RACING', nowMs);
+      return;
+    }
 
     const KEYS = ['ans1', 'ans2', 'ans3', 'ans4'];
     for (let pi = 0; pi < 2; pi++) {

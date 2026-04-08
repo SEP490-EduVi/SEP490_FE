@@ -361,6 +361,52 @@ function drawAutoFitTextInRect(ctx, text, rect, options = {}) {
   });
 }
 
+function isQuestionLike(item) {
+  return Boolean(
+    item
+      && typeof item === 'object'
+      && typeof item.prompt === 'string'
+      && Array.isArray(item.choices)
+      && item.choices.length > 0,
+  );
+}
+
+function normalizeQuestionBasedPayload(payload) {
+  if (Array.isArray(payload)) {
+    return isQuestionLike(payload[0]) ? { questions: payload } : payload;
+  }
+
+  if (!payload || typeof payload !== 'object') return payload;
+
+  if (Array.isArray(payload.questions)) return payload;
+
+  const nestedKeys = ['payload', 'data', 'result', 'playable', 'game'];
+  for (const key of nestedKeys) {
+    const nested = payload[key];
+    if (nested && typeof nested === 'object' && Array.isArray(nested.questions)) {
+      return {
+        ...nested,
+        ...payload,
+        questions: nested.questions,
+      };
+    }
+  }
+
+  if (Array.isArray(payload.rounds) && isQuestionLike(payload.rounds[0])) {
+    return { ...payload, questions: payload.rounds };
+  }
+
+  if (Array.isArray(payload.items) && isQuestionLike(payload.items[0])) {
+    return { ...payload, questions: payload.items };
+  }
+
+  if (isQuestionLike(payload)) {
+    return { questions: [payload] };
+  }
+
+  return payload;
+}
+
 async function importTasksVision() {
   // Runtime ESM import from CDN (do not bundle).
   const mod = await import(
@@ -1373,8 +1419,8 @@ export class GameEngine {
       GAME_BLUEPRINTS.SNAKE_DUEL,
     ]);
     let normalizedPayload = payload;
-    if (QUESTIONS_BASED_BLUEPRINTS.has(this.playable.templateId) && Array.isArray(payload)) {
-      normalizedPayload = { questions: payload };
+    if (QUESTIONS_BASED_BLUEPRINTS.has(this.playable.templateId)) {
+      normalizedPayload = normalizeQuestionBasedPayload(payload);
     }
 
     this.rounds = Array.isArray(normalizedPayload) ? normalizedPayload : [normalizedPayload];

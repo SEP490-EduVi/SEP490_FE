@@ -2,6 +2,7 @@ import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import {
   AdminGradeResponse,
+  AdminUserCreateRequest,
   AdminLessonResponse,
   AdminOrderResponse,
   AdminRoleResponse,
@@ -44,7 +45,7 @@ interface ListTransactionsParams {
   userId?: number;
   type?: string;
   transactionType?: string;
-  status?: string;
+  status?: number;
   fromDate?: string;
   toDate?: string;
   page?: number;
@@ -53,7 +54,7 @@ interface ListTransactionsParams {
 
 interface ListOrdersParams {
   teacherId?: number;
-  status?: string;
+  status?: number;
   paymentMethod?: string;
   fromDate?: string;
   toDate?: string;
@@ -137,8 +138,17 @@ export const adminServices = {
   },
 
   listUsers: async (params: ListUsersParams) => {
+    const { roleId, status, search, fromDate, toDate, page, pageSize } = params;
     const res = await api.get<ApiResponse<PagedResponse<AdminUserResponse>>>(API_ENDPOINTS.ADMIN.USERS, {
-      params: normalizeParams(params),
+      params: normalizeParams({
+        RoleId: roleId,
+        Status: status,
+        Search: search,
+        FromDate: fromDate,
+        ToDate: toDate,
+        Page: page,
+        PageSize: pageSize,
+      }),
     });
     return res.data;
   },
@@ -148,10 +158,16 @@ export const adminServices = {
     return res.data;
   },
 
+  createUser: async (payload: AdminUserCreateRequest) => {
+    const res = await api.post<ApiResponse<AdminUserResponse>>(API_ENDPOINTS.ADMIN.USERS, payload);
+    return res.data;
+  },
+
   updateUser: async (userCode: string, payload: AdminUserUpdateRequest) => {
+    const { fullName, phoneNumber, avatarUrl } = payload;
     const res = await api.put<ApiResponse<AdminUserResponse>>(
       API_ENDPOINTS.ADMIN.USER_BY_CODE(userCode),
-      payload
+      normalizeParams({ fullName, phoneNumber, avatarUrl })
     );
     return res.data;
   },
@@ -172,7 +188,7 @@ export const adminServices = {
   },
 
   changeUserRole: async (userCode: string, payload: ChangeUserRoleRequest) => {
-    const res = await api.put<ApiResponse<AdminUserResponse>>(
+    const res = await api.put<ApiResponse<string>>(
       API_ENDPOINTS.ADMIN.USER_CHANGE_ROLE(userCode),
       payload
     );
@@ -203,8 +219,13 @@ export const adminServices = {
       API_ENDPOINTS.ADMIN.FINANCIAL_TRANSACTIONS,
       {
         params: normalizeParams({
-          ...rest,
-          type: type ?? transactionType,
+          UserId: rest.userId,
+          TransactionType: type ?? transactionType,
+          Status: rest.status,
+          FromDate: rest.fromDate,
+          ToDate: rest.toDate,
+          Page: rest.page,
+          PageSize: rest.pageSize,
         }),
       }
     );
@@ -212,9 +233,20 @@ export const adminServices = {
   },
 
   listOrders: async (params: ListOrdersParams) => {
+    const { teacherId, status, paymentMethod, fromDate, toDate, page, pageSize } = params;
     const res = await api.get<ApiResponse<PagedResponse<AdminOrderResponse>>>(
       API_ENDPOINTS.ADMIN.FINANCIAL_ORDERS,
-      { params: normalizeParams(params) }
+      {
+        params: normalizeParams({
+          TeacherId: teacherId,
+          Status: status,
+          PaymentMethod: paymentMethod,
+          FromDate: fromDate,
+          ToDate: toDate,
+          Page: page,
+          PageSize: pageSize,
+        }),
+      }
     );
     return res.data;
   },

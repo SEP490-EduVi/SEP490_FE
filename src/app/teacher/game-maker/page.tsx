@@ -29,6 +29,26 @@ function isTerminalStatus(s: string) {
   return n === 'completed' || n === 'failed' || n === 'success';
 }
 
+function normalizeGameStatusMessage(raw?: string | null) {
+  if (!raw) return '';
+  const msg = raw.trim();
+  if (!msg) return '';
+
+  const lower = msg.toLowerCase();
+  if (lower.includes('generating game payload with gemini')) return 'Đang tạo nội dung game bằng Gemini...';
+  if (lower.includes('starting game generation') || lower.includes('start game generation')) return 'Đang bắt đầu tạo game...';
+  if (lower.includes('validating') && lower.includes('input')) return 'Đang kiểm tra dữ liệu đầu vào...';
+  if (lower.includes('fetching') && (lower.includes('slide') || lower.includes('document'))) {
+    return 'Đang lấy dữ liệu slide...';
+  }
+  if (lower.includes('building') && lower.includes('payload')) return 'Đang xây dựng dữ liệu game...';
+  if (lower.includes('queue')) return 'Đang xếp hàng xử lý...';
+  if (lower.includes('processing')) return 'Đang xử lý...';
+  if (lower.includes('completed') || lower.includes('success')) return 'Đã hoàn tất.';
+
+  return msg;
+}
+
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default function GameMakerPage() {
@@ -61,13 +81,13 @@ export default function GameMakerPage() {
 
       const detail = event.detail?.trim();
       const step = event.step?.trim();
-      if (detail) setStatusText(detail);
-      else if (step) setStatusText(`Đang xử lý: ${step}`);
+      if (detail) setStatusText(normalizeGameStatusMessage(detail));
+      else if (step) setStatusText(normalizeGameStatusMessage(`Đang xử lý: ${step}`));
 
       if (event.status.toLowerCase() === 'failed') {
         stopPolling();
         setIsLoading(false);
-        setStatusText(event.error || 'Tạo game thất bại');
+        setStatusText(normalizeGameStatusMessage(event.error || 'Tạo game thất bại'));
         return;
       }
 
@@ -165,7 +185,7 @@ export default function GameMakerPage() {
   // Fullscreen game player — shown after user clicks "Bắt đầu"
   if (playable && !isEditing) {
     return (
-      <div className="fixed inset-0 z-50 bg-black">
+      <div className="fixed inset-0 z-50 bg-white">
         <PresentationGamePlayer
           playable={playable}
           onEnd={handleEnd}
@@ -177,19 +197,19 @@ export default function GameMakerPage() {
 
   // Loading state
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="flex flex-col items-center gap-4 text-white">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-400" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-4 text-slate-800">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         <div className="text-center">
           <p className="text-lg font-semibold">Đang tạo game...</p>
           {statusText && (
-            <p className="mt-1.5 text-sm text-slate-400 max-w-[280px]">{statusText}</p>
+            <p className="mt-1.5 text-sm text-slate-500 max-w-[280px]">{statusText}</p>
           )}
         </div>
         <button
           type="button"
           onClick={handleEnd}
-          className="mt-2 text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2"
+          className="mt-2 text-xs text-slate-500 hover:text-slate-700 transition-colors underline underline-offset-2"
         >
           Hủy
         </button>

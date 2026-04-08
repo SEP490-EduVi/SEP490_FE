@@ -34,7 +34,7 @@ export function GameMakerPanel() {
           className="text-sm px-3 py-1.5 rounded-lg border border-border bg-surface-secondary hover:bg-surface-tertiary"
           type="button"
         >
-          Create Game
+          Tạo game
         </button>
       </div>
 
@@ -61,19 +61,19 @@ export function GameMakerPanel() {
         <div data-role="config-backdrop" className="absolute inset-0 bg-black/50" />
         <div className="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-stage">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div className="text-sm font-semibold text-slate-800">Game Config</div>
+            <div className="text-sm font-semibold text-slate-800">Cấu hình game</div>
             <button
               data-role="close-modal-btn"
               type="button"
               className="text-xs px-2 py-1 rounded-lg border border-border bg-surface-secondary hover:bg-surface-tertiary"
             >
-              Close
+              Đóng
             </button>
           </div>
 
           <div className="p-4 space-y-3">
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Blueprint</label>
+              <label className="block text-xs text-slate-600 mb-1">Mẫu game</label>
               <select
                 data-role="template-select"
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
@@ -85,7 +85,7 @@ export function GameMakerPanel() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Time limit (sec)</label>
+              <label className="block text-xs text-slate-600 mb-1">Thời gian (giây)</label>
               <input
                 data-role="time-limit-input"
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
@@ -97,7 +97,7 @@ export function GameMakerPanel() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Hover hold (ms)</label>
+              <label className="block text-xs text-slate-600 mb-1">Giữ hover (ms)</label>
               <input
                 data-role="hover-hold-input"
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
@@ -109,7 +109,7 @@ export function GameMakerPanel() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Pinch threshold</label>
+              <label className="block text-xs text-slate-600 mb-1">Ngưỡng chụm tay</label>
               <input
                 data-role="pinch-threshold-input"
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
@@ -127,7 +127,7 @@ export function GameMakerPanel() {
                 type="button"
                 className="text-sm px-3 py-2 rounded-lg border border-border bg-surface-secondary hover:bg-surface-tertiary"
               >
-                Save Game
+                Lưu game
               </button>
             </div>
           </div>

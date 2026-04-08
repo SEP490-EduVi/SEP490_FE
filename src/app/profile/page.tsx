@@ -73,15 +73,22 @@ function CertStatusBadge({ status }: { status: string }) {
 function ProfilePageInner() {
   const searchParams    = useSearchParams();
   const { user, role, setUser } = useAuthStore();
+  const isStaff = role === 'staff';
 
   const defaultTab = (): Tab => {
     const t = searchParams.get('tab');
     if (t === 'security')    return 'security';
-    if (t === 'payment')     return 'payment';
+    if (t === 'payment' && !isStaff) return 'payment';
     if (t === 'certificate') return 'certificate';
     return 'profile';
   };
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
+
+  useEffect(() => {
+    if (isStaff && activeTab === 'payment') {
+      setActiveTab('profile');
+    }
+  }, [isStaff, activeTab]);
 
   // ── GET /me ──────────────────────────────────────────────────────────────
   const { data: meData, isLoading: isMeLoading } = useGetMeService({ enabled: true });
@@ -203,20 +210,22 @@ function ProfilePageInner() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [verifyingOrder, setVerifyingOrder] = useState<number | null>(null);
 
-  const { data: plans = [], isLoading: plansLoading } = useSubscriptionPlans();
+  const { data: plans = [], isLoading: plansLoading } = useSubscriptionPlans({ enabled: !isStaff });
   const {
     data: wallet,
     isLoading: walletLoading,
     isError: walletError,
     refetch: refetchWallet,
-  } = useWalletInfo();
-  const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10);
-  const { data: userQuota, isLoading: quotaLoading } = useUserQuota();
+  } = useWalletInfo({ enabled: !isStaff });
+  const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10, { enabled: !isStaff });
+  const { data: userQuota, isLoading: quotaLoading } = useUserQuota({ enabled: !isStaff });
   const topUpWallet = useTopUpWallet();
   const verifyTopUp = useVerifyTopUp();
   const buySubscription = useBuySubscription();
 
   useEffect(() => {
+    if (isStaff) return;
+
     const orderCodeRaw = searchParams.get('orderCode');
     if (!orderCodeRaw) return;
     const orderCode = Number(orderCodeRaw);
@@ -235,9 +244,11 @@ function ProfilePageInner() {
         setPaymentError(msg ?? 'Không thể xác minh giao dịch nạp tiền.');
       },
     });
-  }, [searchParams, verifyTopUp, verifyingOrder, refetchWallet]);
+  }, [searchParams, verifyTopUp, verifyingOrder, refetchWallet, isStaff]);
 
   const handleTopUp = () => {
+    if (isStaff) return;
+
     const amount = Number(topUpAmount);
     if (!Number.isFinite(amount) || amount < 10000) {
       setPaymentError('Số tiền nạp tối thiểu là 10.000.');
@@ -275,6 +286,8 @@ function ProfilePageInner() {
   };
 
   const handleBuyPlan = (planId: number) => {
+    if (isStaff) return;
+
     setPaymentError(null);
     setPaymentMessage(null);
 
@@ -323,7 +336,7 @@ function ProfilePageInner() {
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
-    { key: 'payment',  label: 'Thanh toán', icon: Wallet    },
+    ...(!isStaff ? [{ key: 'payment' as Tab, label: 'Thanh toán', icon: Wallet }] : []),
     ...(isExpert ? [{ key: 'certificate' as Tab, label: 'Chứng chỉ', icon: ShieldCheck }] : []),
   ];
 
@@ -698,7 +711,7 @@ function ProfilePageInner() {
           )}
 
           {/* ════ Thanh toán ════ */}
-          {activeTab === 'payment' && (
+          {!isStaff && activeTab === 'payment' && (
             <motion.div key="payment"
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
