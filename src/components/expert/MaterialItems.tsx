@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Pencil, Trash2 } from 'lucide-react';
+import { BookOpen, Eye, Pencil, Trash2 } from 'lucide-react';
 import type { MaterialDto } from '@/types/api';
 import { APPROVAL_STATUS_MAP } from './materialConstants';
 import { GcsImage } from '@/components/common';
@@ -11,13 +11,14 @@ interface Props {
   material: MaterialDto;
   confirmDelete: string | null;
   isDeleting: boolean;
+  onViewDetail?: () => void;
   onEdit: () => void;
   onDeleteStart: () => void;
   onDeleteConfirm: () => void;
   onDeleteCancel: () => void;
 }
 
-export function MaterialCard({ material: m, confirmDelete, isDeleting, onEdit, onDeleteStart, onDeleteConfirm, onDeleteCancel }: Props) {
+export function MaterialCard({ material: m, confirmDelete, isDeleting, onViewDetail, onEdit, onDeleteStart, onDeleteConfirm, onDeleteCancel }: Props) {
   const status = APPROVAL_STATUS_MAP[m.approvalStatus] ?? APPROVAL_STATUS_MAP[0];
 
   return (
@@ -59,6 +60,12 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onEdit, o
         <p className="text-[10px] text-gray-400">{new Date(m.createdAt).toLocaleDateString('vi-VN')}</p>
 
         <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={onViewDetail}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            <Eye className="w-3 h-3" /> Xem
+          </button>
           <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
             <Pencil className="w-3 h-3" /> Sửa
           </button>
@@ -80,7 +87,7 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onEdit, o
   );
 }
 
-export function MaterialListItem({ material: m, confirmDelete, isDeleting, onEdit, onDeleteStart, onDeleteConfirm, onDeleteCancel }: Props) {
+export function MaterialListItem({ material: m, confirmDelete, isDeleting, onViewDetail, onEdit, onDeleteStart, onDeleteConfirm, onDeleteCancel }: Props) {
   const status = APPROVAL_STATUS_MAP[m.approvalStatus] ?? APPROVAL_STATUS_MAP[0];
 
   return (
@@ -117,6 +124,9 @@ export function MaterialListItem({ material: m, confirmDelete, isDeleting, onEdi
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={onViewDetail} className="p-2 text-gray-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" title="Xem chi tiết">
+            <Eye className="w-4 h-4" />
+          </button>
           <button onClick={onEdit} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa">
             <Pencil className="w-4 h-4" />
           </button>

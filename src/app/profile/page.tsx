@@ -772,55 +772,6 @@ function ProfilePageInner() {
                 </div>
               </div>
 
-              {/* Quota section */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Quota sử dụng</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {userQuota ? `Cập nhật: ${new Date(userQuota.updatedAt).toLocaleString('vi-VN')}` : 'Lượt dùng tính năng AI của bạn'}
-                    </p>
-                  </div>
-                </div>
-                {quotaLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                  </div>
-                ) : userQuota ? (
-                  <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {[
-                      { label: 'Phân tích AI', total: userQuota.totalAnalysisQuota, available: userQuota.availableAnalysisQuota, used: userQuota.usedAnalysisQuota, color: 'blue' },
-                      { label: 'Tạo Slide', total: userQuota.totalSlideQuota, available: userQuota.availableSlideQuota, used: userQuota.usedSlideQuota, color: 'violet' },
-                      { label: 'Tạo Video', total: userQuota.totalVideoQuota, available: userQuota.availableVideoQuota, used: userQuota.usedVideoQuota, color: 'rose' },
-                    ].map((q) => {
-                      const pct = q.total > 0 ? Math.round((q.used / q.total) * 100) : 0;
-                      const barColor = q.color === 'blue' ? 'bg-blue-500' : q.color === 'violet' ? 'bg-violet-500' : 'bg-rose-500';
-                      const textColor = q.color === 'blue' ? 'text-blue-600' : q.color === 'violet' ? 'text-violet-600' : 'text-rose-600';
-                      return (
-                        <div key={q.label} className="bg-gray-50 rounded-xl p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-gray-600">{q.label}</span>
-                            <span className={`text-xs font-semibold ${textColor}`}>{pct}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2.5">
-                            <div
-                              className={`${barColor} h-2 rounded-full transition-all`}
-                              style={{ width: `${Math.min(pct, 100)}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-xs text-gray-500">
-                            <span>Còn lại: <span className="font-semibold text-gray-800">{q.available.toLocaleString('vi-VN')}</span></span>
-                            <span>Tổng: {q.total.toLocaleString('vi-VN')}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="px-6 py-6 text-sm text-gray-400">Không có dữ liệu quota.</p>
-                )}
-              </div>
-
               <AnimatePresence>
                 {paymentError && (
                   <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}

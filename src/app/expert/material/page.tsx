@@ -1,15 +1,172 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign } from 'lucide-react';
+import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign, X } from 'lucide-react';
 
 import { useMyMaterials, useUploadMaterial, useUpdateMaterial, useDeleteMaterial } from '@/hooks/useExpertApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import type { MaterialDto, UpdateMaterialInput } from '@/types/api';
 import { MaterialCard, MaterialListItem, EditMaterialModal, UploadMaterialForm } from '@/components/expert';
 import { AppHeader } from '@/components';
-import { notify } from '@/components/common';
+import { notify, GcsImage } from '@/components/common';
+import { resolveGcsUrl } from '@/components/common/GcsImage';
+import { motion } from 'framer-motion';
+
+function MaterialDetailModal({ material, onClose }: { material: MaterialDto; onClose: () => void }) {
+  const [resolvedResourceUrl, setResolvedResourceUrl] = useState<string>('');
+  const [resolvingResource, setResolvingResource] = useState(false);
+  const [resourceError, setResourceError] = useState<string>('');
+
+  useEffect(() => {
+    let mounted = true;
+    const resolve = async () => {
+      if (!material.resourceUrl) {
+        setResolvedResourceUrl('');
+        setResourceError('');
+        return;
+      }
+
+      setResolvingResource(true);
+      setResolvedResourceUrl('');
+      setResourceError('');
+      try {
+        const resolved = await resolveGcsUrl(material.resourceUrl);
+        if (!mounted) return;
+        setResolvedResourceUrl(resolved);
+      } catch {
+        if (!mounted) return;
+        setResourceError('Không thể tải Resource URL để xem trước.');
+      } finally {
+        if (mounted) setResolvingResource(false);
+      }
+    };
+
+    void resolve();
+    return () => {
+      mounted = false;
+    };
+  }, [material.resourceUrl]);
+
+  const getPreviewKind = () => {
+    const source = (resolvedResourceUrl || material.resourceUrl || '').toLowerCase();
+    if (material.type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/.test(source)) return 'video';
+    if (material.type === 'image' || /\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?|$)/.test(source)) return 'image';
+    return 'other';
+  };
+
+  const previewKind = getPreviewKind();
+
+  const handleOpenResolvedUrl = () => {
+    if (!resolvedResourceUrl) return;
+    setResourceError('');
+    window.open(resolvedResourceUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden"
+      >
+        <div className="relative h-52 bg-gradient-to-br from-blue-50 to-indigo-100">
+          {material.previewUrl ? (
+            <GcsImage src={material.previewUrl} alt={material.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <BookOpen className="w-12 h-12 text-blue-300" />
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/55"
+            aria-label="Đóng"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">{material.title}</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {material.subjectName || '-'} · {material.gradeName || '-'}
+              </p>
+            </div>
+            <p className="text-base font-bold text-blue-700">
+              {material.price > 0 ? `${material.price.toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700 leading-relaxed">
+            {material.description && material.description.trim().toLowerCase() !== 'string'
+              ? material.description
+              : 'Chưa có mô tả cho tài liệu này.'}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="rounded-lg border border-gray-100 p-3">
+              <p className="text-xs text-gray-500 mb-1">Mã tài liệu</p>
+              <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-3">
+              <p className="text-xs text-gray-500 mb-1">Ngày tạo</p>
+              <p className="font-medium text-gray-800">{new Date(material.createdAt).toLocaleString('vi-VN')}</p>
+            </div>
+            {/* <div className="rounded-lg border border-gray-100 p-3 sm:col-span-2">
+              <p className="text-xs text-gray-500 mb-1">Resource URL</p>
+              <p className="font-medium text-gray-800 break-all">{material.resourceUrl || '-'}</p>
+              {resolvingResource && (
+                <p className="mt-2 text-xs text-slate-500 inline-flex items-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Đang tải preview resource...
+                </p>
+              )}
+              {resourceError && <p className="mt-2 text-xs text-red-600">{resourceError}</p>}
+            </div> */}
+          </div>
+
+          {!!resolvedResourceUrl && (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <p className="text-xs text-gray-500 mb-2">Xem trước resource</p>
+
+              {previewKind === 'image' && (
+                <img src={resolvedResourceUrl} alt={material.title} className="w-full max-h-[320px] object-contain rounded-lg bg-white" />
+              )}
+
+              {previewKind === 'video' && (
+                <video controls className="w-full max-h-[320px] rounded-lg bg-black" src={resolvedResourceUrl} />
+              )}
+
+              {previewKind === 'other' && (
+                <button
+                  type="button"
+                  onClick={handleOpenResolvedUrl}
+                  className="inline-flex items-center rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                >
+                  Mở file resource
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function MaterialPage() {
   const { data: materials = [], isLoading, isError, error } = useMyMaterials();
@@ -23,6 +180,7 @@ export default function MaterialPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<MaterialDto | null>(null);
+  const [detailTarget, setDetailTarget] = useState<MaterialDto | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const filtered = materials.filter(
@@ -52,6 +210,7 @@ export default function MaterialPage() {
     material: m,
     confirmDelete,
     isDeleting: deleteMaterial.isPending,
+    onViewDetail: () => setDetailTarget(m),
     onEdit: () => setEditTarget(m),
     onDeleteStart: () => setConfirmDelete(m.materialCode),
     onDeleteConfirm: () => handleDelete(m.materialCode),
@@ -159,6 +318,15 @@ export default function MaterialPage() {
           </div>
         )}
       </main>
+
+      <AnimatePresence>
+        {detailTarget && (
+          <MaterialDetailModal
+            material={detailTarget}
+            onClose={() => setDetailTarget(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {editTarget && (
