@@ -57,7 +57,7 @@ export function GameMakerPanel() {
       </div>
 
       {/* Config modal (vanilla DOM-driven) */}
-      <div data-role="config-modal" className="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div data-role="config-modal" className="overflow-hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div data-role="config-backdrop" className="absolute inset-0 bg-black/50" />
         <div className="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-stage">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">

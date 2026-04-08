@@ -21,6 +21,11 @@ import { AudioWidget } from './AudioWidget';
 import { EmbedWidget } from './EmbedWidget';
 import { CodeWidget } from './CodeWidget';
 
+// Interactive block widgets (Quiz / Flashcard / Fill-in-Blank)
+import { QuizBlockWidget } from './QuizBlockWidget';
+import { FlashcardBlockWidget } from './FlashcardBlockWidget';
+import { FillBlankBlockWidget } from './FillBlankBlockWidget';
+
 // ============================================================================
 // REGISTER ALL WIDGETS
 // ============================================================================
@@ -56,4 +61,8 @@ export {
   AudioWidget,
   EmbedWidget,
   CodeWidget,
+  // Interactive block widgets
+  QuizBlockWidget,
+  FlashcardBlockWidget,
+  FillBlankBlockWidget,
 };

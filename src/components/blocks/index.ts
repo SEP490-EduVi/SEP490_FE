@@ -5,4 +5,4 @@ export { TextBlock } from './TextBlock';
 export { HeadingBlock } from './HeadingBlock';
 export { ImageBlock } from './ImageBlock';
 export { VideoBlock } from './VideoBlock';
-export { FloatingTextToolbar } from './FloatingTextToolbar';
+export { FloatingTextToolbar, ContextualTextToolbar } from './FloatingTextToolbar';

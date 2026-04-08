@@ -26,10 +26,11 @@ import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
 import { ColoredListItem } from './extensions/coloredListItem';
+import { FontSize } from './extensions/fontSize';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { BlockType, ITextContent } from '@/types';
-import { FloatingTextToolbar } from './FloatingTextToolbar';
+import { useActiveEditorStore, getActiveEditor } from '@/store/activeEditorStore';
 
 interface TextBlockProps {
   id: string;
@@ -68,6 +69,7 @@ export function TextBlock({
       TextStyle,
       Color,
       FontFamily,
+      FontSize,
       ColoredListItem,
     ],
     content: content.html,
@@ -107,20 +109,32 @@ export function TextBlock({
         });
       }, 500); // Wait 500ms after user stops typing
     },
-    onFocus: () => {
+    onFocus: ({ editor: e }) => {
       setShowToolbar(true);
+      // Only update global store if this editor just gained focus (hasSelection is false)
+      // If hasSelection is true, another selection may be in progress — don't reset it
+      if (!useActiveEditorStore.getState().hasSelection) {
+        useActiveEditorStore.getState().setActiveEditor(e, false);
+      }
       setEditingNodeId(id);
       onSelect?.();
     },
-    onSelectionUpdate: ({ editor }) => {
-      const { from, to } = editor.state.selection;
+    onSelectionUpdate: ({ editor: e }) => {
+      const { from, to } = e.state.selection;
       const hasSelection = from !== to;
       setShowToolbar(hasSelection);
+      useActiveEditorStore.getState().setActiveEditor(e, hasSelection);
       setEditingNodeId(hasSelection ? id : null);
     },
-    onBlur: () => {
+    onTransaction: () => {
+      useActiveEditorStore.getState().bumpEditorVersion();
+    },
+    onBlur: ({ editor: blurredEditor }) => {
       setTimeout(() => {
         setShowToolbar(false);
+        if (getActiveEditor() === blurredEditor) {
+          useActiveEditorStore.getState().setActiveEditor(null, false);
+        }
         setEditingNodeId(null);
       }, 150);
     },
@@ -155,10 +169,7 @@ export function TextBlock({
         }
       }}
     >
-      {/* Floating Text Toolbar - shows when editing or has selection */}
-      {editor && showToolbar && (
-        <FloatingTextToolbar editor={editor} show={showToolbar} />
-      )}
+      {/* ContextualTextToolbar is rendered globally in Toolbar — no local toolbar needed */}
 
       <EditorContent
         editor={editor}

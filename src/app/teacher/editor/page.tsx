@@ -49,7 +49,7 @@ import { Sidebar, Toolbar, MainStage } from '@/components/layout';
 import { MaterialSidebar } from '@/components/sidebar/MaterialSidebar';
 import { PresentationLayer } from '@/components/presentation';
 import SlideGenerationOverlay from '@/components/editor/SlideGenerationOverlay';
-import { IMaterial } from '@/types';
+import { IMaterial, BlockType } from '@/types';
 import type { PurchasedMaterialDto } from '@/types/api';
 import { Package } from 'lucide-react';
 
@@ -63,12 +63,23 @@ import { Package } from 'lucide-react';
 const customCollisionDetection: CollisionDetection = (args) => {
   const { active } = args;
   
-  // Check if we're dragging a sortable block (not a material)
-  const isDraggingBlock = !active.data.current?.material && !active.data.current?.purchasedMaterial;
+  // Check if we're dragging a sortable block (not a material or template insert)
+  const isDraggingBlock = !active.data.current?.material &&
+                          !active.data.current?.purchasedMaterial &&
+                          active.data.current?.type !== 'INSERT_TEMPLATE' &&
+                          active.data.current?.type !== 'INSERT_BLOCK';
   
-  // For sortable blocks, use closestCenter for smooth reordering (like sidebar)
+  // For sortable blocks, use closestCenter but only over OTHER sortable blocks/layouts.
+  // Exclude special droppable zones (CARD, LAYOUT_COLUMN) — they are not valid reorder targets.
   if (isDraggingBlock) {
-    return closestCenter(args);
+    const sortableOnly = {
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) => {
+        const t = c.data.current?.type as string | undefined;
+        return t !== 'CARD' && t !== 'LAYOUT_COLUMN';
+      }),
+    };
+    return closestCenter(sortableOnly);
   }
   
   // For materials: check for layout column collisions using pointer
@@ -104,9 +115,12 @@ export default function EditorPage() {
   const dropPurchasedMaterial = useDocumentStore((state) => state.dropPurchasedMaterial);
   const reorderNodesInCard = useDocumentStore((state) => state.reorderNodesInCard);
   const reorderNodesInLayout = useDocumentStore((state) => state.reorderNodesInLayout);
+  const addCardFromTemplate = useDocumentStore((state) => state.addCardFromTemplate);
 
   const [activeDragItem, setActiveDragItem] = React.useState<IMaterial | null>(null);
   const [activePurchasedDrag, setActivePurchasedDrag] = React.useState<PurchasedMaterialDto | null>(null);
+  const [activeInsertTemplateDrag, setActiveInsertTemplateDrag] = React.useState<{ name: string } | null>(null);
+  const [activeInsertBlockDrag, setActiveInsertBlockDrag] = React.useState<{ name: string } | null>(null);
 
   // Load document on mount
   useEffect(() => {
@@ -134,6 +148,10 @@ export default function EditorPage() {
       setActiveDragItem(dragData.material as IMaterial);
     } else if (dragData?.purchasedMaterial) {
       setActivePurchasedDrag(dragData.purchasedMaterial as PurchasedMaterialDto);
+    } else if (dragData?.type === 'INSERT_TEMPLATE') {
+      setActiveInsertTemplateDrag({ name: dragData.name as string });
+    } else if (dragData?.type === 'INSERT_BLOCK') {
+      setActiveInsertBlockDrag({ name: dragData.name as string });
     }
   };
 
@@ -145,12 +163,46 @@ export default function EditorPage() {
     // Reset drag state
     setActiveDragItem(null);
     setActivePurchasedDrag(null);
+    setActiveInsertTemplateDrag(null);
+    setActiveInsertBlockDrag(null);
+
+    // ── Handle insert template drop (creates new standalone slide) ────────────────────
+    if (dragData?.type === 'INSERT_TEMPLATE' && dragData.templateType) {
+      addCardFromTemplate(dragData.templateType as string);
+      return;
+    }
+
+    // ── Handle insert block drop (inserts a block into an existing slide) ────────────
+    if (dragData?.type === 'INSERT_BLOCK' && dragData.blockType) {
+      // Priority: layout column > card > active card
+      if (over?.data.current?.type === 'LAYOUT_COLUMN') {
+        const layoutId = over.data.current.layoutId as string;
+        useDocumentStore.getState().addBlockToLayout(layoutId, dragData.blockType as BlockType);
+        return;
+      }
+      const targetCardId =
+        (over?.data.current?.type === 'CARD' && (over.data.current.cardId as string)) ||
+        activeCardId;
+      if (targetCardId) {
+        useDocumentStore.getState().addBlockToCard(targetCardId, dragData.blockType as BlockType);
+      }
+      return;
+    }
 
     if (!over) return;
 
     // ── Handle purchased material drop ──────────────────────────
     if (dragData?.purchasedMaterial) {
       const pm = dragData.purchasedMaterial as PurchasedMaterialDto;
+      const isVideo = pm.type.toLowerCase().includes('video');
+
+      // Non-video items dropped on a layout column go into the layout
+      if (!isVideo && over?.data.current?.type === 'LAYOUT_COLUMN') {
+        const layoutId = over.data.current.layoutId as string;
+        dropPurchasedMaterial(layoutId, pm);
+        return;
+      }
+
       const targetCardId =
         (over.data.current?.type === 'CARD' && (over.data.current.cardId as string)) ||
         activeCardId;
@@ -193,6 +245,10 @@ export default function EditorPage() {
       }
     } else {
       // Handle sortable block reordering
+      // Safety guard: if over is a zone droppable (not a block), ignore
+      const overType = over.data.current?.type as string | undefined;
+      if (overType === 'CARD' || overType === 'LAYOUT_COLUMN') return;
+
       if (active.id !== over.id && activeCardId) {
         // Check if drag is happening within a nested layout (template columns)
         const parentLayoutId = active.data.current?.parentLayoutId;
@@ -261,6 +317,32 @@ export default function EditorPage() {
                       ? 'Thả để tạo slide video mới'
                       : 'Thả vào slide'}
                   </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeInsertTemplateDrag && (
+            <div className="bg-white border-2 border-violet-400 rounded-lg p-3 shadow-xl opacity-90">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-violet-100 rounded flex items-center justify-center">
+                  <Package className="w-4 h-4 text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{activeInsertTemplateDrag.name}</p>
+                  <p className="text-xs text-gray-500">Thả để tạo slide mới</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeInsertBlockDrag && (
+            <div className="bg-white border-2 border-blue-400 rounded-lg p-3 shadow-xl opacity-90">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                  <Package className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{activeInsertBlockDrag.name}</p>
+                  <p className="text-xs text-gray-500">Thả vào slide để chèn</p>
                 </div>
               </div>
             </div>
