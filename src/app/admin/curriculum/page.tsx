@@ -24,6 +24,12 @@ type EditState =
   | { type: 'lesson'; originalCode: string; data: CreateLessonRequest }
   | null;
 
+type DeleteConfirmState =
+  | { type: 'grade'; code: string; name: string }
+  | { type: 'subject'; code: string; name: string }
+  | { type: 'lesson'; code: string; name: string }
+  | null;
+
 export default function AdminCurriculumPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('grade');
   const [loading, setLoading] = useState(true);
@@ -40,6 +46,8 @@ export default function AdminCurriculumPage() {
   const [lessonForm, setLessonForm] = useState<CreateLessonRequest>({ lessonCode: '', lessonName: '', subjectCode: '' });
 
   const [editState, setEditState] = useState<EditState>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const parseErrorMessage = (err: unknown, fallback: string) =>
     (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? fallback;
@@ -132,8 +140,6 @@ export default function AdminCurriculumPage() {
   };
 
   const handleDeleteGrade = async (gradeCode: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa khối lớp ${gradeCode}?`)) return;
-
     setBusy(true);
     try {
       await adminServices.deleteGrade(gradeCode);
@@ -147,8 +153,6 @@ export default function AdminCurriculumPage() {
   };
 
   const handleDeleteSubject = async (subjectCode: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa môn học ${subjectCode}?`)) return;
-
     setBusy(true);
     try {
       await adminServices.deleteSubject(subjectCode);
@@ -165,8 +169,6 @@ export default function AdminCurriculumPage() {
   };
 
   const handleDeleteLesson = async (lessonCode: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa bài học ${lessonCode}?`)) return;
-
     setBusy(true);
     try {
       await adminServices.deleteLesson(lessonCode);
@@ -177,6 +179,29 @@ export default function AdminCurriculumPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return;
+    if (deleteConfirmText.trim().toUpperCase() !== 'XOA') {
+      notify.error('Vui lòng nhập đúng từ XOA để xác nhận xóa.');
+      return;
+    }
+
+    if (deleteConfirm.type === 'grade') {
+      await handleDeleteGrade(deleteConfirm.code);
+    }
+
+    if (deleteConfirm.type === 'subject') {
+      await handleDeleteSubject(deleteConfirm.code);
+    }
+
+    if (deleteConfirm.type === 'lesson') {
+      await handleDeleteLesson(deleteConfirm.code);
+    }
+
+    setDeleteConfirm(null);
+    setDeleteConfirmText('');
   };
 
   const handleSaveEdit = async () => {
@@ -224,8 +249,8 @@ export default function AdminCurriculumPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý Grade, Subject, Lesson</h1>
-        <p className="mt-1 text-sm text-gray-500">Quản trị chương trình học theo mã code từ</p>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý chương trình học</h1>
+        <p className="mt-1 text-sm text-gray-500">Quản trị Khối lớp, Môn học, Bài học</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -234,21 +259,21 @@ export default function AdminCurriculumPage() {
           onClick={() => setActiveTab('grade')}
           className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'grade' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
         >
-          Grade
+          Khối lớp
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('subject')}
           className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'subject' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
         >
-          Subject
+          Môn học
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('lesson')}
           className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'lesson' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
         >
-          Lesson
+          Bài học
         </button>
       </div>
 
@@ -256,7 +281,8 @@ export default function AdminCurriculumPage() {
 
       {activeTab === 'grade' && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-600">Biểu mẫu tạo mới</p>
             <h2 className="mb-3 text-base font-semibold text-gray-900">Tạo khối lớp</h2>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <input
@@ -285,6 +311,7 @@ export default function AdminCurriculumPage() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-700">Danh sách khối lớp</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -325,7 +352,10 @@ export default function AdminCurriculumPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleDeleteGrade(g.gradeCode)}
+                              onClick={() => {
+                                setDeleteConfirm({ type: 'grade', code: g.gradeCode, name: g.gradeName });
+                                setDeleteConfirmText('');
+                              }}
                               className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                             >
                               Xóa
@@ -344,7 +374,8 @@ export default function AdminCurriculumPage() {
 
       {activeTab === 'subject' && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-600">Biểu mẫu tạo mới</p>
             <h2 className="mb-3 text-base font-semibold text-gray-900">Tạo môn học</h2>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <input
@@ -373,6 +404,7 @@ export default function AdminCurriculumPage() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-700">Danh sách môn học</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -402,6 +434,17 @@ export default function AdminCurriculumPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
+                              onClick={() => {
+                                setLessonFilterSubjectCode(s.subjectCode);
+                                setActiveTab('lesson');
+                                void loadAll(s.subjectCode);
+                              }}
+                              className="rounded-md border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50"
+                            >
+                              Xem bài học
+                            </button>
+                            <button
+                              type="button"
                               onClick={() =>
                                 setEditState({
                                   type: 'subject',
@@ -415,7 +458,10 @@ export default function AdminCurriculumPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleDeleteSubject(s.subjectCode)}
+                              onClick={() => {
+                                setDeleteConfirm({ type: 'subject', code: s.subjectCode, name: s.subjectName });
+                                setDeleteConfirmText('');
+                              }}
                               className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                             >
                               Xóa
@@ -434,7 +480,8 @@ export default function AdminCurriculumPage() {
 
       {activeTab === 'lesson' && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-600">Biểu mẫu tạo mới</p>
             <h2 className="mb-3 text-base font-semibold text-gray-900">Tạo bài học</h2>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
               <input
@@ -496,6 +543,7 @@ export default function AdminCurriculumPage() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-700">Danh sách bài học</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -542,7 +590,10 @@ export default function AdminCurriculumPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleDeleteLesson(l.lessonCode)}
+                              onClick={() => {
+                                setDeleteConfirm({ type: 'lesson', code: l.lessonCode, name: l.lessonName });
+                                setDeleteConfirmText('');
+                              }}
                               className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                             >
                               Xóa
@@ -708,6 +759,61 @@ export default function AdminCurriculumPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => {
+          if (!busy) {
+            setDeleteConfirm(null);
+            setDeleteConfirmText('');
+          }
+        }}
+        title="Xác nhận xóa dữ liệu"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteConfirm(null);
+                setDeleteConfirmText('');
+              }}
+              disabled={busy}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleConfirmDelete()}
+              disabled={busy}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {busy ? 'Đang xử lý...' : 'Xác nhận xóa'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-sm text-gray-600">
+          <p>
+            Bạn sắp xóa{' '}
+            <strong>
+              {deleteConfirm?.type === 'grade' && 'khối lớp'}
+              {deleteConfirm?.type === 'subject' && 'môn học'}
+              {deleteConfirm?.type === 'lesson' && 'bài học'}
+            </strong>{' '}
+            <strong>{deleteConfirm?.name}</strong> ({deleteConfirm?.code}).
+          </p>
+          <p>Hành động này có thể ảnh hưởng dữ liệu liên quan. Nhập <strong>XOA</strong> để xác nhận.</p>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Nhập XOA"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+          />
+        </div>
       </Modal>
     </div>
   );

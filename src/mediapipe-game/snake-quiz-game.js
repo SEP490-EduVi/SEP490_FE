@@ -227,15 +227,27 @@ export class SnakeQuizGame {
   }
 
   _updateQuestion(nowMs) {
+    const currentQuestion = this.questions[this.questionIndex];
+    if (!currentQuestion) {
+      this.questionIndex++;
+      if (this.questionIndex >= this.questions.length) {
+        this._setState('COMPLETE', nowMs);
+        this._spawnConfetti();
+      } else {
+        this._placeFood();
+        this._lastTickMs = nowMs;
+        this._setState('MOVING', nowMs);
+      }
+      return;
+    }
+
     const CHOICE_KEYS = ['ans1', 'ans2', 'ans3', 'ans4'];
     for (let i = 0; i < CHOICE_KEYS.length; i++) {
       if (this.kb.justPressed(CHOICE_KEYS[i])) {
-        const q = this.questions[this.questionIndex];
-        if (!q) break;
-        const choice = q.choices[i];
+        const choice = currentQuestion.choices[i];
         if (!choice) break;
         this.selectedChoiceId = choice.id;
-        this.feedbackCorrect  = choice.id === q.correctChoiceId;
+        this.feedbackCorrect  = choice.id === currentQuestion.correctChoiceId;
         if (this.feedbackCorrect) {
           this.score++;
           this.growQueue += 2;         // reward: grow snake

@@ -19,6 +19,7 @@ export default function PublicHeader() {
   const { user, role, isHydrated, logout } = useAuthStore();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [headerLogoErr, setHeaderLogoErr] = useState(false);
 
   const handleGoDashboard = () => {
     if (role === 'admin') router.push('/admin');
@@ -39,12 +40,23 @@ export default function PublicHeader() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              EduVi
-            </span>
+            {!headerLogoErr ? (
+              <img
+                src="/image.png"
+                alt="Eduvision"
+                className="h-10 w-auto object-contain"
+                onError={() => setHeaderLogoErr(true)}
+              />
+            ) : (
+              <>
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Eduvision
+                </span>
+              </>
+            )}
           </Link>
 
           {/* Desktop nav */}

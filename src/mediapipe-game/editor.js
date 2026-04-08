@@ -49,6 +49,26 @@ function hide(el) {
   el.classList.add('hidden');
 }
 
+function normalizeGameStatusMessage(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const msg = raw.trim();
+  if (!msg) return '';
+
+  const lower = msg.toLowerCase();
+  if (lower.includes('generating game payload with gemini')) return 'Dang tao noi dung game bang Gemini...';
+  if (lower.includes('starting game generation') || lower.includes('start game generation')) return 'Dang bat dau tao game...';
+  if (lower.includes('validating') && lower.includes('input')) return 'Dang kiem tra du lieu dau vao...';
+  if (lower.includes('fetching') && (lower.includes('slide') || lower.includes('document'))) {
+    return 'Dang lay du lieu slide...';
+  }
+  if (lower.includes('building') && lower.includes('payload')) return 'Dang xay dung du lieu game...';
+  if (lower.includes('queue')) return 'Dang xep hang xu ly...';
+  if (lower.includes('processing')) return 'Dang xu ly...';
+  if (lower.includes('completed') || lower.includes('success')) return 'Da hoan tat.';
+
+  return msg;
+}
+
 /**
  * @param {InitParams} params
  * @returns {() => void} dispose
@@ -185,10 +205,10 @@ export function initTeacherGameEditor({ rootEl }) {
       const createResp = await res.json();
       const taskId = createResp?.result?.taskId;
       if (!taskId) {
-        throw new Error('Không nhận được taskId từ API.');
+        throw new Error('Không nhận được mã tác vụ từ API.');
       }
 
-      setStatus(`Đã tạo task ${taskId}. Đang chờ xử lý...`);
+      setStatus(`Đã tạo mã tác vụ ${taskId}. Đang chờ xử lý...`);
 
       pollingTimer = window.setInterval(async () => {
         try {
@@ -205,14 +225,14 @@ export function initTeacherGameEditor({ rootEl }) {
           if (!progress) return;
 
           if (progress.detail) {
-            setStatus(progress.detail);
+            setStatus(normalizeGameStatusMessage(progress.detail));
           } else if (progress.step) {
-            setStatus(`Đang xử lý: ${progress.step}`);
+            setStatus(normalizeGameStatusMessage(`Dang xu ly: ${progress.step}`));
           }
 
           if (String(progress.status).toLowerCase() === 'failed') {
             stopPolling();
-            setStatus(progress.error || 'Tạo game thất bại');
+            setStatus(normalizeGameStatusMessage(progress.error || 'Tao game that bai'));
             return;
           }
 
@@ -230,7 +250,7 @@ export function initTeacherGameEditor({ rootEl }) {
       // eslint-disable-next-line no-console
       console.error(e);
       stopPolling();
-      setStatus(e instanceof Error ? e.message : 'Failed to start game');
+      setStatus(e instanceof Error ? e.message : 'Không thể khởi động game');
     }
   };
 
@@ -245,7 +265,7 @@ export function initTeacherGameEditor({ rootEl }) {
   modalBackdrop.addEventListener('click', closeModal);
   saveBtn.addEventListener('click', handleSave);
 
-  setStatus('Chưa có game. Bấm “Create Game”.');
+  setStatus('Chưa có game. Bấm “Tạo game”.');
 
   return () => {
     createBtn.removeEventListener('click', handleCreateClick);

@@ -267,15 +267,28 @@ export class RunnerQuizGame {
   }
 
   _updateQuestion(nowMs) {
+    const currentQuestion = this.questions[this.questionIndex];
+    if (!currentQuestion) {
+      this.questionIndex++;
+      this.selectedChoiceId = null;
+      this.feedbackCorrect = null;
+      this.wrongCount = 0;
+      if (this.questionIndex >= this.questions.length) {
+        this._setState('VICTORY', nowMs);
+        this._spawnConfetti();
+      } else {
+        this._setState('RUNNING', nowMs);
+      }
+      return;
+    }
+
     const KEYS = ['ans1', 'ans2', 'ans3', 'ans4'];
     for (let i = 0; i < KEYS.length; i++) {
       if (this.kb.justPressed(KEYS[i])) {
-        const q = this.questions[this.questionIndex];
-        if (!q) break;
-        const choice = q.choices[i];
+        const choice = currentQuestion.choices[i];
         if (!choice) break;
         this.selectedChoiceId = choice.id;
-        this.feedbackCorrect  = choice.id === q.correctChoiceId;
+        this.feedbackCorrect  = choice.id === currentQuestion.correctChoiceId;
         if (this.feedbackCorrect) this.score++;
         else this.wrongCount++;
         this._setState('FEEDBACK', nowMs);

@@ -26,7 +26,7 @@ const DIR = { UP: 'UP', DOWN: 'DOWN', LEFT: 'LEFT', RIGHT: 'RIGHT' };
 
 // ── Player configs ─────────────────────────────────────────────────────────────
 const PLAYER_CFGS = [
-  { label: 'P1', headColor: '#22c55e', bodyColor: '#16a34a', glowColor: '#4ade80', nameColor: '#86efac', startCol: 5,  startRow: 10, startDir: DIR.RIGHT, ansHint: 'Z X C V' },
+  { label: 'P1', headColor: '#22c55e', bodyColor: '#16a34a', glowColor: '#4ade80', nameColor: '#86efac', startCol: 5,  startRow: 10, startDir: DIR.RIGHT, ansHint: 'Z X C V / 1 2 3 4' },
   { label: 'P2', headColor: '#06b6d4', bodyColor: '#0891b2', glowColor: '#67e8f9', nameColor: '#a5f3fc', startCol: 14, startRow: 10, startDir: DIR.LEFT,  ansHint: '1 2 3 4' },
 ];
 
@@ -241,11 +241,19 @@ export class SnakeDuelGame {
 
     // Answering snake processes keys
     const q  = this.questions[this.questionIndex];
-    if (!q) return;
+    if (!q) {
+      this.whichAte = -1;
+      this._placeFood();
+      this._setState('MOVING', nowMs);
+      return;
+    }
     const eatKb = this.whichAte === 0 ? this.dual.player1 : this.dual.player2;
+    const eatKbAlt = this.whichAte === 0 ? this.dual.player2 : null;
     const KEYS  = ['ans1', 'ans2', 'ans3', 'ans4'];
     for (let ki = 0; ki < KEYS.length; ki++) {
-      if (eatKb.justPressed(KEYS[ki])) {
+      const pressedPrimary = eatKb.justPressed(KEYS[ki]);
+      const pressedAlt = eatKbAlt ? eatKbAlt.justPressed(KEYS[ki]) : false;
+      if (pressedPrimary || pressedAlt) {
         const choice = q.choices[ki];
         if (!choice) break;
         this.selectedChoiceId = choice.id;

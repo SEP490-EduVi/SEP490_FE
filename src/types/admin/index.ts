@@ -52,8 +52,18 @@ export interface AdminUserResponse {
 
 export interface AdminUserUpdateRequest {
   fullName?: string;
-  phone?: string;
-  avatar?: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+}
+
+export interface AdminUserCreateRequest {
+  username: string;
+  email: string;
+  password: string;
+  fullName: string;
+  roleId: number;
+  phoneNumber?: string;
+  avatarUrl?: string;
 }
 
 export interface ChangeUserRoleRequest {
@@ -79,22 +89,34 @@ export interface FinancialOverviewResponse {
 export interface AdminWalletResponse {
   walletId: number;
   userId: number;
+  username?: string | null;
   userCode?: string | null;
   fullName?: string | null;
   email?: string | null;
   balance: number;
+  lastUpdated?: string | null;
   updatedAt?: string | null;
 }
 
 export interface AdminTransactionResponse {
   transactionId: number;
-  userId: number;
+  orderCode?: number | null;
+  walletId?: number | null;
+  userId?: number | null;
+  username?: string | null;
   userCode?: string | null;
   fullName?: string | null;
   transactionType: string;
-  status: string;
-  amount: number;
+  status?: number | string;
+  statusName?: string | null;
+  amount: number | null;
+  balanceBefore?: number | null;
+  balanceAfter?: number | null;
+  description?: string | null;
+  planId?: number | null;
+  planName?: string | null;
   createdAt?: string | null;
+  updatedAt?: string | null;
   referenceCode?: string | null;
 }
 

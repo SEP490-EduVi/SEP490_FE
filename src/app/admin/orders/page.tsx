@@ -7,6 +7,8 @@ import { AdminOrderResponse } from '@/types/admin';
 
 const PAGE_SIZE = 10;
 const formatVND = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
+const toStartOfDayIso = (date: string) => (date ? new Date(`${date}T00:00:00`).toISOString() : undefined);
+const toEndOfDayIso = (date: string) => (date ? new Date(`${date}T23:59:59`).toISOString() : undefined);
 
 const getOrderStatusLabel = (status?: number | string, statusName?: string | null) => {
   if (typeof status === 'number') {
@@ -62,10 +64,10 @@ export default function AdminOrdersPage() {
     try {
       const res = await adminServices.listOrders({
         teacherId: teacherId ? Number(teacherId) : undefined,
-        status: status || undefined,
+        status: status ? Number(status) : undefined,
         paymentMethod: paymentMethod || undefined,
-        fromDate: fromDate || undefined,
-        toDate: toDate || undefined,
+        fromDate: toStartOfDayIso(fromDate),
+        toDate: toEndOfDayIso(toDate),
         page: targetPage,
         pageSize: PAGE_SIZE,
       });

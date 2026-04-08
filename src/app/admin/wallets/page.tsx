@@ -24,7 +24,7 @@ export default function AdminWalletsPage() {
       const result = res.result;
       const rows = result.data ?? result.items ?? [];
       setItems(rows);
-      setTotal(result.total ?? result.totalItems ?? rows.length);
+      setTotal(result.total ?? result.totalItems ?? result.totalCount ?? rows.length);
       setPage(result.page ?? result.currentPage ?? targetPage);
       setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
     } catch (err) {
@@ -72,10 +72,10 @@ export default function AdminWalletsPage() {
                 items.map((wallet) => (
                   <tr key={wallet.walletId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{wallet.walletId}</td>
-                    <td className="px-5 py-3 text-gray-700">{wallet.fullName || wallet.userCode || `Người dùng ${wallet.userId}`}</td>
+                    <td className="px-5 py-3 text-gray-700">{wallet.fullName || wallet.username || wallet.userCode || `Người dùng ${wallet.userId}`}</td>
                     <td className="px-5 py-3 text-gray-500">{wallet.email || '-'}</td>
                     <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(wallet.balance)}</td>
-                    <td className="px-5 py-3 text-gray-500">{wallet.updatedAt ? new Date(wallet.updatedAt).toLocaleString('vi-VN') : '-'}</td>
+                    <td className="px-5 py-3 text-gray-500">{(wallet.lastUpdated || wallet.updatedAt) ? new Date(wallet.lastUpdated || wallet.updatedAt || '').toLocaleString('vi-VN') : '-'}</td>
                   </tr>
                 ))
               )}

@@ -30,6 +30,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [logoLoadError, setLogoLoadError] = useState(false);
 
   const router = useRouter();
   const { mutate: register, isPending } = useRegisterService();
@@ -85,8 +86,17 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
         {/* Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-3xl font-bold text-indigo-600 tracking-tight">EduVi</h1>
+        <div className="text-center space-y-2">
+          {!logoLoadError ? (
+            <img
+              src="/image.png"
+              alt="Eduvision"
+              className="h-14 w-auto object-contain mx-auto"
+              onError={() => setLogoLoadError(true)}
+            />
+          ) : (
+            <h1 className="text-3xl font-bold text-indigo-600 tracking-tight">Eduvision</h1>
+          )}
           <p className="text-sm text-slate-500">Tạo tài khoản mới</p>
         </div>
 

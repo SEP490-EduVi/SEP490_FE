@@ -89,11 +89,11 @@ function HoverRoundEditor({
     <div className="space-y-4">
       {/* Prompt */}
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
           Câu hỏi
         </label>
         <textarea
-          className="w-full rounded-xl px-3 py-2.5 text-sm text-black bg-white/8 border border-white/12 focus:outline-none focus:border-blue-400/60 resize-none leading-relaxed"
+          className="w-full rounded-xl px-3 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-500 resize-none leading-relaxed"
           rows={2}
           value={round.prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -104,14 +104,14 @@ function HoverRoundEditor({
       {/* Choices */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Các đáp án (tối đa 4)
           </label>
           {round.choices.length < 4 && (
             <button
               type="button"
               onClick={addChoice}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-white/60 hover:text-white bg-white/6 hover:bg-white/12 border border-white/10 transition-colors"
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors"
             >
               <Plus size={11} />
               Thêm
@@ -128,8 +128,8 @@ function HoverRoundEditor({
                 key={c.id}
                 className="flex items-center gap-2 rounded-xl p-2 border transition-colors"
                 style={{
-                  borderColor: isCorrect ? `${color}66` : 'rgba(255,255,255,0.1)',
-                  background: isCorrect ? `${color}18` : 'rgba(255,255,255,0.05)',
+                  borderColor: isCorrect ? `${color}66` : 'rgba(148,163,184,0.45)',
+                  background: isCorrect ? `${color}18` : '#ffffff',
                 }}
               >
                 {/* Badge */}
@@ -142,7 +142,7 @@ function HoverRoundEditor({
 
                 {/* Text input */}
                 <input
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/30 focus:outline-none min-w-0"
+                  className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none min-w-0"
                   value={c.text}
                   onChange={(e) => setChoiceText(c.id, e.target.value)}
                   placeholder={`Đáp án ${BADGE_LABELS[idx] ?? idx + 1}`}
@@ -155,9 +155,9 @@ function HoverRoundEditor({
                   onClick={() => setCorrect(c.id)}
                   className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border transition-colors"
                   style={{
-                    borderColor: isCorrect ? `${color}88` : 'rgba(255,255,255,0.15)',
+                    borderColor: isCorrect ? `${color}88` : 'rgba(148,163,184,0.55)',
                     background: isCorrect ? `${color}33` : 'transparent',
-                    color: isCorrect ? color : 'rgba(255,255,255,0.3)',
+                    color: isCorrect ? color : 'rgba(71,85,105,0.7)',
                   }}
                 >
                   <Check size={13} strokeWidth={2.5} />
@@ -168,7 +168,7 @@ function HoverRoundEditor({
                   <button
                     type="button"
                     onClick={() => removeChoice(c.id)}
-                    className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-100 transition-colors"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -238,11 +238,11 @@ function DragRoundEditor({
     <div className="space-y-4">
       {/* Prompt */}
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
           Câu hỏi / Chủ đề
         </label>
         <textarea
-          className="w-full rounded-xl px-3 py-2.5 text-sm text-black bg-white/8 border border-white/12 focus:outline-none focus:border-blue-400/60 resize-none leading-relaxed"
+          className="w-full rounded-xl px-3 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-500 resize-none leading-relaxed"
           rows={2}
           value={round.prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -253,14 +253,14 @@ function DragRoundEditor({
       {/* Pairs */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Các cặp nối (tối đa 6)
           </label>
           {round.items.length < 6 && (
             <button
               type="button"
               onClick={addPair}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-white/60 hover:text-white bg-white/6 hover:bg-white/12 border border-white/10 transition-colors"
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors"
             >
               <Plus size={11} />
               Thêm cặp
@@ -270,9 +270,9 @@ function DragRoundEditor({
 
         {/* Header row */}
         <div className="grid grid-cols-[1fr_auto_1fr_auto] gap-2 mb-1 px-1">
-          <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">Khái niệm (trái)</span>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Khái niệm (trái)</span>
           <span />
-          <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">Nối với (phải)</span>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Nối với (phải)</span>
           <span />
         </div>
 
@@ -287,7 +287,7 @@ function DragRoundEditor({
               <div key={item.id} className="grid grid-cols-[1fr_auto_1fr_auto] gap-2 items-center">
                 {/* Left: item label */}
                 <input
-                  className="rounded-lg px-2.5 py-2 text-sm text-black bg-white/8 border border-white/12 focus:outline-none focus:border-blue-400/60 w-full"
+                  className="rounded-lg px-2.5 py-2 text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-500 w-full"
                   value={item.label}
                   onChange={(e) => setItemLabel(item.id, e.target.value)}
                   placeholder="Khái niệm..."
@@ -309,7 +309,7 @@ function DragRoundEditor({
 
                 {/* Right: zone label */}
                 <input
-                  className="rounded-lg px-2.5 py-2 text-sm text-black bg-white/8 border border-white/12 focus:outline-none focus:border-blue-400/60 w-full"
+                  className="rounded-lg px-2.5 py-2 text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-500 w-full"
                   value={zone?.label ?? ''}
                   onChange={(e) => zone && setZoneLabel(zone.id, e.target.value)}
                   placeholder="Nội dung tương ứng..."
@@ -320,7 +320,7 @@ function DragRoundEditor({
                   type="button"
                   onClick={() => removePair(item.id)}
                   disabled={round.items.length <= 2}
-                  className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-100 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
                 >
                   <Trash2 size={12} />
                 </button>
@@ -373,18 +373,18 @@ export function GameEditorView({ playable, onStart }: Props) {
   })();
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0d1117] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 overflow-hidden">
 
       {/* ── Header ── */}
       <div
         className="shrink-0 flex items-center justify-between h-14 px-5 border-b"
-        style={{ background: 'rgba(15,23,42,0.97)', borderColor: 'rgba(255,255,255,0.08)' }}
+        style={{ background: '#ffffff', borderColor: 'rgba(148,163,184,0.35)' }}
       >
         <div className="flex items-center gap-3">
           <span className="text-xl leading-none select-none">✏️</span>
           <div>
-            <p className="text-white font-semibold text-sm leading-tight">Chỉnh sửa nội dung game</p>
-            <p className="text-white/35 text-xs">
+            <p className="text-slate-800 font-semibold text-sm leading-tight">Chỉnh sửa nội dung game</p>
+            <p className="text-slate-500 text-xs">
               {isHover ? 'Trắc nghiệm (Hover Select)' : isDrag ? 'Nối cặp (Drag Drop)' : edited.templateId}
               {rounds.length > 1 ? ` · ${rounds.length} câu` : ''}
             </p>
@@ -396,11 +396,11 @@ export function GameEditorView({ playable, onStart }: Props) {
           type="button"
           disabled={!canStart}
           onClick={handleStart}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-150 hover:scale-[1.03] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-150 hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           style={{
             background: canStart
               ? 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)'
-              : 'rgba(255,255,255,0.1)',
+              : 'rgba(148,163,184,0.65)',
             boxShadow: canStart ? '0 4px 18px rgba(79,70,229,0.45)' : 'none',
           }}
         >
@@ -413,7 +413,7 @@ export function GameEditorView({ playable, onStart }: Props) {
       {rounds.length > 1 && (
         <div
           className="shrink-0 flex items-center gap-1 px-4 py-2 border-b overflow-x-auto"
-          style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}
+          style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(248,250,252,0.85)' }}
         >
           {rounds.map((_, i) => (
             <button
@@ -423,7 +423,7 @@ export function GameEditorView({ playable, onStart }: Props) {
               className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
               style={{
                 background: activeRound === i ? 'rgba(59,130,246,0.25)' : 'transparent',
-                color: activeRound === i ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                color: activeRound === i ? '#2563eb' : 'rgba(71,85,105,0.8)',
                 border: `1px solid ${activeRound === i ? 'rgba(96,165,250,0.4)' : 'transparent'}`,
               }}
             >
@@ -440,12 +440,12 @@ export function GameEditorView({ playable, onStart }: Props) {
           {/* Notice */}
           <div
             className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 mb-5 text-xs leading-relaxed"
-            style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: 'rgba(251,191,36,0.85)' }}
+            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.35)', color: 'rgba(146,64,14,0.95)' }}
           >
             <span className="text-base leading-none mt-0.5">💡</span>
             <span>
               Nội dung chỉ lưu tạm trên trình duyệt. Khi thoát trang, dữ liệu sẽ được xoá tự động.
-              Chỉnh sửa xong, nhấn <strong className="text-amber-300">Bắt đầu</strong> để chơi.
+              Chỉnh sửa xong, nhấn <strong className="text-amber-700">Bắt đầu</strong> để chơi.
             </span>
           </div>
 
@@ -467,8 +467,8 @@ export function GameEditorView({ playable, onStart }: Props) {
           )}
 
           {!isHover && !isDrag && (
-            <div className="text-center text-white/40 text-sm py-16">
-              Loại game <strong className="text-white/60">{edited.templateId}</strong> chưa hỗ trợ chỉnh sửa trực tiếp.
+            <div className="text-center text-slate-500 text-sm py-16">
+              Loại game <strong className="text-slate-700">{edited.templateId}</strong> chưa hỗ trợ chỉnh sửa trực tiếp.
               <br />
               <button
                 type="button"
