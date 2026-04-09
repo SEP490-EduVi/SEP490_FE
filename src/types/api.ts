@@ -430,3 +430,31 @@ export interface ReviewMaterialInput {
   approved: boolean;
   rejectionReason?: string;
 }
+
+// ─── Card Template ────────────────────────────────────────────────────────
+import type { ITemplateSkeleton } from './nodes';
+
+export interface ICardTemplate {
+  templateCode: string;
+  name: string;
+  description?: string;
+  /** 'layout' = layout-based (columns); 'freeform' = special-purpose (quiz, flashcard, etc.) */
+  category: 'layout' | 'freeform';
+  skeleton: ITemplateSkeleton;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTemplateInput {
+  name: string;
+  category: 'layout' | 'freeform';
+  description?: string;
+  skeleton: ITemplateSkeleton;
+}
+
+export interface UpdateTemplateInput {
+  name: string;
+  category: 'layout' | 'freeform';
+  description?: string;
+  skeleton: ITemplateSkeleton;
+}

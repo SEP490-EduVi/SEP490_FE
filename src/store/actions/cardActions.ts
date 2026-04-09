@@ -15,6 +15,7 @@ import {
   BlockType,
   LayoutVariant,
 } from '@/types';
+import type { ITemplateSkeleton } from '@/types';
 import {
   createTextBlock,
   createHeadingBlock,
@@ -27,6 +28,7 @@ import {
 } from '@/data/mock-data';
 import { createBlockByType } from '../helpers/blockFactory';
 import { updateNodeInTree } from '../helpers/treeUtils';
+import { hydrateSkeleton } from '../helpers/skeletonUtils';
 import type { StoreGet, StoreSet, SetDocumentWithHistory } from '../types';
 import { isLayout } from '@/types';
 
@@ -418,6 +420,23 @@ export function createCardActions(
         cardTitle,
         cardChildren
       );
+
+      const newDoc = {
+        ...document,
+        cards: [...document.cards, newCard],
+        updatedAt: new Date().toISOString(),
+      };
+
+      setDocumentWithHistory(newDoc, {
+        activeCardId: newCard.id,
+      });
+    },
+
+    addCardFromCustomTemplate: (skeleton: ITemplateSkeleton) => {
+      const { document } = get();
+      if (!document) return;
+
+      const newCard = hydrateSkeleton(skeleton, `Slide ${document.cards.length + 1}`);
 
       const newDoc = {
         ...document,

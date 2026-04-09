@@ -23,7 +23,9 @@ import { IMaterial, MaterialCategory, BlockType } from '@/types';
 import type { PurchasedMaterialDto } from '@/types/api';
 import { getPurchasedMaterials } from '@/services/materialServices';
 import { Modal } from '@/components/common/Modal';
+import SkeletonPreview from '@/components/common/SkeletonPreview';
 import { basicCardTemplates, freeformCardTemplates } from './cardTemplates';
+import { useTemplates } from '@/hooks/useTemplateApi';
 import * as LucideIcons from 'lucide-react';
 import { 
   Loader2, 
@@ -686,8 +688,11 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
 
 function QuickLayoutSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'freeform'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'freeform' | 'custom'>('basic');
   const addCardFromTemplate = useDocumentStore((state) => state.addCardFromTemplate);
+  const addCardFromCustomTemplate = useDocumentStore((state) => state.addCardFromCustomTemplate);
+
+  const { data: customTemplates = [], isLoading: isLoadingCustom } = useTemplates();
 
   const handleAddTemplate = (templateType: string) => {
     addCardFromTemplate(templateType);
@@ -743,6 +748,22 @@ function QuickLayoutSection() {
               )}
             >
               Tùy chỉnh
+            </button>
+            <button
+              onClick={() => setActiveTab('custom')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
+                activeTab === 'custom'
+                  ? 'bg-white text-blue-600 border border-b-white border-gray-200 -mb-px'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              Mẫu
+              {customTemplates.length > 0 && (
+                <span className="ml-1.5 text-xs bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5">
+                  {customTemplates.length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -813,6 +834,59 @@ function QuickLayoutSection() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Custom (BE) Templates Tab */}
+          {activeTab === 'custom' && (
+            <div className="px-6 py-4">
+              <p className="text-xs text-gray-500 mb-4">
+                Mẫu bố cục do quản trị viên tạo
+              </p>
+              {isLoadingCustom ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex flex-col gap-2">
+                      <div className="w-full h-32 bg-gray-200 rounded-lg" />
+                      <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto" />
+                    </div>
+                  ))}
+                </div>
+              ) : customTemplates.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-sm text-gray-400">Admin chưa tạo template nào</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  {customTemplates.map((template) => (
+                    <button
+                      key={template.templateCode}
+                      onClick={() => {
+                        addCardFromCustomTemplate(template.skeleton);
+                        setIsModalOpen(false);
+                      }}
+                      className={cn(
+                        'flex flex-col gap-2 p-0 rounded-lg',
+                        'transition-all duration-150',
+                        'hover:scale-[1.02]'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
+                          'border-2 transition-all duration-150',
+                          'border-gray-100 hover:border-blue-400 hover:shadow-md'
+                        )}
+                      >
+                        <SkeletonPreview skeleton={template.skeleton} />
+                      </div>
+                      <span className="text-xs text-center px-1 text-gray-700 truncate w-full">
+                        {template.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

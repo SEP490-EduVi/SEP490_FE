@@ -1,9 +1,10 @@
 // src/constants/apiEndpoints.ts
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-const buildAuthEndpoint     = (path: string) => `/api/Auth${path}`;
-const buildPipelineEndpoint = (path: string) => `/api/Pipeline${path}`;
-const buildProjectEndpoint  = (path: string) => `/api/Project${path}`;
+const buildAuthEndpoint      = (path: string) => `/api/Auth${path}`;
+const buildPipelineEndpoint  = (path: string) => `/api/Pipeline${path}`;
+const buildProjectEndpoint   = (path: string) => `/api/Project${path}`;
+const buildTemplateEndpoint  = (path: string) => `/api/Template${path}`;
 const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
@@ -204,6 +205,20 @@ export const API_ENDPOINTS = {
     BUY_SUBSCRIPTION: buildPaymentEndpoint('/buy-subscription'),
     TRANSACTIONS: buildPaymentEndpoint('/transactions'),
     USER_QUOTA: buildPaymentEndpoint('/user-quota'),
+  },
+
+  // Card Templates (Admin CRUD)
+  TEMPLATE: {
+    // GET    /api/Template      — Lấy danh sách tất cả templates
+    GET_ALL: buildTemplateEndpoint(''),
+    // GET    /api/Template/{templateCode}
+    GET_BY_CODE: (templateCode: string) => buildTemplateEndpoint(`/${templateCode}`),
+    // POST   /api/Template      — Tạo mới template
+    CREATE: buildTemplateEndpoint(''),
+    // PUT    /api/Template/{templateCode}
+    UPDATE: (templateCode: string) => buildTemplateEndpoint(`/${templateCode}`),
+    // DELETE /api/Template/{templateCode}
+    DELETE: (templateCode: string) => buildTemplateEndpoint(`/${templateCode}`),
   },
 
 } as const;

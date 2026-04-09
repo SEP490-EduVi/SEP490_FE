@@ -15,6 +15,7 @@ import {
   LayoutVariant,
   IBlockStyles,
   IMaterial,
+  ITemplateSkeleton,
 } from '@/types';
 
 // ============================================================================
@@ -93,6 +94,7 @@ export interface DocumentState {
   addCard: (title?: string) => void;
   addVideoSlide: (title?: string) => void;
   addCardFromTemplate: (templateType: string) => void;
+  addCardFromCustomTemplate: (skeleton: ITemplateSkeleton) => void;
   addBlockToCard: (cardId: string, blockType: BlockType) => void;
   addLayoutToCard: (cardId: string, variant: LayoutVariant) => void;
   wrapNodeInLayout: (cardId: string, nodeId: string, variant: LayoutVariant) => void;
