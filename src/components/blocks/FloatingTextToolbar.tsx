@@ -171,8 +171,7 @@ function ToolbarButton({ onClick, isActive, title, children }: ToolbarButtonProp
 export function ContextualTextToolbar() {
   const hasSelection = useActiveEditorStore((state) => state.hasSelection);
   // Subscribe to editorVersion so the bar re-renders on every editor transaction
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _ver = useActiveEditorStore((state) => state.editorVersion);
+  useActiveEditorStore((state) => state.editorVersion);
   const editor = getActiveEditor();
 
   const activeCardId = useDocumentStore((state) => state.activeCardId);

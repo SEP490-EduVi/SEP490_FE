@@ -12,7 +12,7 @@ import {
 import { useAuthStore, type AppRole } from '@/store/useAuthStore';
 import { useLogoutService } from '@/services/authServices';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUserQuota, useWalletTransactions } from '@/hooks/usePaymentApi';
+import { useUserQuota, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
 
 // ── Role nav config ────────────────────────────────────────────────────────
 
@@ -67,15 +67,18 @@ export default function AppHeader() {
   const queryClient = useQueryClient();
   const isTeacher = role === 'teacher';
   const { data: userQuota, isLoading: quotaLoading } = useUserQuota({ enabled: isTeacher });
+  const { data: walletInfo, isLoading: walletLoading } = useWalletInfo({ enabled: isTeacher });
   const { data: txData, isLoading: txLoading } = useWalletTransactions(1, 5, { enabled: isTeacher });
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [quotaOpen, setQuotaOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [headerAvatarErr, setHeaderAvatarErr] = useState(false);
   const [headerLogoErr, setHeaderLogoErr] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const quotaRef = useRef<HTMLDivElement>(null);
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -90,6 +93,9 @@ export default function AppHeader() {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
+      if (quotaRef.current && !quotaRef.current.contains(e.target as Node)) {
+        setQuotaOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -101,6 +107,7 @@ export default function AppHeader() {
       setMobileNavOpen(false);
       setMenuOpen(false);
       setNotifOpen(false);
+      setQuotaOpen(false);
     }
   }, []);
 
@@ -139,9 +146,47 @@ export default function AppHeader() {
     videoTotal: userQuota?.totalVideoQuota ?? 0,
   };
 
+  const quotaDetailRows = [
+    {
+      key: 'ai',
+      label: 'AI',
+      available: quotaSummary.analysisAvailable,
+      total: quotaSummary.analysisTotal,
+      color: 'bg-blue-500',
+      textColor: 'text-blue-700',
+    },
+    {
+      key: 'slide',
+      label: 'Slide',
+      available: quotaSummary.slideAvailable,
+      total: quotaSummary.slideTotal,
+      color: 'bg-violet-500',
+      textColor: 'text-violet-700',
+    },
+    {
+      key: 'video',
+      label: 'Video',
+      available: quotaSummary.videoAvailable,
+      total: quotaSummary.videoTotal,
+      color: 'bg-rose-500',
+      textColor: 'text-rose-700',
+    },
+  ].map((item) => {
+    const total = Math.max(0, item.total);
+    const available = Math.max(0, item.available);
+    const used = Math.max(0, total - available);
+    const percentUsed = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+    return { ...item, total, available, used, percentUsed };
+  });
+
   const formatTxAmount = (amount: number) => {
     const sign = amount > 0 ? '+' : '';
     return `${sign}${amount.toLocaleString('vi-VN')}`;
+  };
+
+  const formatBalance = (amount?: number) => {
+    const safe = Number.isFinite(amount) ? Number(amount) : 0;
+    return `${safe.toLocaleString('vi-VN')} xu`;
   };
 
   const formatTxTime = (createdAt: string) => {
@@ -235,30 +280,77 @@ export default function AppHeader() {
         )}
 
         {isTeacher && (
-          <div
-            className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white shadow-sm"
-            title="Quota còn lại / tổng quota"
-          >
-            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5" />
-            </span>
+          <div className="relative hidden sm:block" ref={quotaRef}>
+            <button
+              onClick={() => setQuotaOpen((o) => !o)}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              aria-label="Xem quota"
+              aria-expanded={quotaOpen}
+            >
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              </span>
+              Xem quota
+            </button>
 
-            {quotaLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
-            ) : (
-              <div className="flex items-center gap-2 text-[12px] text-slate-700 tabular-nums">
-                <span className="font-semibold text-blue-700">
-                  AI {quotaSummary.analysisAvailable.toLocaleString('vi-VN')}/{quotaSummary.analysisTotal.toLocaleString('vi-VN')}
-                </span>
-                <span className="text-slate-300">|</span>
-                <span className="font-medium text-violet-700">
-                  Slide {quotaSummary.slideAvailable.toLocaleString('vi-VN')}/{quotaSummary.slideTotal.toLocaleString('vi-VN')}
-                </span>
-                <span className="text-slate-300">|</span>
-                <span className="font-medium text-rose-700">
-                  Video {quotaSummary.videoAvailable.toLocaleString('vi-VN')}/{quotaSummary.videoTotal.toLocaleString('vi-VN')}
-                </span>
+            {quotaOpen && (
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50">
+                <div className="mb-3">
+                  <p className="text-sm font-semibold text-slate-900">Chi tiết quota</p>
+                  <p className="text-xs text-slate-500">Còn lại / tổng và tỉ lệ đã dùng</p>
+                </div>
+
+                {quotaLoading ? (
+                  <div className="py-6 flex items-center justify-center gap-2 text-sm text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Đang tải quota...
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {quotaDetailRows.map((item) => (
+                      <div key={item.key} className="rounded-xl border border-slate-100 p-2.5">
+                        <div className="mb-1.5 flex items-center justify-between text-xs">
+                          <span className={`font-semibold ${item.textColor}`}>{item.label}</span>
+                          <span className="text-slate-600 tabular-nums">
+                            {item.available.toLocaleString('vi-VN')}/{item.total.toLocaleString('vi-VN')}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                          <div className={`h-full ${item.color}`} style={{ width: `${item.percentUsed}%` }} />
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500 tabular-nums">Đã dùng: {item.used.toLocaleString('vi-VN')} ({item.percentUsed}%)</p>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuotaOpen(false);
+                        router.push('/profile?tab=payment');
+                      }}
+                      className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                    >
+                      Mở trang thanh toán
+                    </button>
+                  </div>
+                )}
               </div>
+            )}
+          </div>
+        )}
+
+        {isTeacher && (
+          <div
+            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/60"
+            title="Số dư ví"
+          >
+            <Wallet className="w-4 h-4 text-emerald-700" />
+            {walletLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+            ) : (
+              <span className="text-xs font-semibold text-emerald-800 tabular-nums">
+                Số dư: {formatBalance(walletInfo?.balance)}
+              </span>
             )}
           </div>
         )}
