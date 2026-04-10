@@ -111,9 +111,7 @@ export function Toolbar() {
   const handleConfirmGenerateVideo = () => {
     if (!currentProductCode || !currentProjectCode) return;
     setShowVideoConfirm(false);
-    router.push(
-      `/teacher/pipeline?projectCode=${encodeURIComponent(currentProjectCode)}&productCode=${encodeURIComponent(currentProductCode)}&step=video`
-    );
+    router.push(`/teacher/${encodeURIComponent(currentProjectCode)}`);
   };
 
   const handleStartGame = async () => {
