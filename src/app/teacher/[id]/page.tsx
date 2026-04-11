@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, AlertCircle, Loader2, ChevronRight, Sparkles, BookOpen, Gamepad2,
@@ -79,6 +79,8 @@ export default function ProjectDetailPage() {
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
+  const searchParams = useSearchParams();
+
   useEffect(() => { setAccessToken(localStorage.getItem('accessToken')); }, []);
   useEffect(() => {
     hydrateTaskStore();
@@ -93,6 +95,22 @@ export default function ProjectDetailPage() {
       setShowPipelineModal(true);
     }
   }, [hydrateTaskStore]); // eslint-disable-line
+
+  // Auto-trigger video generation when coming from the editor
+  const autoVideoTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (autoVideoTriggeredRef.current) return;
+    const action = searchParams.get('action');
+    const productCode = searchParams.get('productCode');
+    if (action === 'generate-video' && productCode) {
+      autoVideoTriggeredRef.current = true;
+      // Wait for products to be loaded before triggering
+      if (products.length > 0) {
+        handleGenerateVideo(productCode);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, products]);
 
   const pendingTaskRef = useRef<{ type: PipelineTaskType; productCode: string } | null>(null);
 

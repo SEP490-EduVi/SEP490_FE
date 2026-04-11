@@ -252,13 +252,14 @@ export function createMaterialActions(
      */
     dropPurchasedMaterial: (
       targetCardId: string | null,
-      item: { title: string; description?: string; type: string; resourceUrl: string | null }
+      item: { title: string; description?: string; type: string; resourceUrl: string | null; previewUrl?: string | null }
     ) => {
       const { document } = get();
       if (!document) return;
 
       const isVideo = item.type.toLowerCase().includes('video');
-      const resourceUrl = item.resourceUrl || '';
+      // Fall back to previewUrl when resourceUrl is absent (e.g. image-only materials)
+      const resourceUrl = item.resourceUrl || item.previewUrl || '';
 
       // Detect video provider from URL (youtube / vimeo / direct)
       const detectProvider = (url: string): 'youtube' | 'vimeo' | 'direct' => {

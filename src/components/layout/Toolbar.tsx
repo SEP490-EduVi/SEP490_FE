@@ -108,10 +108,17 @@ export function Toolbar() {
     setShowVideoConfirm(true);
   };
 
-  const handleConfirmGenerateVideo = () => {
+  const handleConfirmGenerateVideo = async () => {
     if (!currentProductCode || !currentProjectCode) return;
     setShowVideoConfirm(false);
-    router.push(`/teacher/${encodeURIComponent(currentProjectCode)}`);
+    // Save first if there are unsaved changes so the video uses the latest slide
+    if (isDirty) {
+      await saveSlide();
+    }
+    // Navigate to the project page and pass params so it auto-starts video generation
+    router.push(
+      `/teacher/${encodeURIComponent(currentProjectCode)}?action=generate-video&productCode=${encodeURIComponent(currentProductCode)}`
+    );
   };
 
   const handleStartGame = async () => {

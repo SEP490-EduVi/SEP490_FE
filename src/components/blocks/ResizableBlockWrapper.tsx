@@ -21,6 +21,7 @@ import React, { useState, useCallback } from 'react';
 import { Resizable, Enable } from 're-resizable';
 import { cn } from '@/lib/utils';
 import { IBlockStyles } from '@/types';
+import { useColumnStretch } from '@/components/renderer/ColumnStretchContext';
 
 export interface ResizableBlockWrapperProps {
   id: string;
@@ -73,8 +74,9 @@ export function ResizableBlockWrapper({
 }: ResizableBlockWrapperProps) {
   const [isResizing, setIsResizing] = useState(false);
 
+  const isColumnStretch = useColumnStretch();
   const currentWidth = styles?.width || '100%';
-  const currentHeight = styles?.height || 'auto';
+  const currentHeight = isColumnStretch && !styles?.height ? '100%' : (styles?.height || 'auto');
 
   const handleResizeStart = useCallback(() => {
     setIsResizing(true);

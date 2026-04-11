@@ -501,6 +501,7 @@ export function ContextualTextToolbar() {
         {showBgPicker && createPortal(
           <div
             ref={bgPickerRef}
+            onMouseDown={(e) => e.preventDefault()}
             className="fixed z-[10000] bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-56"
             style={{ top: bgPickerPos.top, left: bgPickerPos.left }}
           >

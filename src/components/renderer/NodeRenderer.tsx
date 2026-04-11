@@ -52,6 +52,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, LayoutGrid, X, Plus } from 'lucide-react';
+import { ColumnStretchContext, useColumnStretch } from './ColumnStretchContext';
 
 // Context that marks whether the current render tree is the active presentation slide.
 // Consumed by VideoBlock to gate autoplay.
@@ -212,21 +213,36 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
 
   const isSelected = selectedNodeId === node.id;
   const isEditing = editingNodeId === node.id;
+  const isColumnStretch = useColumnStretch();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
   const [showLayoutModal, setShowLayoutModal] = useState(false);
 
   useEffect(() => {
-    if (isSelected && wrapperRef.current) {
+    if (!isSelected) {
+      setToolbarPos(null);
+      return;
+    }
+
+    const updatePos = () => {
+      if (!wrapperRef.current) return;
       const rect = wrapperRef.current.getBoundingClientRect();
       const toolbarHeight = 44;
       const above = rect.top - toolbarHeight - 4;
       const top = above < 8 ? rect.bottom + 4 : above;
       const left = rect.left + rect.width / 2;
       setToolbarPos({ top, left });
-    } else {
-      setToolbarPos(null);
-    }
+    };
+
+    updatePos();
+
+    // Re-calculate on scroll (capture phase catches nested scroll containers)
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
   }, [isSelected]);
 
   const style = {
@@ -253,7 +269,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
           setShowLayoutModal(true);
         }}
         className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-gray-600 transition-colors text-xs font-medium"
-        title="Chá»n bá»‘ cá»¥c"
+        title="Chọn bố cục"
       >
         <LayoutGrid className="w-4 h-4" />
         <span>Bố cục</span>
@@ -267,7 +283,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
           deleteNode(node.id);
         }}
         className="p-1.5 rounded hover:bg-red-50 text-gray-600 hover:text-red-500 transition-colors"
-        title="XÃ³a"
+        title="Xóa"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -276,7 +292,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
 
   return (
     <>
-      {depth > 0 && isSelected && !isPresenting && toolbarPos && createPortal(
+      {depth > 0 && isSelected && !isEditing && !isPresenting && toolbarPos && createPortal(
         <div
           className="fixed z-[9999] flex items-center gap-1 px-2 py-1.5 bg-white rounded-lg shadow-lg border border-gray-200 -translate-x-1/2"
           style={{ top: toolbarPos.top, left: toolbarPos.left }}
@@ -302,6 +318,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
         style={style}
         className={cn(
           'relative group',
+          isColumnStretch && 'h-full',
           isDragging && 'opacity-50 z-50'
         )}
       >
@@ -310,6 +327,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
             e.stopPropagation();
             setSelectedNode(node.id);
           }}
+          className={isColumnStretch ? 'h-full' : undefined}
         >
           {children}
         </div>
@@ -555,18 +573,20 @@ function ColumnDropZone({
       accepts: ['MATERIAL'],
     },
   });
+  const isColumnStretch = useColumnStretch();
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[120px] rounded-lg transition-all duration-200 w-full h-full',
+        'min-h-[120px] rounded-lg transition-all duration-200 w-full',
+        isColumnStretch ? 'flex-1 flex flex-col' : 'h-full',
         isOver && 'bg-blue-50 ring-2 ring-blue-400 ring-inset',
         children.length === 0 && !isOver && 'border-2 border-dashed border-gray-200'
       )}
     >
       {children.length > 0 ? (
-        <div className="flex flex-col gap-4 h-full">
+        <div className={cn('flex flex-col gap-4', isColumnStretch ? 'flex-1' : 'h-full')}>
           {children}
         </div>
       ) : (
@@ -675,42 +695,47 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
 
   // Check if all children are LAYOUT nodes (nested layouts for columns)
   const childrenAreLayouts = node.children.every(child => isLayout(child));
+  const parentIsColumnStretch = useColumnStretch();
+  const stretchApplies = parentIsColumnStretch && columnCount === 1 && node.children.length === 1;
 
   // ---- SINGLE COLUMN ----
   if (columnCount === 1) {
     const childIds = node.children.map(child => child.id);
     return (
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedNode(node.id);
-        }}
-        className={cn(
-          'flex flex-col gap-4',
-          isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
-          'transition-all duration-200'
-        )}
-      >
-        {childrenAreLayouts ? (
-          node.children.map((child) => (
-            <div key={child.id} className="min-w-0">
-              <NodeRenderer node={child as INode} depth={depth + 1} />
-            </div>
-          ))
-        ) : (
-          <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-            <ColumnDropZone layoutId={node.id} columnIndex={0}>
-              {node.children.map((child) => (
-                <div key={child.id} className="min-w-0">
-                  <SortableNode node={child as INode} depth={depth + 1} parentLayoutId={node.id}>
-                    <NodeRenderer node={child as INode} depth={depth + 1} />
-                  </SortableNode>
-                </div>
-              ))}
-            </ColumnDropZone>
-          </SortableContext>
-        )}
-      </div>
+      <ColumnStretchContext.Provider value={stretchApplies}>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedNode(node.id);
+          }}
+          className={cn(
+            'flex flex-col gap-4',
+            stretchApplies && 'flex-1',
+            isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
+            'transition-all duration-200'
+          )}
+        >
+          {childrenAreLayouts ? (
+            node.children.map((child) => (
+              <div key={child.id} className={cn('min-w-0', stretchApplies && 'h-full')}>
+                <NodeRenderer node={child as INode} depth={depth + 1} />
+              </div>
+            ))
+          ) : (
+            <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+              <ColumnDropZone layoutId={node.id} columnIndex={0}>
+                {node.children.map((child) => (
+                  <div key={child.id} className={cn('min-w-0', stretchApplies && 'h-full')}>
+                    <SortableNode node={child as INode} depth={depth + 1} parentLayoutId={node.id}>
+                      <NodeRenderer node={child as INode} depth={depth + 1} />
+                    </SortableNode>
+                  </div>
+                ))}
+              </ColumnDropZone>
+            </SortableContext>
+          )}
+        </div>
+      </ColumnStretchContext.Provider>
     );
   }
 
@@ -724,9 +749,11 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
   if (childrenAreLayouts && node.children.length <= columnCount) {
     // Each direct child is a column layout â€” wrap in card box with border
     columnContents = node.children.map((child) => (
-      <div key={child.id} className="bg-gray-100 border border-gray-200 rounded-xl p-4 h-full min-h-[120px]">
-        <NodeRenderer node={child as INode} depth={depth + 1} />
-      </div>
+      <ColumnStretchContext.Provider key={child.id} value={true}>
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex-1 min-h-[120px] flex flex-col">
+          <NodeRenderer node={child as INode} depth={depth + 1} />
+        </div>
+      </ColumnStretchContext.Provider>
     ));
     // Pad missing columns with empty drop zones
     while (columnContents.length < columnCount) {
@@ -746,19 +773,22 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
       childrenByColumn[index % columnCount].push(child as INode);
     });
     columnContents = childrenByColumn.map((colChildren, colIndex) => {
+      const stretchCol = colChildren.length === 1;
       const colIds = colChildren.map((c) => c.id);
       return (
-        <SortableContext key={colIndex} items={colIds} strategy={verticalListSortingStrategy}>
-          <ColumnDropZone layoutId={node.id} columnIndex={colIndex}>
-            {colChildren.map((child) => (
-              <div key={child.id} className="min-w-0">
-                <SortableNode node={child} depth={depth + 1} parentLayoutId={node.id}>
-                  <NodeRenderer node={child} depth={depth + 1} />
-                </SortableNode>
-              </div>
-            ))}
-          </ColumnDropZone>
-        </SortableContext>
+        <ColumnStretchContext.Provider key={colIndex} value={stretchCol}>
+          <SortableContext items={colIds} strategy={verticalListSortingStrategy}>
+            <ColumnDropZone layoutId={node.id} columnIndex={colIndex}>
+              {colChildren.map((child) => (
+                <div key={child.id} className={cn('min-w-0', stretchCol && 'h-full')}>
+                  <SortableNode node={child} depth={depth + 1} parentLayoutId={node.id}>
+                    <NodeRenderer node={child} depth={depth + 1} />
+                  </SortableNode>
+                </div>
+              ))}
+            </ColumnDropZone>
+          </SortableContext>
+        </ColumnStretchContext.Provider>
       );
     });
   }
@@ -770,7 +800,7 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
     cols.push(
       <div
         key={`col-${i}`}
-        className="relative min-w-0"
+        className="relative min-w-0 flex flex-col"
         style={{ flexGrow: columnWidths[i] ?? 100 / columnCount, flexShrink: 1, flexBasis: '0%' }}
       >
         {colContent}

@@ -559,7 +559,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             )}
           >
             <Package className="w-3.5 h-3.5" />
-            Widget
+            Tiện ích
           </button>
           <button
             onClick={() => setActiveTab('purchased')}
@@ -571,7 +571,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             )}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            Đã mua
+            Tài liệu
             {purchasedItems.length > 0 && (
               <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded-full font-semibold">
                 {purchasedItems.length}

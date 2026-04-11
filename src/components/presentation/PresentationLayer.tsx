@@ -212,7 +212,10 @@ export function PresentationLayer() {
                     'min-h-full flex flex-col justify-center px-20 py-10 pt-16',
                     isInteractive ? 'pointer-events-auto' : 'pointer-events-none'
                   )}>
-                    <div className="w-full space-y-6">
+                    <div
+                      className="w-full space-y-6 [&_.flex-row]:items-stretch [&_.flex-row>div]:flex [&_.flex-row>div]:flex-col [&_.flex-row_figure]:flex-1 [&_.flex-row_figure]:h-full [&_.flex-row_.aspect-video]:aspect-auto [&_.flex-row_.aspect-video]:h-full [&_.flex-row_figure_img]:h-full [&_.flex-row_figure_img]:w-full [&_.flex-row_figure_img]:object-cover"
+                      style={{ fontSize: '1.35rem' }}
+                    >
                       {currentCard.children && currentCard.children.length > 0 ? (
                         <ActiveSlideProvider>
                           {currentCard.children.map((child) => (

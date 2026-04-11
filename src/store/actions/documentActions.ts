@@ -177,6 +177,31 @@ export function createDocumentActions(
             '[data-editor-only], [data-drag-handle], [data-toolbar], .editor-ui'
           ).forEach((n) => n.remove());
 
+          // Inline all <img> srcs as base64 data-URIs so Playwright never needs
+          // external network access (signed GCS URLs expire quickly).
+          await Promise.all(
+            Array.from(clone.querySelectorAll<HTMLImageElement>('img')).map(async (img) => {
+              const src = img.getAttribute('src');
+              if (!src || src.startsWith('data:') || src.startsWith('gs://')) return;
+              try {
+                const res = await fetch(src);
+                if (!res.ok) return;
+                const blob = await res.blob();
+                await new Promise<void>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    img.setAttribute('src', reader.result as string);
+                    resolve();
+                  };
+                  reader.onerror = () => resolve();
+                  reader.readAsDataURL(blob);
+                });
+              } catch {
+                // leave src unchanged — Playwright will try the original URL
+              }
+            })
+          );
+
           // Inline all external stylesheets so the HTML is self-contained.
           // Using absolute href (http://localhost:3000/...) would break when
           // BE (Playwright) renders the slide on a different server/environment.
@@ -209,7 +234,9 @@ export function createDocumentActions(
           return { ...card, renderedHtml: fullHtml };
         }));
 
-        const docWithHtml = { ...document, title: '', cards: cardsWithHtml };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { title: _omittedTitle, ...docWithoutTitle } = document;
+        const docWithHtml = { ...docWithoutTitle, cards: cardsWithHtml };
 
         // 1. Upload slide JSON to GCS via Next.js server (no CORS, key stays server-side)
         const gcsObjectUrl = await uploadSlideToGcs(currentProductCode, docWithHtml);
