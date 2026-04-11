@@ -3,7 +3,7 @@
 
 import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, FileText, Loader2, Trash2, X, Upload, ChevronDown } from 'lucide-react';
+import { Plus, FileText, Loader2, Trash2, X, Upload, ChevronDown, BookOpen } from 'lucide-react';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { useLessons } from '@/hooks/useMetadataApi';
 import { notify } from '@/components/common';
@@ -41,6 +41,7 @@ export default function SourcesPanel({
   const [uploadTitle, setUploadTitle] = useState('');
   const [lessonCode, setLessonCode] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showLessonPicker, setShowLessonPicker] = useState(false);
 
   const resetForm = () => {
     setUploadFile(null);
@@ -214,25 +215,54 @@ export default function SourcesPanel({
                         className="w-full px-3 py-2 border border-gray-100 rounded-xl text-sm bg-gray-50 text-gray-500"
                       />
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Bài học <span className="text-red-400">*</span>
                       </label>
-                      <div className="relative">
-                        <select
-                          value={lessonCode}
-                          onChange={(e) => setLessonCode(e.target.value)}
-                          className="w-full appearance-none px-3 py-2 pr-8 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
-                        >
-                          <option value="">Chọn bài...</option>
-                          {lessons.map((l) => (
-                            <option key={l.lessonCode} value={l.lessonCode}>
-                              {l.lessonName}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowLessonPicker((v) => !v)}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white hover:border-blue-300 transition-colors text-left"
+                      >
+                        <BookOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                        <span className="flex-1 text-xs font-medium text-gray-700 truncate">
+                          {lessonCode
+                            ? lessons.find((l) => l.lessonCode === lessonCode)?.lessonName ?? lessonCode
+                            : 'Chọn bài...'}
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${showLessonPicker ? 'rotate-180' : ''}`} />
+                      </button>
+                      <AnimatePresence>
+                        {showLessonPicker && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 right-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-y-auto max-h-44"
+                          >
+                            {lessons.length === 0 && (
+                              <p className="px-3 py-2.5 text-xs text-gray-400">Không có bài học</p>
+                            )}
+                            {lessons.map((l) => (
+                              <button
+                                key={l.lessonCode}
+                                type="button"
+                                onClick={() => { setLessonCode(l.lessonCode); setShowLessonPicker(false); }}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-blue-50 ${
+                                  lessonCode === l.lessonCode ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium truncate">{l.lessonName}</p>
+                                  <p className="text-[11px] text-gray-400">{l.lessonCode}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
 

@@ -129,7 +129,6 @@ export function Modal({
         className={cn(
           'relative w-full bg-white rounded-xl shadow-2xl',
           'animate-in zoom-in-95 fade-in duration-200',
-          'flex flex-col max-h-[90vh]',
           sizeClasses[size],
           className
         )}
@@ -166,7 +165,7 @@ export function Modal({
         {/* Body */}
         <div
           className={cn(
-            'flex-1 overflow-y-auto px-6 py-4',
+            'px-6 py-4',
             bodyClassName
           )}
         >
@@ -178,7 +177,7 @@ export function Modal({
           <div
             className={cn(
               'px-6 py-4 border-t border-gray-200',
-              'bg-gray-50',
+              'bg-gray-50 rounded-b-xl',
               footerClassName
             )}
           >

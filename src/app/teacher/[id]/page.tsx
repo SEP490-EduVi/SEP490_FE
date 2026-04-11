@@ -477,19 +477,36 @@ export default function ProjectDetailPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Dạng trò chơi</label>
-                <select
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
-                  value={gameTemplateId}
-                  onChange={(e) => setGameTemplateId(e.target.value as GameTemplateId)}
-                >
-                  <option value="HOVER_SELECT">Hover &amp; Chọn — Giơ tay chọn đáp án</option>
-                  <option value="DRAG_DROP">Drag &amp; Drop — Kéo thả đáp án</option>
-                  <option value="RUNNER_QUIZ">Runner Quiz — Mario chạy (1 người)</option>
-                  <option value="SNAKE_QUIZ">Snake Quiz — Rắn (1 người)</option>
-                  <option value="RUNNER_RACE">Runner Race — Mario đua (2 người)</option>
-                  <option value="SNAKE_DUEL">Snake Duel — Rắn đấu (2 người)</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dạng trò chơi</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: 'HOVER_SELECT', label: 'Hover & Chọn', desc: 'Giơ tay chọn đáp án', icon: '🖐️' },
+                      { id: 'DRAG_DROP',    label: 'Drag & Drop',  desc: 'Kéo thả đáp án',     icon: '✋' },
+                      { id: 'RUNNER_QUIZ',  label: 'Runner Quiz',  desc: 'Mario chạy (1 người)', icon: '🏃' },
+                      { id: 'SNAKE_QUIZ',   label: 'Snake Quiz',   desc: 'Rắn quiz (1 người)',  icon: '🐍' },
+                      { id: 'RUNNER_RACE',  label: 'Runner Race',  desc: 'Mario đua (2 người)',  icon: '🏁' },
+                      { id: 'SNAKE_DUEL',   label: 'Snake Duel',   desc: 'Rắn đấu (2 người)',   icon: '⚔️' },
+                    ] as { id: GameTemplateId; label: string; desc: string; icon: string }[]
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setGameTemplateId(opt.id)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                        gameTemplateId === opt.id
+                          ? 'border-violet-400 bg-violet-50 text-violet-700'
+                          : 'border-gray-200 bg-gray-50 hover:border-violet-300 hover:bg-violet-50/40 text-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{opt.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{opt.label}</p>
+                        <p className="text-[11px] text-gray-400 truncate">{opt.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Số round</label>

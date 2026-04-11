@@ -201,9 +201,6 @@ export default function ProductResultsCenter({
             <BookOpen className="w-7 h-7 text-blue-400" />
           </div>
           <h2 className="text-base font-semibold text-gray-600 mb-2">{projectName}</h2>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Thêm tài liệu nguồn bên trái, sau đó dùng Studio bên phải để phân tích, tạo slide và video bài giảng.
-          </p>
         </div>
       </div>
     );

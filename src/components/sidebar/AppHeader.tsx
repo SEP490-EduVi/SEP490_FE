@@ -26,6 +26,7 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
   teacher: [
     { href: '/teacher',               label: 'Tổng quan',  icon: LayoutDashboard },
     { href: '/teacher/projects',      label: 'Dự án',      icon: FolderKanban    },
+    { href: '/teacher/class',       label: 'Lớp học',    icon: BookOpen        },
     { href: '/material-shop',         label: 'Cửa hàng',   icon: Store           },
     { href: '/subscription',          label: 'Gói dịch vụ', icon: CreditCard      },
   ],

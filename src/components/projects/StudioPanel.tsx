@@ -120,7 +120,7 @@ export default function StudioPanel({
   const CONFIRM_LABELS: Record<ConfirmType, { title: string; body: string; cta: string }> = {
     analyze: {
       title: 'Phân tích tài liệu?',
-      body: `AI sẽ phân tích tài liệu "${activeDoc?.title ?? ''}" và tạo kế hoạch bài giảng. Quá trình này có thể mất vài phút.`,
+      body: `AI sẽ phân tích tài liệu "${activeDoc?.title ?? ''}". Quá trình này có thể mất vài phút.`,
       cta: 'Phân tích',
     },
     slides: {
