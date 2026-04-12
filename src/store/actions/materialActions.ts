@@ -252,13 +252,14 @@ export function createMaterialActions(
      */
     dropPurchasedMaterial: (
       targetCardId: string | null,
-      item: { title: string; description?: string; type: string; resourceUrl: string | null }
+      item: { title: string; description?: string; type: string; resourceUrl: string | null; previewUrl?: string | null }
     ) => {
       const { document } = get();
       if (!document) return;
 
       const isVideo = item.type.toLowerCase().includes('video');
-      const resourceUrl = item.resourceUrl || '';
+      // Fall back to previewUrl when resourceUrl is absent (e.g. image-only materials)
+      const resourceUrl = item.resourceUrl || item.previewUrl || '';
 
       // Detect video provider from URL (youtube / vimeo / direct)
       const detectProvider = (url: string): 'youtube' | 'vimeo' | 'direct' => {
@@ -325,16 +326,40 @@ export function createMaterialActions(
           },
           isResizable: true,
         };
-        const newDoc = {
-          ...document,
-          cards: document.cards.map((card) =>
-            card.id === cardId
-              ? { ...card, children: [...card.children, imageBlock] }
-              : card
-          ),
-          updatedAt: new Date().toISOString(),
-        };
-        setDocumentWithHistory(newDoc, { selectedNodeId: blockId });
+
+        if (targetCard) {
+          // Normal card drop
+          const newDoc = {
+            ...document,
+            cards: document.cards.map((card) =>
+              card.id === cardId
+                ? { ...card, children: [...card.children, imageBlock] }
+                : card
+            ),
+            updatedAt: new Date().toISOString(),
+          };
+          setDocumentWithHistory(newDoc, { selectedNodeId: blockId });
+        } else {
+          // cardId is actually a layoutId — add the image block into that layout
+          const newDoc = {
+            ...document,
+            cards: document.cards.map((card) => ({
+              ...card,
+              children: updateNodeInTree<ILayout | IBlock>(
+                card.children,
+                cardId,
+                (node) => {
+                  if (isLayout(node)) {
+                    return { ...node, children: [...node.children, imageBlock] };
+                  }
+                  return node;
+                }
+              ),
+            })),
+            updatedAt: new Date().toISOString(),
+          };
+          setDocumentWithHistory(newDoc, { selectedNodeId: blockId });
+        }
       }
     },
   };

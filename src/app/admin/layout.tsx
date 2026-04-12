@@ -23,6 +23,7 @@ import {
   ChevronRight,
   LogOut,
   Shield,
+  LayoutTemplate,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth';
 
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { href: '/admin/transactions', label: 'Giao dịch', icon: ArrowLeftRight },
   { href: '/admin/wallets', label: 'Ví', icon: Wallet },
   { href: '/admin/curriculum', label: 'Chương trình học', icon: BookOpen },
+  { href: '/admin/templates', label: 'Mẫu bố cục', icon: LayoutTemplate },
 ];
 
 export default function AdminLayout({

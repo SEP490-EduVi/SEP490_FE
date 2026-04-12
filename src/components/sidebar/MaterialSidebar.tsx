@@ -19,11 +19,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { IMaterial, MaterialCategory } from '@/types';
+import { IMaterial, MaterialCategory, BlockType } from '@/types';
 import type { PurchasedMaterialDto } from '@/types/api';
 import { getPurchasedMaterials } from '@/services/materialServices';
 import { Modal } from '@/components/common/Modal';
+import SkeletonPreview from '@/components/common/SkeletonPreview';
 import { basicCardTemplates, freeformCardTemplates } from './cardTemplates';
+import { useTemplates } from '@/hooks/useTemplateApi';
 import * as LucideIcons from 'lucide-react';
 import { 
   Loader2, 
@@ -37,7 +39,6 @@ import {
   LayoutGrid,
   Sparkles,
   ShoppingBag,
-  ImageIcon,
   Film,
   FileText,
 } from 'lucide-react';
@@ -54,9 +55,19 @@ interface MaterialItemProps {
   material: IMaterial;
 }
 
+interface InsertItem {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  blockType?: BlockType;    // click → insert block into current slide
+  templateType?: string;   // drag → create new standalone slide
+}
+
 interface CategorySectionProps {
   category: MaterialCategory;
   materials: IMaterial[];
+  insertItems?: InsertItem[];
   isExpanded: boolean;
   onToggle: () => void;
 }
@@ -78,11 +89,22 @@ function getIconByName(name: string): React.ReactNode {
 // CATEGORY LABELS & ICONS
 // ============================================================================
 
-const categoryConfig: Record<MaterialCategory, { label: string; icon: keyof typeof LucideIcons; color: string; bg: string }> = {
+const categoryConfig: Partial<Record<MaterialCategory, { label: string; icon: keyof typeof LucideIcons; color: string; bg: string }>> = {
   [MaterialCategory.MEDIA]: { label: 'Phương tiện', icon: 'Film', color: 'text-blue-500', bg: 'bg-blue-50' },
   [MaterialCategory.INTERACTIVE]: { label: 'Tương tác', icon: 'MousePointer2', color: 'text-violet-500', bg: 'bg-violet-50' },
-  [MaterialCategory.DATA]: { label: 'Dữ liệu & Biểu đồ', icon: 'BarChart3', color: 'text-orange-400', bg: 'bg-orange-50' },
-  [MaterialCategory.EMBED]: { label: 'Nhúng ngoài', icon: 'Code', color: 'text-pink-500', bg: 'bg-pink-50' },
+};
+
+// Items inserted directly into a card (click to add block, same UI as draggable items)
+const CATEGORY_INSERT_ITEMS: Partial<Record<MaterialCategory, InsertItem[]>> = {
+  [MaterialCategory.MEDIA]: [
+    { id: 'insert-image', name: 'Hình ảnh', description: 'Kéo để chèn hình ảnh vào slide', icon: 'ImagePlus', blockType: BlockType.IMAGE },
+    { id: 'insert-text',  name: 'Văn bản',  description: 'Kéo để chèn văn bản vào slide',   icon: 'AlignLeft',  blockType: BlockType.TEXT  },
+  ],
+  [MaterialCategory.INTERACTIVE]: [
+    { id: 'insert-quiz',       name: 'Thẻ câu hỏi', description: 'Kéo để tạo slide câu hỏi riêng',    icon: 'HelpCircle', templateType: 'quiz-card' },
+    { id: 'insert-flashcard',  name: 'Thẻ nhớ',     description: 'Kéo để tạo slide thẻ nhớ riêng',    icon: 'CreditCard', templateType: 'flashcard-card' },
+    { id: 'insert-fill-blank', name: 'Điền từ',      description: 'Kéo để tạo slide điền từ riêng',     icon: 'PenLine',    templateType: 'fill-blank-card' },
+  ],
 };
 
 // ============================================================================
@@ -149,13 +171,107 @@ function DraggableMaterialItem({ material }: MaterialItemProps) {
 }
 
 // ============================================================================
+// DRAGGABLE INSERT ITEM  (same visual as DraggableMaterialItem, creates new slide)
+// ============================================================================
+
+function DraggableInsertItem({ item }: { item: InsertItem }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `insert-${item.id}`,
+    data: {
+      type: 'INSERT_TEMPLATE',
+      templateType: item.templateType,
+      name: item.name,
+    },
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: isDragging ? 1000 : undefined }
+    : undefined;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group flex items-center gap-3 p-2 rounded-lg cursor-grab',
+        'bg-white border border-gray-100',
+        'hover:border-violet-300 hover:bg-violet-50/40',
+        'transition-all duration-150',
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-violet-400'
+      )}
+      {...listeners}
+      {...attributes}
+    >
+      <div className="flex-shrink-0 text-gray-300 group-hover:text-violet-400">
+        <GripVertical className="w-4 h-4" />
+      </div>
+      <div className="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-violet-50 text-violet-500">
+        {getIconByName(item.icon)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-gray-900 truncate">{item.name}</h4>
+        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DRAGGABLE BLOCK ITEM  (drag to insert a block into an existing slide)
+// ============================================================================
+
+function DraggableBlockItem({ item }: { item: InsertItem }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `block-${item.id}`,
+    data: {
+      type: 'INSERT_BLOCK',
+      blockType: item.blockType,
+      name: item.name,
+    },
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: isDragging ? 1000 : undefined }
+    : undefined;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group flex items-center gap-3 p-2 rounded-lg cursor-grab',
+        'bg-white border border-gray-100',
+        'hover:border-blue-300 hover:bg-blue-50/40',
+        'transition-all duration-150',
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-blue-400'
+      )}
+      {...listeners}
+      {...attributes}
+    >
+      <div className="flex-shrink-0 text-gray-300 group-hover:text-blue-400">
+        <GripVertical className="w-4 h-4" />
+      </div>
+      <div className="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-blue-50 text-blue-500">
+        {getIconByName(item.icon)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-gray-900 truncate">{item.name}</h4>
+        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // CATEGORY SECTION
 // ============================================================================
 
-function CategorySection({ category, materials, isExpanded, onToggle }: CategorySectionProps) {
+function CategorySection({ category, materials, insertItems = [], isExpanded, onToggle }: CategorySectionProps) {
   const config = categoryConfig[category];
+  if (!config) return null;
   const icons = LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>;
   const CategoryIcon = icons[config.icon];
+  const totalCount = materials.length + insertItems.length;
 
   return (
     <div className="border-b border-gray-100 last:border-b-0">
@@ -179,16 +295,21 @@ function CategorySection({ category, materials, isExpanded, onToggle }: Category
           {config.label}
         </span>
         <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', config.bg, config.color)}>
-          {materials.length}
+          {totalCount}
         </span>
       </button>
 
-      {/* Materials List */}
+      {/* Items List */}
       {isExpanded && (
         <div className="px-3 pb-3 space-y-2">
           {materials.map((material) => (
             <DraggableMaterialItem key={material.id} material={material} />
           ))}
+          {insertItems.map((item) =>
+            item.templateType
+              ? <DraggableInsertItem key={item.id} item={item} />
+              : <DraggableBlockItem key={item.id} item={item} />
+          )}
         </div>
       )}
     </div>
@@ -438,7 +559,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             )}
           >
             <Package className="w-3.5 h-3.5" />
-            Widget
+            Tiện ích
           </button>
           <button
             onClick={() => setActiveTab('purchased')}
@@ -450,7 +571,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
             )}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            Đã mua
+            Tài liệu
             {purchasedItems.length > 0 && (
               <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded-full font-semibold">
                 {purchasedItems.length}
@@ -483,25 +604,17 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
               </div>
             )}
 
-            {!loading && !error && filteredMaterials.length === 0 && (
-              <div className="p-4 text-center">
-                <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">
-                  {searchQuery ? 'Không tìm thấy tài nguyên' : 'Chưa có tài nguyên nào'}
-                </p>
-              </div>
-            )}
-
-            {!loading && !error && filteredMaterials.length > 0 && (
+            {!loading && !error && (
               <div className="divide-y divide-gray-100">
-                {Object.values(MaterialCategory).map((category) => {
-                  const categoryMaterials = materialsByCategory[category];
-                  if (categoryMaterials.length === 0) return null;
+                {[MaterialCategory.MEDIA, MaterialCategory.INTERACTIVE].map((category) => {
+                  const categoryMaterials = materialsByCategory[category] ?? [];
+                  const catInsertItems = CATEGORY_INSERT_ITEMS[category] ?? [];
                   return (
                     <CategorySection
                       key={category}
                       category={category}
                       materials={categoryMaterials}
+                      insertItems={catInsertItems}
                       isExpanded={expandedCategories.has(category)}
                       onToggle={() => toggleCategory(category)}
                     />
@@ -575,8 +688,11 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
 
 function QuickLayoutSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'freeform'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'freeform' | 'custom'>('basic');
   const addCardFromTemplate = useDocumentStore((state) => state.addCardFromTemplate);
+  const addCardFromCustomTemplate = useDocumentStore((state) => state.addCardFromCustomTemplate);
+
+  const { data: customTemplates = [], isLoading: isLoadingCustom } = useTemplates();
 
   const handleAddTemplate = (templateType: string) => {
     addCardFromTemplate(templateType);
@@ -632,6 +748,22 @@ function QuickLayoutSection() {
               )}
             >
               Tùy chỉnh
+            </button>
+            <button
+              onClick={() => setActiveTab('custom')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
+                activeTab === 'custom'
+                  ? 'bg-white text-blue-600 border border-b-white border-gray-200 -mb-px'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              Mẫu
+              {customTemplates.length > 0 && (
+                <span className="ml-1.5 text-xs bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5">
+                  {customTemplates.length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -702,6 +834,59 @@ function QuickLayoutSection() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Custom (BE) Templates Tab */}
+          {activeTab === 'custom' && (
+            <div className="px-6 py-4">
+              <p className="text-xs text-gray-500 mb-4">
+                Mẫu bố cục do quản trị viên tạo
+              </p>
+              {isLoadingCustom ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex flex-col gap-2">
+                      <div className="w-full h-32 bg-gray-200 rounded-lg" />
+                      <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto" />
+                    </div>
+                  ))}
+                </div>
+              ) : customTemplates.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-sm text-gray-400">Admin chưa tạo template nào</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  {customTemplates.map((template) => (
+                    <button
+                      key={template.templateCode}
+                      onClick={() => {
+                        addCardFromCustomTemplate(template.skeleton);
+                        setIsModalOpen(false);
+                      }}
+                      className={cn(
+                        'flex flex-col gap-2 p-0 rounded-lg',
+                        'transition-all duration-150',
+                        'hover:scale-[1.02]'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'aspect-[4/3] w-full h-32 rounded-lg overflow-hidden',
+                          'border-2 transition-all duration-150',
+                          'border-gray-100 hover:border-blue-400 hover:shadow-md'
+                        )}
+                      >
+                        <SkeletonPreview skeleton={template.skeleton} />
+                      </div>
+                      <span className="text-xs text-center px-1 text-gray-700 truncate w-full">
+                        {template.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

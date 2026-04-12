@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { IImageContent, BlockType } from '@/types';
 import { useDocumentStore } from '@/store';
 import { ImagePlus, Loader2 } from 'lucide-react';
+import { useColumnStretch } from '@/components/renderer/ColumnStretchContext';
 
 interface ImageBlockProps {
   id: string;
@@ -30,6 +31,7 @@ export function ImageBlock({
 }: ImageBlockProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateBlockContent = useDocumentStore((state) => state.updateBlockContent);
+  const isColumnStretch = useColumnStretch();
 
   // Resolve gs:// URLs to signed download URLs
   const [resolvedSrc, setResolvedSrc] = useState<string | null>(
@@ -152,6 +154,7 @@ export function ImageBlock({
       className={cn(
         'relative group rounded-lg overflow-hidden',
         'transition-all duration-200',
+        isColumnStretch && 'h-full flex flex-col',
         isSelected && 'ring-2 ring-primary-500 ring-offset-2'
       )}
       onClick={onSelect}
@@ -164,7 +167,7 @@ export function ImageBlock({
         onChange={handleFileChange}
       />
 
-      <div className="relative w-full aspect-video bg-gray-100">
+      <div className={cn('relative w-full bg-gray-100', isColumnStretch ? 'flex-1' : 'aspect-video')}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={resolvedSrc!}

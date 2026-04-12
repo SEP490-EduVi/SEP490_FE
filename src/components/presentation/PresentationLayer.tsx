@@ -23,7 +23,7 @@ import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { NodeRenderer } from '@/components/renderer/NodeRenderer';
+import { NodeRenderer, ActiveSlideProvider } from '@/components/renderer/NodeRenderer';
 import { ILayout, IBlock, BlockType, isBlock } from '@/types';
 import {
   ChevronLeft,
@@ -212,11 +212,16 @@ export function PresentationLayer() {
                     'min-h-full flex flex-col justify-center px-20 py-10 pt-16',
                     isInteractive ? 'pointer-events-auto' : 'pointer-events-none'
                   )}>
-                    <div className="w-full space-y-6">
+                    <div
+                      className="w-full space-y-6 [&_.flex-row]:items-stretch [&_.flex-row>div]:flex [&_.flex-row>div]:flex-col [&_.flex-row_figure]:flex-1 [&_.flex-row_figure]:h-full [&_.flex-row_.aspect-video]:aspect-auto [&_.flex-row_.aspect-video]:h-full [&_.flex-row_figure_img]:h-full [&_.flex-row_figure_img]:w-full [&_.flex-row_figure_img]:object-cover"
+                      style={{ fontSize: '1.35rem' }}
+                    >
                       {currentCard.children && currentCard.children.length > 0 ? (
-                        currentCard.children.map((child) => (
-                          <NodeRenderer key={child.id} node={child} depth={0} />
-                        ))
+                        <ActiveSlideProvider>
+                          {currentCard.children.map((child) => (
+                            <NodeRenderer key={child.id} node={child} depth={0} />
+                          ))}
+                        </ActiveSlideProvider>
                       ) : (
                         <div className="text-center text-gray-400 py-12">
                           <p className="text-lg">Slide này chưa có nội dung</p>

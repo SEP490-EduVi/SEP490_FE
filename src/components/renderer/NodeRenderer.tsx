@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * NodeRenderer Component
@@ -9,9 +9,9 @@
  * 
  * Node Type Mapping:
  * ------------------
- * CARD   → CardRenderer (slide container)
- * LAYOUT → LayoutRenderer (structural container with Flex/Grid)
- * BLOCK  → BlockRenderer (content: Text, Image, Video)
+ * CARD   â†’ CardRenderer (slide container)
+ * LAYOUT â†’ LayoutRenderer (structural container with Flex/Grid)
+ * BLOCK  â†’ BlockRenderer (content: Text, Image, Video)
  * 
  * Reflow Logic:
  * -------------
@@ -20,7 +20,7 @@
  * NO absolute positioning is used for content elements.
  */
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
@@ -30,7 +30,6 @@ import {
   ILayout,
   IBlock,
   NodeType,
-  BlockType,
   LayoutVariant,
   isCard,
   isLayout,
@@ -52,7 +51,119 @@ import { QuizBlock, FlashcardBlock, FillInBlankBlock } from '@/components/intera
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Plus } from 'lucide-react';
+import { GripVertical, Trash2, LayoutGrid, X, Plus } from 'lucide-react';
+import { ColumnStretchContext, useColumnStretch } from './ColumnStretchContext';
+
+// Context that marks whether the current render tree is the active presentation slide.
+// Consumed by VideoBlock to gate autoplay.
+const ActiveSlideContext = createContext(false);
+export function ActiveSlideProvider({ children }: { children: React.ReactNode }) {
+  return <ActiveSlideContext.Provider value={true}>{children}</ActiveSlideContext.Provider>;
+}
+
+// ============================================================================
+// LAYOUT PICKER MODAL
+// ============================================================================
+
+interface LayoutTemplate {
+  label: string;
+  variant: LayoutVariant;
+  /** SVG preview node */
+  preview: React.ReactNode;
+}
+
+const LAYOUT_TEMPLATES: LayoutTemplate[] = [
+  {
+    label: 'Hai cột',
+    variant: LayoutVariant.TWO_COLUMN,
+    preview: (
+      <svg viewBox="0 0 120 80" className="w-full h-full" fill="none">
+        <rect x="4" y="4" width="52" height="72" rx="4" fill="#f3f4f6" />
+        <rect x="8" y="8" width="44" height="28" rx="2" fill="#d1d5db" />
+        <rect x="8" y="42" width="44" height="6" rx="2" fill="#9ca3af" />
+        <rect x="8" y="52" width="36" height="5" rx="2" fill="#d1d5db" />
+        <rect x="8" y="61" width="40" height="5" rx="2" fill="#d1d5db" />
+        <rect x="64" y="4" width="52" height="72" rx="4" fill="#f3f4f6" />
+        <rect x="68" y="8" width="44" height="28" rx="2" fill="#d1d5db" />
+        <rect x="68" y="42" width="44" height="6" rx="2" fill="#9ca3af" />
+        <rect x="68" y="52" width="36" height="5" rx="2" fill="#d1d5db" />
+        <rect x="68" y="61" width="40" height="5" rx="2" fill="#d1d5db" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Ba cột',
+    variant: LayoutVariant.THREE_COLUMN,
+    preview: (
+      <svg viewBox="0 0 120 80" className="w-full h-full" fill="none">
+        <rect x="2" y="4" width="34" height="72" rx="3" fill="#f3f4f6" />
+        <rect x="5" y="8" width="28" height="20" rx="2" fill="#d1d5db" />
+        <rect x="5" y="32" width="28" height="5" rx="2" fill="#9ca3af" />
+        <rect x="5" y="41" width="22" height="4" rx="2" fill="#d1d5db" />
+        <rect x="5" y="49" width="26" height="4" rx="2" fill="#d1d5db" />
+        <rect x="43" y="4" width="34" height="72" rx="3" fill="#f3f4f6" />
+        <rect x="46" y="8" width="28" height="20" rx="2" fill="#d1d5db" />
+        <rect x="46" y="32" width="28" height="5" rx="2" fill="#9ca3af" />
+        <rect x="46" y="41" width="22" height="4" rx="2" fill="#d1d5db" />
+        <rect x="46" y="49" width="26" height="4" rx="2" fill="#d1d5db" />
+        <rect x="84" y="4" width="34" height="72" rx="3" fill="#f3f4f6" />
+        <rect x="87" y="8" width="28" height="20" rx="2" fill="#d1d5db" />
+        <rect x="87" y="32" width="28" height="5" rx="2" fill="#9ca3af" />
+        <rect x="87" y="41" width="22" height="4" rx="2" fill="#d1d5db" />
+        <rect x="87" y="49" width="26" height="4" rx="2" fill="#d1d5db" />
+      </svg>
+    ),
+  },
+];
+
+interface LayoutPickerModalProps {
+  onSelect: (variant: LayoutVariant) => void;
+  onClose: () => void;
+}
+
+function LayoutPickerModal({ onSelect, onClose }: LayoutPickerModalProps) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-base font-bold text-gray-900">Chọn bố cục trang</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5">
+          <p className="text-xs text-gray-500 mb-4">Chọn số cột</p>
+          <div className="grid grid-cols-2 gap-4">
+            {LAYOUT_TEMPLATES.map((tpl, i) => (
+              <button
+                key={i}
+                onClick={() => { onSelect(tpl.variant); onClose(); }}
+                className="group flex flex-col items-center gap-2.5 p-3 rounded-xl border-2 border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-150 focus:outline-none focus:border-blue-500"
+              >
+                <div className="w-full aspect-[3/2] rounded-lg overflow-hidden bg-gray-50 group-hover:bg-blue-50 transition-colors">
+                  {tpl.preview}
+                </div>
+                <span className="text-xs font-medium text-gray-600 group-hover:text-blue-600 transition-colors text-center leading-tight">
+                  {tpl.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 // ============================================================================
 // PROPS INTERFACES
@@ -95,26 +206,43 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
   const selectedNodeId = useDocumentStore((state) => state.selectedNodeId);
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
   const deleteNode = useDocumentStore((state) => state.deleteNode);
+  const wrapNodeInLayout = useDocumentStore((state) => state.wrapNodeInLayout);
   const editingNodeId = useDocumentStore((state) => state.editingNodeId);
   const appMode = useDocumentStore((state) => state.appMode);
   const isPresenting = appMode === 'PRESENT';
 
   const isSelected = selectedNodeId === node.id;
   const isEditing = editingNodeId === node.id;
+  const isColumnStretch = useColumnStretch();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
+  const [showLayoutModal, setShowLayoutModal] = useState(false);
 
   useEffect(() => {
-    if (isSelected && wrapperRef.current) {
+    if (!isSelected) {
+      setToolbarPos(null);
+      return;
+    }
+
+    const updatePos = () => {
+      if (!wrapperRef.current) return;
       const rect = wrapperRef.current.getBoundingClientRect();
       const toolbarHeight = 44;
       const above = rect.top - toolbarHeight - 4;
       const top = above < 8 ? rect.bottom + 4 : above;
       const left = rect.left + rect.width / 2;
       setToolbarPos({ top, left });
-    } else {
-      setToolbarPos(null);
-    }
+    };
+
+    updatePos();
+
+    // Re-calculate on scroll (capture phase catches nested scroll containers)
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
   }, [isSelected]);
 
   const style = {
@@ -138,73 +266,16 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
       <button
         onClick={(e) => {
           e.stopPropagation();
-          const activeCard = useDocumentStore.getState().activeCardId;
-          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.HEADING);
+          setShowLayoutModal(true);
         }}
-        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-        title="Thêm Heading"
+        className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-gray-600 transition-colors text-xs font-medium"
+        title="Chọn bố cục"
       >
-        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-        </svg>
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const activeCard = useDocumentStore.getState().activeCardId;
-          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.TEXT);
-        }}
-        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-        title="Thêm Text"
-      >
-        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-        </svg>
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const activeCard = useDocumentStore.getState().activeCardId;
-          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.IMAGE);
-        }}
-        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-        title="Thêm Image"
-      >
-        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const activeCard = useDocumentStore.getState().activeCardId;
-          if (activeCard) useDocumentStore.getState().addBlockToCard(activeCard, BlockType.VIDEO);
-        }}
-        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-        title="Thêm Video"
-      >
-        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
+        <LayoutGrid className="w-4 h-4" />
+        <span>Bố cục</span>
       </button>
 
       <div className="w-px h-5 bg-gray-200 mx-0.5" />
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // Copy action - TODO: implement
-        }}
-        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-        title="Sao chép"
-      >
-        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      </button>
 
       <button
         onClick={(e) => {
@@ -230,6 +301,15 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
         </div>,
         document.body
       )}
+      {showLayoutModal && (
+        <LayoutPickerModal
+          onSelect={(variant) => {
+            const activeCardId = useDocumentStore.getState().activeCardId;
+            if (activeCardId) wrapNodeInLayout(activeCardId, node.id, variant);
+          }}
+          onClose={() => setShowLayoutModal(false)}
+        />
+      )}
       <div
         ref={(el) => {
           setNodeRef(el);
@@ -238,6 +318,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
         style={style}
         className={cn(
           'relative group',
+          isColumnStretch && 'h-full',
           isDragging && 'opacity-50 z-50'
         )}
       >
@@ -246,6 +327,7 @@ function SortableNode({ node, depth = 0, parentLayoutId, children }: SortableNod
             e.stopPropagation();
             setSelectedNode(node.id);
           }}
+          className={isColumnStretch ? 'h-full' : undefined}
         >
           {children}
         </div>
@@ -265,6 +347,7 @@ function  BlockRenderer({ node }: { node: IBlock }) {
   const selectedNodeId = useDocumentStore((state) => state.selectedNodeId);
   const setSelectedNode = useDocumentStore((state) => state.setSelectedNode);
   const updateBlockStyles = useDocumentStore((state) => state.updateBlockStyles);
+  const isActiveSlide = useContext(ActiveSlideContext);
   
   const isSelected = selectedNodeId === node.id;
   const { content, styles } = node;
@@ -352,6 +435,7 @@ function  BlockRenderer({ node }: { node: IBlock }) {
           content={content}
           isSelected={isSelected}
           onSelect={handleSelect}
+          isActiveSlide={isActiveSlide}
         />
       </ResizableBlockWrapper>
     );
@@ -489,18 +573,20 @@ function ColumnDropZone({
       accepts: ['MATERIAL'],
     },
   });
+  const isColumnStretch = useColumnStretch();
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'min-h-[120px] rounded-lg transition-all duration-200 w-full h-full',
+        'min-h-[120px] rounded-lg transition-all duration-200 w-full',
+        isColumnStretch ? 'flex-1 flex flex-col' : 'h-full',
         isOver && 'bg-blue-50 ring-2 ring-blue-400 ring-inset',
         children.length === 0 && !isOver && 'border-2 border-dashed border-gray-200'
       )}
     >
       {children.length > 0 ? (
-        <div className="flex flex-col gap-4 h-full">
+        <div className={cn('flex flex-col gap-4', isColumnStretch ? 'flex-1' : 'h-full')}>
           {children}
         </div>
       ) : (
@@ -523,7 +609,7 @@ function ColumnDropZone({
 }
 
 /**
- * ColumnResizeDivider — draggable handle between two adjacent columns.
+ * ColumnResizeDivider â€” draggable handle between two adjacent columns.
  * Calls updateLayoutColumnWidths with the new percentages on every mousemove.
  */
 function ColumnResizeDivider({
@@ -587,10 +673,11 @@ function ColumnResizeDivider({
 
   return (
     <div
-      className="flex-shrink-0 w-3 cursor-col-resize flex items-center justify-center group select-none z-10"
+      className="absolute top-0 bottom-0 w-[10px] cursor-col-resize flex items-stretch justify-center group select-none z-20"
+      style={{ right: '-5px' }}
       onMouseDown={handleMouseDown}
     >
-      <div className="w-0.5 h-8 bg-gray-200 group-hover:bg-blue-400 transition-colors duration-150 rounded-full" />
+      <div className="w-px bg-transparent group-hover:bg-blue-400 transition-colors duration-150" />
     </div>
   );
 }
@@ -608,42 +695,47 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
 
   // Check if all children are LAYOUT nodes (nested layouts for columns)
   const childrenAreLayouts = node.children.every(child => isLayout(child));
+  const parentIsColumnStretch = useColumnStretch();
+  const stretchApplies = parentIsColumnStretch && columnCount === 1 && node.children.length === 1;
 
   // ---- SINGLE COLUMN ----
   if (columnCount === 1) {
     const childIds = node.children.map(child => child.id);
     return (
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedNode(node.id);
-        }}
-        className={cn(
-          'flex flex-col gap-4',
-          isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
-          'transition-all duration-200'
-        )}
-      >
-        {childrenAreLayouts ? (
-          node.children.map((child) => (
-            <div key={child.id} className="min-w-0">
-              <NodeRenderer node={child as INode} depth={depth + 1} />
-            </div>
-          ))
-        ) : (
-          <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-            <ColumnDropZone layoutId={node.id} columnIndex={0}>
-              {node.children.map((child) => (
-                <div key={child.id} className="min-w-0">
-                  <SortableNode node={child as INode} depth={depth + 1} parentLayoutId={node.id}>
-                    <NodeRenderer node={child as INode} depth={depth + 1} />
-                  </SortableNode>
-                </div>
-              ))}
-            </ColumnDropZone>
-          </SortableContext>
-        )}
-      </div>
+      <ColumnStretchContext.Provider value={stretchApplies}>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedNode(node.id);
+          }}
+          className={cn(
+            'flex flex-col gap-4',
+            stretchApplies && 'flex-1',
+            isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
+            'transition-all duration-200'
+          )}
+        >
+          {childrenAreLayouts ? (
+            node.children.map((child) => (
+              <div key={child.id} className={cn('min-w-0', stretchApplies && 'h-full')}>
+                <NodeRenderer node={child as INode} depth={depth + 1} />
+              </div>
+            ))
+          ) : (
+            <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+              <ColumnDropZone layoutId={node.id} columnIndex={0}>
+                {node.children.map((child) => (
+                  <div key={child.id} className={cn('min-w-0', stretchApplies && 'h-full')}>
+                    <SortableNode node={child as INode} depth={depth + 1} parentLayoutId={node.id}>
+                      <NodeRenderer node={child as INode} depth={depth + 1} />
+                    </SortableNode>
+                  </div>
+                ))}
+              </ColumnDropZone>
+            </SortableContext>
+          )}
+        </div>
+      </ColumnStretchContext.Provider>
     );
   }
 
@@ -655,11 +747,13 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
   let columnContents: React.ReactNode[];
 
   if (childrenAreLayouts && node.children.length <= columnCount) {
-    // Each direct child is a column layout — wrap in card box with border
+    // Each direct child is a column layout â€” wrap in card box with border
     columnContents = node.children.map((child) => (
-      <div key={child.id} className="bg-gray-100 border border-gray-200 rounded-xl p-4 h-full min-h-[120px]">
-        <NodeRenderer node={child as INode} depth={depth + 1} />
-      </div>
+      <ColumnStretchContext.Provider key={child.id} value={true}>
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex-1 min-h-[120px] flex flex-col">
+          <NodeRenderer node={child as INode} depth={depth + 1} />
+        </div>
+      </ColumnStretchContext.Provider>
     ));
     // Pad missing columns with empty drop zones
     while (columnContents.length < columnCount) {
@@ -673,46 +767,53 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
       );
     }
   } else {
-    // Distribute children across columns
-    const childrenByColumn: React.ReactNode[][] = Array.from({ length: columnCount }, () => []);
+    // Distribute children across columns, wrapped in SortableNode
+    const childrenByColumn: INode[][] = Array.from({ length: columnCount }, () => []);
     node.children.forEach((child, index) => {
-      const columnIndex = index % columnCount;
-      childrenByColumn[columnIndex].push(
-        <div key={child.id} className="min-w-0">
-          <NodeRenderer node={child as INode} depth={depth + 1} />
-        </div>
+      childrenByColumn[index % columnCount].push(child as INode);
+    });
+    columnContents = childrenByColumn.map((colChildren, colIndex) => {
+      const stretchCol = colChildren.length === 1;
+      const colIds = colChildren.map((c) => c.id);
+      return (
+        <ColumnStretchContext.Provider key={colIndex} value={stretchCol}>
+          <SortableContext items={colIds} strategy={verticalListSortingStrategy}>
+            <ColumnDropZone layoutId={node.id} columnIndex={colIndex}>
+              {colChildren.map((child) => (
+                <div key={child.id} className={cn('min-w-0', stretchCol && 'h-full')}>
+                  <SortableNode node={child} depth={depth + 1} parentLayoutId={node.id}>
+                    <NodeRenderer node={child} depth={depth + 1} />
+                  </SortableNode>
+                </div>
+              ))}
+            </ColumnDropZone>
+          </SortableContext>
+        </ColumnStretchContext.Provider>
       );
     });
-    columnContents = childrenByColumn.map((columnChildren, colIndex) => (
-      <ColumnDropZone key={colIndex} layoutId={node.id} columnIndex={colIndex}>
-        {columnChildren}
-      </ColumnDropZone>
-    ));
   }
 
-  // Interleave column content + dividers
-  const interleaved: React.ReactNode[] = [];
+  // Build columns with embedded resize handles on the right edge
+  const cols: React.ReactNode[] = [];
   columnContents.forEach((colContent, i) => {
-    interleaved.push(
+    const isLast = i === columnContents.length - 1;
+    cols.push(
       <div
         key={`col-${i}`}
-        className="min-w-0 overflow-hidden"
-        style={{ width: `${columnWidths[i] ?? 100 / columnCount}%`, flexShrink: 0 }}
+        className="relative min-w-0 flex flex-col"
+        style={{ flexGrow: columnWidths[i] ?? 100 / columnCount, flexShrink: 1, flexBasis: '0%' }}
       >
         {colContent}
+        {!isLast && (
+          <ColumnResizeDivider
+            layoutId={node.id}
+            dividerIndex={i}
+            columnWidths={columnWidths}
+            containerRef={containerRef}
+          />
+        )}
       </div>
     );
-    if (i < columnContents.length - 1) {
-      interleaved.push(
-        <ColumnResizeDivider
-          key={`divider-${i}`}
-          layoutId={node.id}
-          dividerIndex={i}
-          columnWidths={columnWidths}
-          containerRef={containerRef}
-        />
-      );
-    }
   });
 
   return (
@@ -723,12 +824,12 @@ function LayoutRenderer({ node, depth = 0 }: { node: ILayout; depth?: number }) 
         setSelectedNode(node.id);
       }}
       className={cn(
-        'flex flex-row w-full',
+        'flex flex-row gap-2 w-full',
         isSelected && 'ring-2 ring-primary-300 ring-offset-2 rounded-lg',
         'transition-shadow duration-200'
       )}
     >
-      {interleaved}
+      {cols}
     </div>
   );
 }
@@ -761,7 +862,7 @@ function CardRenderer({ node }: { node: ICard }) {
       className={cn(
         // Width fills container; height shrinks to content but never exceeds 600px
         'w-full max-h-[600px]',
-        // Normal block flow — no fixed height, no flex-stretch
+        // Normal block flow â€” no fixed height, no flex-stretch
         'flex flex-col',
         // Hide overflow when content hits the max-height
         'overflow-hidden',

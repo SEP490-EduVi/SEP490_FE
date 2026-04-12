@@ -460,3 +460,52 @@ export type CreateNodePayload =
  * Used for traversal and updates
  */
 export type NodePath = string[];
+
+// ============================================================================
+// TEMPLATE SKELETON TYPES
+// ============================================================================
+
+/**
+ * ISkeletonBlock - Lightweight representation of a BLOCK node in a template.
+ * Contains only structural info (block type + minimal meta), NO content data.
+ */
+export interface ISkeletonBlock {
+  blockType: BlockType;
+  meta?: {
+    /** For HEADING blocks: heading level (1-6) */
+    level?: 1 | 2 | 3 | 4 | 5 | 6;
+    /** For QUIZ blocks: number of questions to pre-fill */
+    questionCount?: number;
+    /** Preserved inline styles (width, aspectRatio, etc.) */
+    styles?: IBlockStyles;
+    /** Whether the hydrated block should be resizable */
+    isResizable?: boolean;
+  };
+}
+
+/**
+ * ISkeletonLayout - Lightweight representation of a LAYOUT node in a template.
+ * Contains variant and gap but NO IDs.
+ */
+export interface ISkeletonLayout {
+  type: 'LAYOUT';
+  variant: LayoutVariant;
+  gap?: number;
+  columnWidths?: number[];
+  children: (ISkeletonLayout | ISkeletonBlock)[];
+}
+
+/**
+ * ITemplateSkeleton - Root skeleton for a card template.
+ * Describes the full structural shape of one slide (card), without any content or IDs.
+ * Sent to / received from the backend for template storage.
+ */
+export interface ITemplateSkeleton {
+  /** Optional background color (#hex), preserved from the admin's design */
+  backgroundColor?: string;
+  /** Vertical alignment of content group */
+  contentAlignment?: 'top' | 'center' | 'bottom';
+  /** When true the slide should be treated as a video slide */
+  isVideoSlide?: boolean;
+  children: (ISkeletonLayout | ISkeletonBlock)[];
+}

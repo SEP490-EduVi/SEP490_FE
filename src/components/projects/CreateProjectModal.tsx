@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderOpen, X, Loader2 } from 'lucide-react';
+import { FolderOpen, X, Loader2, ChevronDown, BookOpen, GraduationCap } from 'lucide-react';
 import type { SubjectDto, GradeDto } from '@/types/api';
 
 interface CreateProjectModalProps {
@@ -39,6 +39,8 @@ export default function CreateProjectModal({
   const [projectName, setProjectName] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [gradeCode, setGradeCode] = useState('');
+  const [showSubjectPicker, setShowSubjectPicker] = useState(false);
+  const [showGradePicker, setShowGradePicker] = useState(false);
 
   const resolvedSubjectCode = presetSubjectCode ?? subjectCode;
   const resolvedGradeCode = presetGradeCode ?? gradeCode;
@@ -84,7 +86,7 @@ export default function CreateProjectModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', duration: 0.4 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -142,45 +144,111 @@ export default function CreateProjectModal({
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Môn học <span className="text-red-400">*</span>
                     </label>
-                    <select
-                      value={subjectCode}
-                      onChange={(e) => setSubjectCode(e.target.value)}
-                      disabled={isLoading || subjectsLoading}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
-                    >
-                      <option value="">{subjectsLoading ? 'Đang tải môn học...' : '-- Chọn môn học --'}</option>
-                      {subjects.map((s) => (
-                        <option key={s.subjectCode} value={s.subjectCode}>
-                          {s.subjectName}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => { if (!isLoading && !subjectsLoading) setShowSubjectPicker((v) => !v); }}
+                        disabled={isLoading || subjectsLoading}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:border-blue-300 transition-colors text-left disabled:opacity-50"
+                      >
+                        <BookOpen className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                        <span className="flex-1 text-sm font-medium text-gray-700 truncate">
+                          {subjectsLoading
+                            ? 'Đang tải...'
+                            : subjectCode
+                            ? subjects.find((s) => s.subjectCode === subjectCode)?.subjectName ?? subjectCode
+                            : '-- Chọn môn học --'}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showSubjectPicker ? 'rotate-180' : ''}`} />
+                      </button>
+                      <AnimatePresence>
+                        {showSubjectPicker && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 right-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-y-auto max-h-52"
+                          >
+                            {subjects.map((s) => (
+                              <button
+                                key={s.subjectCode}
+                                type="button"
+                                onClick={() => { setSubjectCode(s.subjectCode); setShowSubjectPicker(false); }}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-blue-50 ${
+                                  subjectCode === s.subjectCode ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{s.subjectName}</p>
+                                  <p className="text-[11px] text-gray-400">{s.subjectCode}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Khối lớp <span className="text-red-400">*</span>
                     </label>
-                    <select
-                      value={gradeCode}
-                      onChange={(e) => setGradeCode(e.target.value)}
-                      disabled={isLoading || gradesLoading}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
-                    >
-                      <option value="">{gradesLoading ? 'Đang tải khối lớp...' : '-- Chọn khối lớp --'}</option>
-                      {grades.map((g) => (
-                        <option key={g.gradeCode} value={g.gradeCode}>
-                          {g.gradeName}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => { if (!isLoading && !gradesLoading) setShowGradePicker((v) => !v); }}
+                        disabled={isLoading || gradesLoading}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:border-blue-300 transition-colors text-left disabled:opacity-50"
+                      >
+                        <GraduationCap className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                        <span className="flex-1 text-sm font-medium text-gray-700 truncate">
+                          {gradesLoading
+                            ? 'Đang tải...'
+                            : gradeCode
+                            ? grades.find((g) => g.gradeCode === gradeCode)?.gradeName ?? gradeCode
+                            : '-- Chọn khối lớp --'}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showGradePicker ? 'rotate-180' : ''}`} />
+                      </button>
+                      <AnimatePresence>
+                        {showGradePicker && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 right-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-y-auto max-h-52"
+                          >
+                            {grades.map((g) => (
+                              <button
+                                key={g.gradeCode}
+                                type="button"
+                                onClick={() => { setGradeCode(g.gradeCode); setShowGradePicker(false); }}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-blue-50 ${
+                                  gradeCode === g.gradeCode ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{g.gradeName}</p>
+                                  <p className="text-[11px] text-gray-400">{g.gradeCode}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
               <button
                 onClick={handleClose}
                 disabled={isLoading}

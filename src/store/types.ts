@@ -15,6 +15,7 @@ import {
   LayoutVariant,
   IBlockStyles,
   IMaterial,
+  ITemplateSkeleton,
 } from '@/types';
 
 // ============================================================================
@@ -93,8 +94,10 @@ export interface DocumentState {
   addCard: (title?: string) => void;
   addVideoSlide: (title?: string) => void;
   addCardFromTemplate: (templateType: string) => void;
+  addCardFromCustomTemplate: (skeleton: ITemplateSkeleton) => void;
   addBlockToCard: (cardId: string, blockType: BlockType) => void;
   addLayoutToCard: (cardId: string, variant: LayoutVariant) => void;
+  wrapNodeInLayout: (cardId: string, nodeId: string, variant: LayoutVariant) => void;
   addBlockToLayout: (layoutId: string, blockType: BlockType) => void;
   
   // Update Actions
@@ -116,7 +119,7 @@ export interface DocumentState {
   
   // Material/Widget Actions
   dropMaterial: (parentId: string, material: IMaterial, columnIndex?: number, customData?: Record<string, unknown>) => void;
-  dropPurchasedMaterial: (targetCardId: string | null, item: { title: string; description?: string; type: string; resourceUrl: string | null }) => void;
+  dropPurchasedMaterial: (targetCardId: string | null, item: { title: string; description?: string; type: string; resourceUrl: string | null; previewUrl?: string | null }) => void;
   createWidgetGroup: (cardId: string, variant: LayoutVariant, materials: IMaterial[]) => void;
   wrapBlocksInLayout: (cardId: string, blockIds: string[], variant: LayoutVariant) => void;
   

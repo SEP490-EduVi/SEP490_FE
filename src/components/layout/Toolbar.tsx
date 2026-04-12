@@ -9,12 +9,11 @@
  *  Row 2 (insert bar): Quick-insert buttons for teachers (Tiêu đề, Văn bản, …)
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { BlockType, LayoutVariant } from '@/types';
 import { exportToEduvi } from '@/lib/exportToEduvi';
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
 import { createPlayableGameTask } from '@/services/gamesServices';
@@ -23,13 +22,6 @@ import {
   Undo2,
   Redo2,
   Play,
-  Heading1,
-  AlignLeft,
-  Image as ImageIcon,
-  Video,
-  HelpCircle,
-  CreditCard,
-  PenLine,
   ChevronDown,
   Save,
   Loader2,
@@ -39,137 +31,17 @@ import {
   Download,
   AlertTriangle,
 } from 'lucide-react';
+import { ContextualTextToolbar } from '@/components/blocks/FloatingTextToolbar';
 
 type TemplateId = (typeof GAME_BLUEPRINTS)[keyof typeof GAME_BLUEPRINTS];
 const LAST_EDITED_SLIDE_URL_KEY = 'eduvi_last_edited_slide_gcs_url';
 
-// ============================================================================
-// INSERT BUTTON — large, icon + label, used in the secondary toolbar
-// ============================================================================
-
-interface InsertButtonProps {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  accent?: boolean;
-}
-
-function InsertButton({ icon, label, onClick, disabled, accent }: InsertButtonProps) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      className={cn(
-        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg',
-        'text-sm font-medium transition-all duration-150',
-        disabled
-          ? 'text-gray-300 cursor-not-allowed'
-          : accent
-          ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
-          : 'text-slate-600 hover:bg-gray-100 hover:text-blue-500'
-      )}
-    >
-      <span className="flex-shrink-0">{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function InsertDivider() {
-  return <div className="w-px h-6 bg-gray-200 mx-1 flex-shrink-0" />;
-}
-
-// ============================================================================
-// BACKGROUND COLOR PICKER
-// ============================================================================
-
-const SLIDE_BG_COLORS = [
-  { label: 'Trắng', value: '#ffffff' },
-  { label: 'Xám nhạt', value: '#f8fafc' },
-  { label: 'Vàng nhạt', value: '#fefce8' },
-  { label: 'Xanh nhạt', value: '#eff6ff' },
-  { label: 'Hồng nhạt', value: '#fff1f2' },
-  { label: 'Xanh lá', value: '#f0fdf4' },
-  { label: 'Tím nhạt', value: '#faf5ff' },
-  { label: 'Cam nhạt', value: '#fff7ed' },
-  { label: 'Đen', value: '#0f172a' },
-  { label: 'Xám đậm', value: '#1e293b' },
-  { label: 'Xanh đậm', value: '#1e3a5f' },
-  { label: 'Đỏ đậm', value: '#7f1d1d' },
-];
-
-function BgColorPicker({
-  currentColor,
-  onApplyCurrent,
-  onApplyAll,
-}: {
-  currentColor: string;
-  onApplyCurrent: (color: string) => void;
-  onApplyAll: (color: string) => void;
-}) {
-  const [selected, setSelected] = useState(currentColor || '#ffffff');
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Màu nền slide</p>
-      <div className="grid grid-cols-6 gap-1.5">
-        {SLIDE_BG_COLORS.map((c) => (
-          <button
-            key={c.value}
-            title={c.label}
-            onClick={() => setSelected(c.value)}
-            className={cn(
-              'w-7 h-7 rounded border-2 transition-all hover:scale-110',
-              selected === c.value
-                ? 'border-blue-500 ring-2 ring-blue-200'
-                : 'border-gray-200'
-            )}
-            style={{ backgroundColor: c.value }}
-          />
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-gray-500 flex-shrink-0">Tuỳ chỉnh:</label>
-        <input
-          type="color"
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="w-7 h-7 rounded border border-gray-200 cursor-pointer p-0 flex-shrink-0"
-        />
-        <span className="text-xs text-gray-400 font-mono truncate">{selected}</span>
-      </div>
-      <div className="flex gap-2 pt-1 border-t border-gray-100">
-        <button
-          onClick={() => onApplyCurrent(selected)}
-          className="flex-1 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
-        >
-          Slide này
-        </button>
-        <button
-          onClick={() => onApplyAll(selected)}
-          className="flex-1 py-1.5 rounded-lg bg-slate-700 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
-        >
-          Tất cả
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function Toolbar() {
   const router = useRouter();
-  const activeCardId = useDocumentStore((state) => state.activeCardId);
-  const addBlockToCard = useDocumentStore((state) => state.addBlockToCard);
-  const addLayoutToCard = useDocumentStore((state) => state.addLayoutToCard);
-  const addCardFromTemplate = useDocumentStore((state) => state.addCardFromTemplate);
   const document = useDocumentStore((state) => state.document);
   const startPresentation = useDocumentStore((state) => state.startPresentation);
   const canUndo = useDocumentStore((state) => state.canUndo());
   const canRedo = useDocumentStore((state) => state.canRedo());
-  const setCardContentAlignment = useDocumentStore((state) => state.setCardContentAlignment);
-  const setCardBackground = useDocumentStore((state) => state.setCardBackground);
   const currentProductCode = useDocumentStore((state) => state.currentProductCode);
   const currentProjectCode = useDocumentStore((state) => state.currentProjectCode);
   const isSaving = useDocumentStore((state) => state.isSaving);
@@ -189,28 +61,6 @@ export function Toolbar() {
   const [gameRoundCount, setGameRoundCount] = useState<number>(1);
   const [gameStatus, setGameStatus] = useState<string>('');
   const [isGameCreating, setIsGameCreating] = useState(false);
-
-  const activeCard = document?.cards.find((c) => c.id === activeCardId);
-  const currentAlignment = activeCard?.contentAlignment ?? 'center';
-  const currentBgColor = activeCard?.backgroundColor ?? '';
-  const hasActiveCard = !!activeCardId;
-
-  const [showBgPicker, setShowBgPicker] = useState(false);
-  const bgPickerRef = useRef<HTMLDivElement>(null);
-  const bgButtonRef = useRef<HTMLButtonElement>(null);
-  const [bgPickerPos, setBgPickerPos] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (bgPickerRef.current && !bgPickerRef.current.contains(e.target as Node) &&
-          bgButtonRef.current && !bgButtonRef.current.contains(e.target as Node)) {
-        setShowBgPicker(false);
-      }
-    };
-
-    if (showBgPicker) window.addEventListener('mousedown', handler);
-    return () => window.removeEventListener('mousedown', handler);
-  }, [showBgPicker]);
 
   useEffect(() => {
     const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
@@ -253,32 +103,21 @@ export function Toolbar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleAddBlock = (blockType: BlockType) => {
-    if (activeCardId) {
-      addBlockToCard(activeCardId, blockType);
-    }
-  };
-
-  const handleAddLayout = (variant: LayoutVariant) => {
-    if (activeCardId) {
-      addLayoutToCard(activeCardId, variant);
-    }
-  };
-
-  const handleAddTemplate = (templateType: string) => {
-    addCardFromTemplate(templateType);
-  };
-
   const handleGenerateVideo = async () => {
     if (!currentProductCode) return;
     setShowVideoConfirm(true);
   };
 
-  const handleConfirmGenerateVideo = () => {
+  const handleConfirmGenerateVideo = async () => {
     if (!currentProductCode || !currentProjectCode) return;
     setShowVideoConfirm(false);
+    // Save first if there are unsaved changes so the video uses the latest slide
+    if (isDirty) {
+      await saveSlide();
+    }
+    // Navigate to the project page and pass params so it auto-starts video generation
     router.push(
-      `/teacher/pipeline?projectCode=${encodeURIComponent(currentProjectCode)}&productCode=${encodeURIComponent(currentProductCode)}&step=video`
+      `/teacher/${encodeURIComponent(currentProjectCode)}?action=generate-video&productCode=${encodeURIComponent(currentProductCode)}`
     );
   };
 
@@ -481,117 +320,8 @@ export function Toolbar() {
         </div>
       </header>
 
-      {/* ── Row 2: Insert toolbar ──────────────────────────────────────────── */}
-      <div className="h-11 bg-white border-b border-gray-200 px-4 flex items-center gap-1 overflow-x-auto">
-        <span className="text-sm font-semibold text-gray-500 mr-2 flex-shrink-0 select-none">
-          Chèn:
-        </span>
-
-        {/* Text blocks */}
-        <InsertButton
-          icon={<Heading1 className="w-4 h-4" />}
-          label="Tiêu đề"
-          onClick={() => handleAddBlock(BlockType.HEADING)}
-          disabled={!hasActiveCard}
-        />
-        <InsertButton
-          icon={<AlignLeft className="w-4 h-4" />}
-          label="Văn bản"
-          onClick={() => handleAddBlock(BlockType.TEXT)}
-          disabled={!hasActiveCard}
-        />
-        <InsertButton
-          icon={<ImageIcon className="w-4 h-4" />}
-          label="Hình ảnh"
-          onClick={() => handleAddBlock(BlockType.IMAGE)}
-          disabled={!hasActiveCard}
-        />
-        <InsertButton
-          icon={<Video className="w-4 h-4" />}
-          label="Video"
-          onClick={() => handleAddBlock(BlockType.VIDEO)}
-          disabled={!hasActiveCard}
-        />
-
-        <InsertDivider />
-
-        {/* Background color */}
-        <div className="relative flex-shrink-0">
-          <button
-            ref={bgButtonRef}
-            onClick={() => {
-              if (!showBgPicker && bgButtonRef.current) {
-                const rect = bgButtonRef.current.getBoundingClientRect();
-                setBgPickerPos({ top: rect.bottom + 4, left: rect.left });
-              }
-              setShowBgPicker((v) => !v);
-            }}
-            disabled={!hasActiveCard}
-            title="Màu nền slide"
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
-              !hasActiveCard
-                ? 'text-gray-300 cursor-not-allowed'
-                : showBgPicker
-                ? 'bg-gray-100 text-slate-700'
-                : 'text-slate-600 hover:bg-gray-100 hover:text-blue-500'
-            )}
-          >
-            <span
-              className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
-              style={{ backgroundColor: currentBgColor || '#ffffff' }}
-            />
-            <span>Màu nền</span>
-            <ChevronDown className="w-3 h-3" />
-          </button>
-
-          {showBgPicker && typeof window !== 'undefined' && createPortal(
-            <div
-              ref={bgPickerRef}
-              className="fixed z-[9999] bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-56"
-              style={{ top: bgPickerPos.top, left: bgPickerPos.left }}
-            >
-              <BgColorPicker
-                currentColor={currentBgColor}
-                onApplyCurrent={(color) => {
-                  if (activeCardId) setCardBackground(activeCardId, color);
-                  setShowBgPicker(false);
-                }}
-                onApplyAll={(color) => {
-                  setCardBackground(null, color);
-                  setShowBgPicker(false);
-                }}
-              />
-            </div>,
-            globalThis.document.body
-          )}
-        </div>
-
-        <InsertDivider />
-
-        {/* Interactive blocks */}
-        <InsertButton
-          icon={<HelpCircle className="w-4 h-4" />}
-          label="Thẻ câu hỏi"
-          onClick={() => handleAddTemplate('quiz-card')}
-          disabled={!hasActiveCard}
-          accent
-        />
-        <InsertButton
-          icon={<CreditCard className="w-4 h-4" />}
-          label="Thẻ nhớ"
-          onClick={() => handleAddTemplate('flashcard-card')}
-          disabled={!hasActiveCard}
-          accent
-        />
-        <InsertButton
-          icon={<PenLine className="w-4 h-4" />}
-          label="Điền từ"
-          onClick={() => handleAddTemplate('fill-blank-card')}
-          disabled={!hasActiveCard}
-          accent
-        />
-      </div>
+      {/* Floating text toolbar — portal to document.body, no layout impact */}
+      <ContextualTextToolbar />
     </div>
 
       {/* ── Video Confirmation Modal ──────────────────────────────────────── */}

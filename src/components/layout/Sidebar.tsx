@@ -250,6 +250,11 @@ function SlideItem({ card, index, isActive, onClick, onDelete }: SlideItemProps)
       {...attributes}
       {...listeners}
     >
+      {/* Slide number badge */}
+      <div className="absolute bottom-3 left-3 z-10 min-w-[18px] h-[18px] flex items-center justify-center rounded bg-black/50 text-white text-[10px] font-semibold px-1 pointer-events-none select-none leading-none">
+        {index + 1}
+      </div>
+
       {/* Slide thumbnail — real content preview */}
       <SlideThumbnailPreview card={card} isActive={isActive} />
 
