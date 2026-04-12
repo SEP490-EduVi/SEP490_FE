@@ -34,6 +34,7 @@ const NAV_ITEMS = [
   { href: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
   { href: '/admin/transactions', label: 'Giao dịch', icon: ArrowLeftRight },
   { href: '/admin/wallets', label: 'Ví', icon: Wallet },
+  { href: '/admin/withdrawals', label: 'Rút tiền', icon: Wallet },
   { href: '/admin/curriculum', label: 'Chương trình học', icon: BookOpen },
   { href: '/admin/templates', label: 'Mẫu bố cục', icon: LayoutTemplate },
 ];

@@ -34,6 +34,7 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
     { href: '/expert',             label: 'Tổng quan',  icon: LayoutDashboard },
     { href: '/profile?tab=certificate', label: 'Chứng chỉ',  icon: ShieldCheck     },
     { href: '/expert/material',    label: 'Tài liệu',      icon: FileText        },
+    { href: '/profile?tab=withdrawal', label: 'Rút tiền', icon: Wallet },
   ],
   admin: [
     { href: '/admin',          label: 'Bảng điều khiển', icon: LayoutDashboard },
@@ -291,7 +292,7 @@ export default function AppHeader() {
               <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
                 {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
               </span>
-              Xem quota
+              Xem giới hạn sử dụng
             </button>
 
             {quotaOpen && (

@@ -134,6 +134,21 @@ export interface AdminOrderResponse {
   orderDate?: string | null;
 }
 
+export interface AdminWithdrawalResponse {
+  withdrawalId: number;
+  expertId?: number | null;
+  expertName?: string | null;
+  amount: number;
+  bankAccountNumber: string;
+  bankName: string;
+  accountHolderName: string;
+  status?: number | string;
+  statusName?: string | null;
+  adminNote?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface PlanResponse {
   planId: number;
   planName: string;

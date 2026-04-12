@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as paymentService from '@/services/paymentServices';
-import type { TopUpInput } from '@/types/api';
+import type {
+  AdminProcessWithdrawalInput,
+  ConfirmWithdrawalOtpInput,
+  InitiateWithdrawalInput,
+  TopUpInput,
+} from '@/types/api';
 
 const PLAN_QUERY_KEY = 'payment-plans';
 const WALLET_QUERY_KEY = 'payment-wallet';
 const TX_QUERY_KEY = 'payment-transactions';
 const QUOTA_QUERY_KEY = 'payment-user-quota';
+const WITHDRAWAL_MY_QUERY_KEY = 'payment-withdrawal-my';
+const WITHDRAWAL_ADMIN_QUERY_KEY = 'payment-withdrawal-admin';
 
 interface PaymentQueryOptions {
   enabled?: boolean;
@@ -68,5 +75,53 @@ export function useUserQuota(options?: PaymentQueryOptions) {
     queryKey: [QUOTA_QUERY_KEY],
     queryFn: paymentService.getUserQuota,
     enabled: options?.enabled ?? true,
+  });
+}
+
+export function useInitiateWithdrawal() {
+  return useMutation({
+    mutationFn: (input: InitiateWithdrawalInput) => paymentService.initiateWithdrawal(input),
+  });
+}
+
+export function useConfirmWithdrawalOtp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ConfirmWithdrawalOtpInput) => paymentService.confirmWithdrawalOtp(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WALLET_QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: [TX_QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: [WITHDRAWAL_MY_QUERY_KEY] });
+    },
+  });
+}
+
+export function useMyWithdrawals(page = 1, pageSize = 10, options?: PaymentQueryOptions) {
+  return useQuery({
+    queryKey: [WITHDRAWAL_MY_QUERY_KEY, page, pageSize],
+    queryFn: () => paymentService.getMyWithdrawals(page, pageSize),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useAdminWithdrawals(page = 1, pageSize = 10, status?: number, options?: PaymentQueryOptions) {
+  return useQuery({
+    queryKey: [WITHDRAWAL_ADMIN_QUERY_KEY, page, pageSize, status ?? null],
+    queryFn: () => paymentService.getAdminWithdrawals(page, pageSize, status),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useProcessWithdrawal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ withdrawalId, payload }: { withdrawalId: number; payload: AdminProcessWithdrawalInput }) =>
+      paymentService.processWithdrawal(withdrawalId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WITHDRAWAL_ADMIN_QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: [WALLET_QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: [TX_QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: [WITHDRAWAL_MY_QUERY_KEY] });
+    },
   });
 }
