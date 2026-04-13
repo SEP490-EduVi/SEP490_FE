@@ -169,9 +169,11 @@ export default function StudioPanel({
             <button
               type="button"
               onClick={() => setShowDocPicker((v) => !v)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:border-blue-300 transition-colors text-left"
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${showDocPicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-left`}
             >
-              <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-3.5 h-3.5 text-blue-500" />
+              </div>
               <span className="flex-1 text-xs font-medium text-gray-700 truncate">
                 {activeDoc?.title ?? 'Chọn tài liệu'}
               </span>
@@ -192,12 +194,14 @@ export default function StudioPanel({
                       type="button"
                       onClick={() => { setActiveDoc(doc); setShowDocPicker(false); }}
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-blue-50 ${
-                        activeDoc?.documentCode === doc.documentCode ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        activeDoc?.documentCode === doc.documentCode ? 'bg-blue-50' : ''
                       }`}
                     >
-                      <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                      <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-3 h-3 text-blue-400" />
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium truncate">{doc.title}</p>
+                        <p className={`text-xs font-medium truncate ${activeDoc?.documentCode === doc.documentCode ? 'text-blue-600' : 'text-gray-700'}`}>{doc.title}</p>
                         <p className="text-[11px] text-gray-400">{doc.lessonName || doc.lessonCode}</p>
                       </div>
                     </button>

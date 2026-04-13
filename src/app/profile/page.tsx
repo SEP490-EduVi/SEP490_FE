@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,18 +10,25 @@ import {
   Eye, EyeOff, Loader2, AlertCircle, Camera,
   Upload, Trash2, FileText, Clock, CheckCircle2, XCircle,
   Mail, Phone, BadgeCheck, LockKeyhole, Wallet, CreditCard,
-  PencilLine, X, Check, ArrowRight,
+  PencilLine, X, Check, ArrowRight, Layers, Film, Library,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetMeService, useChangePasswordService, useUpdateMeService } from '@/services/authServices';
 import { uploadAvatarToGcs } from '@/services/gcsServices';
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
 import { useBuySubscription, useSubscriptionPlans, useTopUpWallet, useVerifyTopUp, useWalletInfo, useWalletTransactions, useUserQuota } from '@/hooks/usePaymentApi';
+import { useAllProducts } from '@/hooks/useProductApi';
+import { useAllVideos } from '@/hooks/usePipelineApi';
+import { usePurchasedMaterials } from '@/hooks/useMaterialShopApi';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import * as productService from '@/services/productServices';
+import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
+import type { VideoProductDto } from '@/types/api';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { notify } from '@/components/common';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type Tab = 'profile' | 'security' | 'payment' | 'certificate';
+type Tab = 'profile' | 'security' | 'payment' | 'certificate' | 'slides' | 'videos' | 'library';
 
 function formatEduCoin(value: number | null | undefined): string {
   const amount = Number.isFinite(value) ? Number(value) : 0;
@@ -71,9 +79,11 @@ function CertStatusBadge({ status }: { status: string }) {
 
 // ── Inner page (needs Suspense because of useSearchParams) ───────────────
 function ProfilePageInner() {
+  const router          = useRouter();
   const searchParams    = useSearchParams();
   const { user, role, setUser } = useAuthStore();
   const isStaff = role === 'staff';
+  const setDocument     = useDocumentStore((s) => s.setDocument);
 
   const defaultTab = (): Tab => {
     const t = searchParams.get('tab');
@@ -330,13 +340,46 @@ function ProfilePageInner() {
   const initial     = displayName.charAt(0).toUpperCase();
   const roleLabel   = info?.role?.roleName ?? '';
   const isExpert    = role === 'expert';
+  const isTeacher   = role === 'teacher';
   const isActive    = info?.status === 1;
   const cert        = verifications[0] ?? null;
+
+  // ── Slides / Videos / Library data ────────────────────────────────────────
+  const { data: allProducts = [], isLoading: slidesLoading } = useAllProducts();
+  const { data: allVideos = [], isLoading: videosLoading } = useAllVideos();
+  const { data: purchasedMaterials = [], isLoading: libLoading } = usePurchasedMaterials();
+  const mySlides = allProducts.filter((p) => p.hasSlide);
+  const myVideos = allVideos.filter((v) => v.status === 'completed');
+
+  const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<VideoProductDto | null>(null);
+
+  const handleViewSlide = async (productCode: string, hasEditedSlide: boolean) => {
+    setViewSlideLoading(productCode);
+    try {
+      let slideDoc;
+      if (hasEditedSlide) {
+        const r = await productService.getProductEditedSlide(productCode);
+        slideDoc = r.slideEditedDocument;
+      } else {
+        const r = await productService.getProductSlide(productCode);
+        slideDoc = r.slideDocument;
+      }
+      setDocument(slideDoc, productCode, '', hasEditedSlide);
+      router.push('/teacher/editor');
+    } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
+    finally { setViewSlideLoading(null); }
+  };
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
     ...(!isStaff ? [{ key: 'payment' as Tab, label: 'Thanh toán', icon: Wallet }] : []),
+    ...(isTeacher ? [
+      { key: 'slides'  as Tab, label: 'Slide', icon: Layers  },
+      { key: 'videos'  as Tab, label: 'Video', icon: Film    },
+      { key: 'library' as Tab, label: 'Thư viện', icon: Library },
+    ] : []),
     ...(isExpert ? [{ key: 'certificate' as Tab, label: 'Chứng chỉ', icon: ShieldCheck }] : []),
   ];
 
@@ -847,6 +890,172 @@ function ProfilePageInner() {
             </motion.div>
           )}
 
+          {/* ════ Slide của tôi ════ */}
+          {activeTab === 'slides' && isTeacher && (
+            <motion.div key="slides"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+            >
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                      <Layers className="w-4 h-4 text-violet-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-900">Slide của tôi</h2>
+                      <p className="text-xs text-gray-400">{slidesLoading ? '…' : `${mySlides.length} bộ slide`}</p>
+                    </div>
+                  </div>
+                        <Link href="/teacher/slides" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 hover:bg-violet-50 rounded-lg transition-colors">
+                    Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+                {slidesLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+                  </div>
+                ) : mySlides.length === 0 ? (
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <Layers className="w-10 h-10 text-gray-200 mb-2" />
+                    <p className="text-sm text-gray-400">Chưa có slide nào</p>
+                    <p className="text-xs text-gray-400 mt-1">Tạo slide từ trang Dự án của bạn</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {mySlides.slice(0, 10).map((s) => (
+                      <div key={s.productCode} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                          <Layers className="w-4 h-4 text-violet-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{s.productName}</p>
+                          <p className="text-xs text-gray-400">
+                            {(s.slideEditedAt ?? s.slideGeneratedAt) ? new Date((s.slideEditedAt ?? s.slideGeneratedAt)!).toLocaleDateString('vi-VN') : '—'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleViewSlide(s.productCode, s.hasEditedSlide)}
+                          disabled={viewSlideLoading === s.productCode}
+                          className="px-3 py-1.5 text-xs font-medium text-violet-600 hover:bg-violet-50 rounded-lg transition-colors flex-shrink-0 disabled:opacity-40 flex items-center gap-1"
+                        >
+                          {viewSlideLoading === s.productCode && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Mở
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ════ Video của tôi ════ */}
+          {activeTab === 'videos' && isTeacher && (
+            <motion.div key="videos"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+            >
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
+                      <Film className="w-4 h-4 text-rose-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-900">Video của tôi</h2>
+                      <p className="text-xs text-gray-400">{videosLoading ? '…' : `${myVideos.length} video`}</p>
+                    </div>
+                  </div>
+                  <Link href="/teacher/videos" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                    Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+                {videosLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-5 h-5 animate-spin text-rose-500" />
+                  </div>
+                ) : myVideos.length === 0 ? (
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <Film className="w-10 h-10 text-gray-200 mb-2" />
+                    <p className="text-sm text-gray-400">Chưa có video nào</p>
+                    <p className="text-xs text-gray-400 mt-1">Video được tạo qua Pipeline từ trang Dự án</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {myVideos.slice(0, 10).map((v) => (
+                      <div key={v.productVideoCode} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                          <Film className="w-4 h-4 text-rose-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{v.productName}</p>
+                          <p className="text-xs text-gray-400">{v.completedAt ? new Date(v.completedAt).toLocaleDateString('vi-VN') : new Date(v.createdAt).toLocaleDateString('vi-VN')}</p>
+                        </div>
+                        <button
+                          onClick={() => setPlayingVideo(v)}
+                          className="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          Xem
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ════ Thư viện ════ */}
+          {activeTab === 'library' && isTeacher && (
+            <motion.div key="library"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+            >
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                      <Library className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-900">Thư viện của tôi</h2>
+                      <p className="text-xs text-gray-400">{libLoading ? '…' : `${purchasedMaterials.length} tài liệu`}</p>
+                    </div>
+                  </div>
+                  <Link href="/teacher/material-lib" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                    Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+                {libLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                  </div>
+                ) : purchasedMaterials.length === 0 ? (
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <Library className="w-10 h-10 text-gray-200 mb-2" />
+                    <p className="text-sm text-gray-400">Thư viện trống</p>
+                    <p className="text-xs text-gray-400 mt-1">Mua tài liệu từ Cửa hàng học liệu</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {purchasedMaterials.slice(0, 10).map((m) => (
+                        <div key={m.materialCode} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-4 h-4 text-indigo-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{m.title}</p>
+                            <p className="text-xs text-gray-400">{m.expertName}</p>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           {/* ════ Chứng chỉ ════ */}
           {activeTab === 'certificate' && isExpert && (
             <motion.div key="certificate"
@@ -1089,6 +1298,13 @@ function ProfilePageInner() {
 
         </AnimatePresence>
       </div>
+
+      {playingVideo && (
+        <VideoPlayerModal
+          video={playingVideo}
+          onClose={() => setPlayingVideo(null)}
+        />
+      )}
     </div>
   );
 }

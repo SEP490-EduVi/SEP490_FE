@@ -256,7 +256,7 @@ function ClassroomFormModal({
                     type="button"
                     onClick={() => setShowYearPicker((v) => !v)}
                     disabled={isLoading}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:border-blue-300 transition-colors text-left disabled:opacity-50"
+                    className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border ${showYearPicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-left disabled:opacity-50`}
                   >
                     <span className={`flex-1 text-sm ${schoolYear ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
                       {schoolYear || '-- Chọn năm học --'}

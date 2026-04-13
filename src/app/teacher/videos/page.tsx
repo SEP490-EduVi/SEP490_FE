@@ -91,13 +91,6 @@ export default function TeacherVideosPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => window.location.href = '/teacher/projects'}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shadow-rose-200 flex-shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo video mới
-          </button>
         </motion.div>
 
         {/* Search */}

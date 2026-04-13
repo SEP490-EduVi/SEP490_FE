@@ -222,9 +222,11 @@ export default function SourcesPanel({
                       <button
                         type="button"
                         onClick={() => setShowLessonPicker((v) => !v)}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white hover:border-blue-300 transition-colors text-left"
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border ${showLessonPicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-left`}
                       >
-                        <BookOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                        <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="w-3 h-3 text-blue-400" />
+                        </div>
                         <span className="flex-1 text-xs font-medium text-gray-700 truncate">
                           {lessonCode
                             ? lessons.find((l) => l.lessonCode === lessonCode)?.lessonName ?? lessonCode
@@ -250,12 +252,14 @@ export default function SourcesPanel({
                                 type="button"
                                 onClick={() => { setLessonCode(l.lessonCode); setShowLessonPicker(false); }}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-blue-50 ${
-                                  lessonCode === l.lessonCode ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                  lessonCode === l.lessonCode ? 'bg-blue-50' : ''
                                 }`}
                               >
-                                <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                                <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                  <BookOpen className="w-3 h-3 text-blue-400" />
+                                </div>
                                 <div className="min-w-0">
-                                  <p className="text-xs font-medium truncate">{l.lessonName}</p>
+                                  <p className={`text-xs font-medium truncate ${lessonCode === l.lessonCode ? 'text-blue-600' : 'text-gray-700'}`}>{l.lessonName}</p>
                                   <p className="text-[11px] text-gray-400">{l.lessonCode}</p>
                                 </div>
                               </button>

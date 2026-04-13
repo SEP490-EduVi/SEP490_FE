@@ -64,14 +64,28 @@ export function Toolbar() {
 
   useEffect(() => {
     const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
+      if (isDirty || (isNewlyGenerated && !isSlideEdited)) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', beforeUnloadHandler);
     return () => window.removeEventListener('beforeunload', beforeUnloadHandler);
-  }, [isDirty]);
+  }, [isDirty, isNewlyGenerated, isSlideEdited]);
+
+  // Block browser native back button when user hasn't edited+saved an AI-generated slide
+  useEffect(() => {
+    if (!isNewlyGenerated || isSlideEdited) return;
+    // Push a dummy entry so the native back button triggers popstate instead of leaving
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      // Re-push to stay on this page, then show the warning
+      window.history.pushState(null, '', window.location.href);
+      setShowExitWarning(true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isNewlyGenerated, isSlideEdited]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

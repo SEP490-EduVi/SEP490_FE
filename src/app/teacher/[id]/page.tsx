@@ -242,14 +242,23 @@ export default function ProjectDetailPage() {
 
   const handleGenerateSlides = (productCode: string) => {
     if (getTaskId('slides', productCode)) {
-      setPipelineType('slides');
-      setShowPipelineModal(true);
+      // Pipeline already running — navigate to editor where SlideGenerationOverlay resumes
+      router.push('/teacher/editor');
       return;
     }
     pendingTaskRef.current = { type: 'slides', productCode };
     generateSlides.mutate(
       { productCode, slideRange: 'short' },
-      { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); setPipelineType('slides'); setShowPipelineModal(true); } },
+      {
+        onSuccess: () => {
+          notify.success('Đang tạo slide...');
+          // Mark store + sessionStorage as generating BEFORE navigating so
+          // the editor's loadDocument sees isGenerating=true and the
+          // SlideGenerationOverlay renders immediately.
+          startGeneration(productCode, projectCode);
+          router.push('/teacher/editor');
+        },
+      },
     );
   };
 

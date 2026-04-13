@@ -46,6 +46,13 @@ const MATERIAL_TYPES = [
   { value: 'other', label: 'Khác' },
 ];
 
+const MATERIAL_TYPE_ICONS: Record<string, { icon: React.ElementType; bg: string; color: string }> = {
+  '': { icon: Tag, bg: 'bg-gray-100', color: 'text-gray-400' },
+  'image': { icon: ImageIcon, bg: 'bg-sky-50', color: 'text-sky-500' },
+  'video': { icon: Film, bg: 'bg-purple-50', color: 'text-purple-500' },
+  'other': { icon: FileText, bg: 'bg-gray-50', color: 'text-gray-500' },
+};
+
 // ─── Detail Modal ──────────────────────────────────────────────────────────
 
 function MaterialDetailModal({
@@ -278,6 +285,7 @@ function LibraryCard({
 export default function MaterialLibPage() {
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [showTypePicker, setShowTypePicker] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
@@ -367,21 +375,53 @@ export default function MaterialLibPage() {
             <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
 
             <div className="relative">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="appearance-none pl-3 pr-7 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 cursor-pointer transition-all"
+            {(() => { const ti = MATERIAL_TYPE_ICONS[typeFilter] ?? MATERIAL_TYPE_ICONS['']; const TI = ti.icon; return (
+              <button
+                type="button"
+                onClick={() => setShowTypePicker((v) => !v)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${showTypePicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-sm`}
               >
-                {MATERIAL_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                <div className={`w-5 h-5 rounded-md ${ti.bg} flex items-center justify-center flex-shrink-0`}>
+                  <TI className={`w-3 h-3 ${ti.color}`} />
+                </div>
+                <span className={typeFilter ? 'text-gray-800 font-medium' : 'text-gray-500'}>
+                  {MATERIAL_TYPES.find((t) => t.value === typeFilter)?.label ?? 'Tất cả loại'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${showTypePicker ? 'rotate-180' : ''}`} />
+              </button>
+            ); })()}
+            <AnimatePresence>
+              {showTypePicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden min-w-[140px]"
+                >
+                  {MATERIAL_TYPES.map((t) => {
+                    const ti = MATERIAL_TYPE_ICONS[t.value] ?? MATERIAL_TYPE_ICONS[''];
+                    const TI = ti.icon;
+                    return (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => { setTypeFilter(t.value); setShowTypePicker(false); }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-blue-50 ${typeFilter === t.value ? 'bg-blue-50' : ''}`}
+                      >
+                        <div className={`w-5 h-5 rounded-md ${ti.bg} flex items-center justify-center flex-shrink-0`}>
+                          <TI className={`w-3 h-3 ${ti.color}`} />
+                        </div>
+                        <span className={`text-sm truncate ${typeFilter === t.value ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>{t.label}</span>
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
             </div>
 
             {hasFilters && (
               <button
-                onClick={() => { setKeyword(''); setTypeFilter(''); }}
+                onClick={() => { setKeyword(''); setTypeFilter(''); setShowTypePicker(false); }}
                 className="px-3 py-1.5 text-xs font-medium text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
               >
                 <X className="w-3 h-3" /> Xoá lọc

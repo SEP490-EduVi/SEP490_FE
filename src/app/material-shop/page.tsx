@@ -19,6 +19,10 @@ import {
   Grid3X3,
   List,
   AlertCircle,
+  GraduationCap,
+  Film,
+  FileText,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
@@ -40,6 +44,13 @@ const MATERIAL_TYPES = [
   { value: 'video', label: 'Video' },
   { value: 'other', label: 'Khác' },
 ];
+
+const MATERIAL_TYPE_ICONS: Record<string, { icon: React.ElementType; bg: string; color: string }> = {
+  '': { icon: Tag, bg: 'bg-gray-100', color: 'text-gray-400' },
+  'image': { icon: ImageIcon, bg: 'bg-sky-50', color: 'text-sky-500' },
+  'video': { icon: Film, bg: 'bg-purple-50', color: 'text-purple-500' },
+  'other': { icon: FileText, bg: 'bg-gray-50', color: 'text-gray-500' },
+};
 
 const TYPE_BADGE: Record<string, { label: string; color: string }> = {
   image: { label: 'Hình ảnh', color: 'bg-sky-50 text-sky-700' },
@@ -189,9 +200,9 @@ function MaterialDetailModal({
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
-        <div className="relative h-56 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="relative h-56 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100">
           {material.previewUrl ? (
             <GcsImage src={material.previewUrl} alt={material.title} className="w-full h-full object-cover" />
           ) : (
@@ -220,7 +231,7 @@ function MaterialDetailModal({
           </div>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-gray-900">{material.title}</h3>
@@ -257,8 +268,7 @@ function MaterialDetailModal({
           </div>
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs text-gray-500 mb-1">Resource</p>
-              {/* <p className="text-sm font-medium text-gray-800 break-all">{material.resourceUrl || '-'}</p> */}
+            <p className="text-xs text-gray-500 mb-1">Tài nguyên</p>
 
             {resolvingResource && (
               <p className="mt-2 text-xs text-slate-500 inline-flex items-center gap-1.5">
@@ -438,6 +448,9 @@ export default function MaterialShopPage() {
   const [subjectCode, setSubjectCode] = useState('');
   const [gradeCode, setGradeCode] = useState('');
   const [type, setType] = useState('');
+  const [showSubjectPicker, setShowSubjectPicker] = useState(false);
+  const [showGradePicker, setShowGradePicker] = useState(false);
+  const [showTypePicker, setShowTypePicker] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [detailTarget, setDetailTarget] = useState<MaterialDto | null>(null);
   const [purchaseTarget, setPurchaseTarget] = useState<MaterialDto | null>(null);
@@ -546,54 +559,156 @@ export default function MaterialShopPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
 
-            {/* Subject */}
+            {/* Subject picker */}
             <div className="relative">
-              <select
-                value={subjectCode}
-                onChange={(e) => setSubjectCode(e.target.value)}
-                className="appearance-none pl-3 pr-7 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 cursor-pointer transition-all"
+              <button
+                type="button"
+                onClick={() => { setShowSubjectPicker((v) => !v); setShowGradePicker(false); setShowTypePicker(false); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${showSubjectPicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-sm`}
               >
-                <option value="">Tất cả môn học</option>
-                {subjects.map((s) => (
-                  <option key={s.subjectCode} value={s.subjectCode}>{s.subjectName}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-3 h-3 text-blue-500" />
+                </div>
+                <span className={subjectCode ? 'text-gray-800 font-medium' : 'text-gray-500'}>
+                  {subjectCode ? (subjects.find((s) => s.subjectCode === subjectCode)?.subjectName ?? subjectCode) : 'Tất cả môn học'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${showSubjectPicker ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {showSubjectPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-y-auto max-h-52 min-w-[180px]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => { setSubjectCode(''); setShowSubjectPicker(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-blue-50 ${!subjectCode ? 'bg-blue-50' : ''}`}
+                    >
+                      <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="w-3 h-3 text-gray-400" />
+                      </div>
+                      <span className={`text-sm truncate ${!subjectCode ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>Tất cả môn học</span>
+                    </button>
+                    {subjects.map((s) => (
+                      <button
+                        key={s.subjectCode}
+                        type="button"
+                        onClick={() => { setSubjectCode(s.subjectCode); setShowSubjectPicker(false); }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-blue-50 ${subjectCode === s.subjectCode ? 'bg-blue-50' : ''}`}
+                      >
+                        <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="w-3 h-3 text-blue-500" />
+                        </div>
+                        <span className={`text-sm truncate ${subjectCode === s.subjectCode ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>{s.subjectName}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Grade */}
+            {/* Grade picker */}
             <div className="relative">
-              <select
-                value={gradeCode}
-                onChange={(e) => setGradeCode(e.target.value)}
-                className="appearance-none pl-3 pr-7 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 cursor-pointer transition-all"
+              <button
+                type="button"
+                onClick={() => { setShowGradePicker((v) => !v); setShowSubjectPicker(false); setShowTypePicker(false); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${showGradePicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-sm`}
               >
-                <option value="">Tất cả khối lớp</option>
-                {grades.map((g) => (
-                  <option key={g.gradeCode} value={g.gradeCode}>{g.gradeName}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                <div className="w-5 h-5 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <GraduationCap className="w-3 h-3 text-indigo-500" />
+                </div>
+                <span className={gradeCode ? 'text-gray-800 font-medium' : 'text-gray-500'}>
+                  {gradeCode ? (grades.find((g) => g.gradeCode === gradeCode)?.gradeName ?? gradeCode) : 'Tất cả khối lớp'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${showGradePicker ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {showGradePicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-y-auto max-h-52 min-w-[160px]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => { setGradeCode(''); setShowGradePicker(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-blue-50 ${!gradeCode ? 'bg-blue-50' : ''}`}
+                    >
+                      <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <GraduationCap className="w-3 h-3 text-gray-400" />
+                      </div>
+                      <span className={`text-sm truncate ${!gradeCode ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>Tất cả khối lớp</span>
+                    </button>
+                    {grades.map((g) => (
+                      <button
+                        key={g.gradeCode}
+                        type="button"
+                        onClick={() => { setGradeCode(g.gradeCode); setShowGradePicker(false); }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-blue-50 ${gradeCode === g.gradeCode ? 'bg-blue-50' : ''}`}
+                      >
+                        <div className="w-5 h-5 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                          <GraduationCap className="w-3 h-3 text-indigo-500" />
+                        </div>
+                        <span className={`text-sm truncate ${gradeCode === g.gradeCode ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>{g.gradeName}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Type */}
+            {/* Type picker */}
             <div className="relative">
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="appearance-none pl-3 pr-7 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 cursor-pointer transition-all"
+              {(() => { const ti = MATERIAL_TYPE_ICONS[type] ?? MATERIAL_TYPE_ICONS['']; const TI = ti.icon; return (
+              <button
+                type="button"
+                onClick={() => { setShowTypePicker((v) => !v); setShowSubjectPicker(false); setShowGradePicker(false); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${showTypePicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-sm`}
               >
-                {MATERIAL_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                <div className={`w-5 h-5 rounded-md ${ti.bg} flex items-center justify-center flex-shrink-0`}>
+                  <TI className={`w-3 h-3 ${ti.color}`} />
+                </div>
+                <span className={type ? 'text-gray-800 font-medium' : 'text-gray-500'}>
+                  {MATERIAL_TYPES.find((t) => t.value === type)?.label ?? 'Tất cả loại'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${showTypePicker ? 'rotate-180' : ''}`} />
+              </button>
+              ); })()}
+              <AnimatePresence>
+                {showTypePicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden min-w-[140px]"
+                  >
+                    {MATERIAL_TYPES.map((t) => {
+                      const ti = MATERIAL_TYPE_ICONS[t.value] ?? MATERIAL_TYPE_ICONS[''];
+                      const TI = ti.icon;
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => { setType(t.value); setShowTypePicker(false); }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-blue-50 ${type === t.value ? 'bg-blue-50' : ''}`}
+                        >
+                          <div className={`w-5 h-5 rounded-md ${ti.bg} flex items-center justify-center flex-shrink-0`}>
+                            <TI className={`w-3 h-3 ${ti.color}`} />
+                          </div>
+                          <span className={`text-sm truncate ${type === t.value ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>{t.label}</span>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Clear filters */}
             {hasFilters && (
               <button
-                onClick={() => { setSubjectCode(''); setGradeCode(''); setType(''); setKeyword(''); setDebouncedKeyword(''); }}
+                onClick={() => { setSubjectCode(''); setGradeCode(''); setType(''); setKeyword(''); setDebouncedKeyword(''); setShowSubjectPicker(false); setShowGradePicker(false); setShowTypePicker(false); }}
                 className="px-3 py-1.5 text-xs font-medium text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
               >
                 <X className="w-3 h-3" /> Xoá bộ lọc
