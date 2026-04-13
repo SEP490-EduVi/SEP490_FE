@@ -642,12 +642,13 @@ async function embedAssets(
       if (!fetched) {
         throw new Error(lastError || 'unknown error');
       }
+      const fetchedAsset = fetched as { mimeType: string; base64: string };
 
       const assetId = `asset-${Object.keys(assets).length + 1}`;
 
       assets[assetId] = {
-        mimeType: fetched.mimeType,
-        base64: fetched.base64,
+        mimeType: fetchedAsset.mimeType,
+        base64: fetchedAsset.base64,
         originalUrl: url,
         kind,
       };

@@ -126,8 +126,6 @@ function ProfilePageInner() {
   const searchParams    = useSearchParams();
   const { user, role, setUser } = useAuthStore();
   const isStaff = role === 'staff';
-  const setDocument     = useDocumentStore((s) => s.setDocument);
-  const isExpert = role === 'expert';
   const isExpert = role === 'expert';
   const setDocument     = useDocumentStore((s) => s.setDocument);
 

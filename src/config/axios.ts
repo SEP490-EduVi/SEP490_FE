@@ -1,6 +1,6 @@
 // src/config/axios.ts
 
-import axios from "axios";
+import axios, { AxiosHeaders } from "axios";
 
 const PUBLIC_AUTH_ENDPOINTS = [
   "/api/auth/login",
@@ -47,10 +47,10 @@ api.interceptors.request.use(
       if (typeof (config.headers as { set?: (name: string, value: string) => void })?.set === 'function') {
         (config.headers as { set: (name: string, value: string) => void }).set('Content-Type', 'application/json');
       } else {
-        config.headers = {
-          ...(config.headers ?? {}),
-          'Content-Type': 'application/json',
-        };
+        if (!config.headers) {
+          config.headers = new AxiosHeaders();
+        }
+        (config.headers as Record<string, string>)['Content-Type'] = 'application/json';
       }
     }
 
