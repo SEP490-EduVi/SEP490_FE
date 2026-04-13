@@ -70,9 +70,9 @@ function MaterialDetailModal({ material, onClose }: { material: MaterialDto; onC
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
-        <div className="relative h-52 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="relative h-52 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100">
           {material.previewUrl ? (
             <GcsImage src={material.previewUrl} alt={material.title} className="w-full h-full object-cover" />
           ) : (
@@ -89,7 +89,7 @@ function MaterialDetailModal({ material, onClose }: { material: MaterialDto; onC
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-gray-900">{material.title}</h3>

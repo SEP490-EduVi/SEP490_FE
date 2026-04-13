@@ -54,9 +54,9 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; co
 
 // ── Certificate helpers ────────────────────────────────────────────────────
 const CERT_STATUS_CONFIG: Record<string, { label: string; textColor: string; bgColor: string; borderColor: string; icon: React.ElementType }> = {
-  pending:  { label: 'Chờ duyệt', textColor: 'text-amber-700',   bgColor: 'bg-amber-50',   borderColor: 'border-amber-200',   icon: Clock        },
-  approved: { label: 'Đã duyệt',  textColor: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', icon: CheckCircle2  },
-  rejected: { label: 'Từ chối',   textColor: 'text-red-700',     bgColor: 'bg-red-50',     borderColor: 'border-red-200',     icon: XCircle      },
+  '0': { label: 'Chờ duyệt', textColor: 'text-amber-700',   bgColor: 'bg-amber-50',   borderColor: 'border-amber-200',   icon: Clock        },
+  '1': { label: 'Đã duyệt',  textColor: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', icon: CheckCircle2  },
+  '2': { label: 'Từ chối',   textColor: 'text-red-700',     bgColor: 'bg-red-50',     borderColor: 'border-red-200',     icon: XCircle      },
 };
 
 const FILE_TYPE_OPTIONS = [
@@ -66,8 +66,8 @@ const FILE_TYPE_OPTIONS = [
   { value: 'other',           label: 'Khác'                 },
 ];
 
-function CertStatusBadge({ status }: { status: string }) {
-  const cfg = CERT_STATUS_CONFIG[status] ?? CERT_STATUS_CONFIG['pending'];
+function CertStatusBadge({ status }: { status: string | number }) {
+  const cfg = CERT_STATUS_CONFIG[String(status ?? 0)] ?? CERT_STATUS_CONFIG['0'];
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bgColor} ${cfg.textColor} ${cfg.borderColor}`}>
@@ -1208,14 +1208,14 @@ function ProfilePageInner() {
               {!certLoading && !certError && cert && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className={`h-1.5 w-full ${
-                    cert.status === 'approved' ? 'bg-emerald-400' :
-                    cert.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'
+                    String(cert.status) === '1' ? 'bg-emerald-400' :
+                    String(cert.status) === '2' ? 'bg-red-400' : 'bg-amber-400'
                   }`} />
                   <div className="p-6">
                     <div className="flex items-start justify-between gap-4 mb-5">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${(CERT_STATUS_CONFIG[cert.status] ?? CERT_STATUS_CONFIG['pending']).bgColor}`}>
-                          <ShieldCheck className={`w-5 h-5 ${(CERT_STATUS_CONFIG[cert.status] ?? CERT_STATUS_CONFIG['pending']).textColor}`} />
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${(CERT_STATUS_CONFIG[String(cert.status ?? 0)] ?? CERT_STATUS_CONFIG['0']).bgColor}`}>
+                          <ShieldCheck className={`w-5 h-5 ${(CERT_STATUS_CONFIG[String(cert.status ?? 0)] ?? CERT_STATUS_CONFIG['0']).textColor}`} />
                         </div>
                         <div>
                           <h3 className="text-sm font-semibold text-gray-900">Chứng chỉ của bạn</h3>
@@ -1253,14 +1253,14 @@ function ProfilePageInner() {
                       </div>
                     )}
 
-                    {cert.status === 'approved' && (
+                    {String(cert.status) === '1' && (
                       <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                         <p className="text-xs font-medium text-emerald-700">Chứng chỉ đã được xác minh. Bạn có thể đăng tài liệu lên nền tảng.</p>
                       </div>
                     )}
 
-                    {cert.status !== 'approved' && (
+                    {String(cert.status) !== '1' && (
                       <div className="mt-4 flex items-center gap-3">
                         {confirmDelete === cert.verificationCode ? (
                           <>
