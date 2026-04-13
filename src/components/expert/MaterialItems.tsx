@@ -27,22 +27,22 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onViewDet
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+      className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100 overflow-hidden hover:shadow-lg hover:shadow-blue-100/60 transition-all"
     >
-      <div className="h-36 bg-gray-100 overflow-hidden">
+      <div className="h-40 bg-gray-100 overflow-hidden">
         {m.previewUrl ? (
           <GcsImage src={m.previewUrl} alt={m.title} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-100 flex items-center justify-center">
             <BookOpen className="w-10 h-10 text-blue-300" />
           </div>
         )}
       </div>
 
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{m.title}</h3>
-          <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-medium ${status.color}`}>
+          <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-medium border border-transparent ${status.color}`}>
             {status.label}
           </span>
         </div>
@@ -50,8 +50,8 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onViewDet
         {m.description && <p className="text-xs text-gray-500 line-clamp-2">{m.description}</p>}
 
         <div className="flex items-center gap-2 text-xs text-gray-400">
-          {m.subjectName && <span className="bg-gray-100 px-1.5 py-0.5 rounded">{m.subjectName}</span>}
-          {m.gradeName && <span className="bg-gray-100 px-1.5 py-0.5 rounded">{m.gradeName}</span>}
+          {m.subjectName && <span className="bg-slate-100 px-1.5 py-0.5 rounded-md">{m.subjectName}</span>}
+          {m.gradeName && <span className="bg-slate-100 px-1.5 py-0.5 rounded-md">{m.gradeName}</span>}
           <span className="ml-auto font-medium text-gray-700">
             {m.price > 0 ? `${m.price.toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
           </span>
@@ -59,10 +59,10 @@ export function MaterialCard({ material: m, confirmDelete, isDeleting, onViewDet
 
         <p className="text-[10px] text-gray-400">{new Date(m.createdAt).toLocaleDateString('vi-VN')}</p>
 
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-1.5">
           <button
             onClick={onViewDetail}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
           >
             <Eye className="w-3 h-3" /> Xem
           </button>
@@ -96,7 +96,7 @@ export function MaterialListItem({ material: m, confirmDelete, isDeleting, onVie
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow"
+      className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100 p-5 hover:shadow-md hover:shadow-blue-100/60 transition-shadow"
     >
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">

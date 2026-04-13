@@ -34,7 +34,6 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
     { href: '/expert',             label: 'Tổng quan',  icon: LayoutDashboard },
     { href: '/profile?tab=certificate', label: 'Chứng chỉ',  icon: ShieldCheck     },
     { href: '/expert/material',    label: 'Tài liệu',      icon: FileText        },
-    { href: '/profile?tab=withdrawal', label: 'Rút tiền', icon: Wallet },
   ],
   admin: [
     { href: '/admin',          label: 'Bảng điều khiển', icon: LayoutDashboard },

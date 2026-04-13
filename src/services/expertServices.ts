@@ -11,7 +11,6 @@ export async function submitVerification(file: File, fileType: string, descripti
   const { data } = await api.post<ApiResponse<VerificationDto>>(
     API_ENDPOINTS.EXPERT_VERIFICATION.SUBMIT,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
   );
   return data.result;
 }
@@ -21,6 +20,23 @@ export async function getVerifications(): Promise<VerificationDto[]> {
     API_ENDPOINTS.EXPERT_VERIFICATION.GET_ALL,
   );
   return data.result;
+}
+
+export async function getVerificationFile(verificationCode: string, fileUrl?: string): Promise<{ blob: Blob; contentType?: string; contentDisposition?: string }> {
+  const endpoint = fileUrl?.trim()
+    ? fileUrl
+    : API_ENDPOINTS.EXPERT_VERIFICATION.GET_FILE(verificationCode);
+
+  const { data, headers } = await api.get<Blob>(endpoint, {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  });
+
+  return {
+    blob: data,
+    contentType: headers['content-type'],
+    contentDisposition: headers['content-disposition'],
+  };
 }
 
 export async function deleteVerification(verificationCode: string): Promise<void> {

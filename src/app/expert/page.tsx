@@ -21,6 +21,9 @@ import {
   ArrowRight,
   DollarSign,
   Package,
+  Sparkles,
+  Rocket,
+  BadgeCheck,
 } from 'lucide-react';
 
 import { useVerifications, useMyMaterials } from '@/hooks/useExpertApi';
@@ -31,11 +34,24 @@ import { GcsImage } from '@/components/common';
 
 // ── Status helpers ─────────────────────────────────────────────────────────
 
-const VERIFICATION_STATUS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  pending:  { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
-  approved: { label: 'Đã duyệt',  color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
-  rejected: { label: 'Từ chối',   color: 'bg-red-50 text-red-700 border-red-100', icon: XCircle },
+const VERIFICATION_STATUS: Record<number, { label: string; color: string; icon: React.ElementType }> = {
+  0: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
+  1: { label: 'Đã duyệt',  color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
+  2: { label: 'Từ chối',   color: 'bg-red-50 text-red-700 border-red-100', icon: XCircle },
 };
+
+function normalizeVerificationStatus(status: number | string | null | undefined): 0 | 1 | 2 {
+  if (typeof status === 'number') {
+    if (status === 1) return 1;
+    if (status === 2) return 2;
+    return 0;
+  }
+
+  const value = (status ?? '').toString().trim().toLowerCase();
+  if (value === 'approved' || value === '1') return 1;
+  if (value === 'rejected' || value === '2') return 2;
+  return 0;
+}
 
 const APPROVAL_STATUS_MAP: Record<number, { label: string; color: string }> = {
   0: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700' },
@@ -57,8 +73,8 @@ export default function ExpertDashboard() {
   const formattedName = (displayName as string).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   // Derived stats
-  const approvedVerifications = verifications.filter((v) => v.status === 'approved').length;
-  const pendingVerifications = verifications.filter((v) => v.status === 'pending').length;
+  const approvedVerifications = verifications.filter((v) => normalizeVerificationStatus(v.status) === 1).length;
+  const pendingVerifications = verifications.filter((v) => normalizeVerificationStatus(v.status) === 0).length;
   const approvedMaterials = materials.filter((m) => m.approvalStatus === 1).length;
   const totalRevenue = materials.reduce((sum, m) => sum + (m.price > 0 ? m.price : 0), 0);
 
@@ -100,47 +116,67 @@ export default function ExpertDashboard() {
     },
   ];
 
+  const quickLinks = [
+    {
+      href: '/expert/certificate',
+      title: 'Nộp chứng chỉ mới',
+      desc: 'Bổ sung hồ sơ xác minh để tăng độ tin cậy.',
+      icon: BadgeCheck,
+      style: 'from-indigo-500 to-blue-600',
+    },
+    {
+      href: '/expert/material',
+      title: 'Đăng tài liệu mới',
+      desc: 'Chia sẻ nội dung chất lượng cho cộng đồng giáo viên.',
+      icon: Rocket,
+      style: 'from-blue-500 to-cyan-500',
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_10%_0%,#dbeafe_0%,#f8fafc_45%,#eef2ff_100%)]">
       <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* ── Welcome Banner ── */}
+        {/* Welcome Banner */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-600/20"
+          className="relative overflow-hidden rounded-3xl p-7 sm:p-8 text-white shadow-xl shadow-blue-900/25 bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700"
         >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.24),transparent_45%)]" />
           <div className="relative z-10">
-            <p className="text-blue-100 text-sm mb-1">Chào mừng trở lại</p>
-            <h2 className="text-2xl font-bold">{formattedName}</h2>
-            <p className="text-blue-200 text-sm mt-1">
-              Quản lý chứng chỉ và tài liệu của bạn tại đây.
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-blue-50 text-xs font-medium mb-4">
+              <Sparkles className="w-3.5 h-3.5" />
+              Expert Control Center
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold leading-tight">Xin chào {formattedName}</h2>
+            <p className="text-blue-100 text-sm sm:text-base mt-2 max-w-2xl">
+              Theo dõi trạng thái duyệt hồ sơ, quản lý học liệu và tối ưu chất lượng nội dung của bạn trong một không gian thống nhất.
             </p>
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex flex-wrap items-center gap-3 mt-5">
               <Link
                 href="/expert/certificate"
-                className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-sm font-semibold transition-colors"
               >
                 <Upload className="w-3.5 h-3.5" />
                 Nộp chứng chỉ
               </Link>
               <Link
                 href="/expert/material"
-                className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/25 rounded-xl text-sm font-medium transition-colors"
               >
                 <Package className="w-3.5 h-3.5" />
                 Tải lên tài liệu
               </Link>
             </div>
           </div>
-          {/* Decorative circles */}
-          <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full" />
-          <div className="absolute -right-4 -bottom-10 w-56 h-56 bg-white/5 rounded-full" />
+          <div className="absolute -right-10 -top-10 w-44 h-44 bg-white/10 rounded-full" />
+          <div className="absolute -right-6 -bottom-12 w-60 h-60 bg-white/10 rounded-full" />
         </motion.div>
 
-        {/* ── Stat Cards ── */}
+        {/* Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
@@ -153,9 +189,9 @@ export default function ExpertDashboard() {
               >
                 <Link
                   href={stat.href}
-                  className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-blue-200 transition-all group"
+                  className="block rounded-2xl border border-white/80 bg-white/80 backdrop-blur p-5 hover:shadow-lg hover:shadow-blue-100 hover:border-blue-200 transition-all group"
                 >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${stat.color}`}>
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <p className="text-2xl font-bold text-gray-900">
@@ -172,11 +208,10 @@ export default function ExpertDashboard() {
           })}
         </div>
 
-        {/* ── Two-column section ── */}
+        {/* Two-column section */}
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Recent Verifications */}
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100/70 shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-blue-50">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-indigo-600" />
                 <h3 className="font-semibold text-gray-900">Chứng chỉ gần đây</h3>
@@ -202,12 +237,12 @@ export default function ExpertDashboard() {
                 </Link>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-blue-50">
                 {recentVerifications.map((v: VerificationDto) => {
-                  const cfg = VERIFICATION_STATUS[v.status] ?? VERIFICATION_STATUS['pending'];
+                  const cfg = VERIFICATION_STATUS[normalizeVerificationStatus(v.status)] ?? VERIFICATION_STATUS[0];
                   const StatusIcon = cfg.icon;
                   return (
-                    <li key={v.verificationCode} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                    <li key={v.verificationCode} className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/50 transition-colors">
                       <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
                         <FileText className="w-4 h-4 text-indigo-500" />
                       </div>
@@ -228,9 +263,8 @@ export default function ExpertDashboard() {
             )}
           </div>
 
-          {/* Recent Materials */}
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100/70 shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-blue-50">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-blue-600" />
                 <h3 className="font-semibold text-gray-900">Tài liệu gần đây</h3>
@@ -256,11 +290,11 @@ export default function ExpertDashboard() {
                 </Link>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-blue-50">
                 {recentMaterials.map((m: MaterialDto) => {
                   const status = APPROVAL_STATUS_MAP[m.approvalStatus] ?? APPROVAL_STATUS_MAP[0];
                   return (
-                    <li key={m.materialCode} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                    <li key={m.materialCode} className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/50 transition-colors">
                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {m.previewUrl ? (
                           <GcsImage src={m.previewUrl} alt="" className="w-full h-full object-cover" />
@@ -285,37 +319,32 @@ export default function ExpertDashboard() {
           </div>
         </div>
 
-        {/* ── Quick Actions ── */}
+        {/* Quick Actions */}
         <div>
           <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">Hành động nhanh</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Link
-              href="/expert/certificate"
-              className="flex items-center gap-4 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-indigo-200 transition-all group"
-            >
-              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Upload className="w-5 h-5 text-indigo-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">Nộp chứng chỉ</p>
-                <p className="text-xs text-gray-500">Xác minh tài khoản chuyên gia của bạn</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
-            </Link>
-
-            <Link
-              href="/expert/material"
-              className="flex items-center gap-4 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-blue-200 transition-all group"
-            >
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Package className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">Tải lên tài liệu</p>
-                <p className="text-xs text-gray-500">Chia sẻ tài liệu chất lượng cao</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
-            </Link>
+            {quickLinks.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-5 hover:shadow-lg hover:shadow-blue-100 transition-all"
+                >
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r ${item.style}`} />
+                  <div className="relative z-10 flex items-center gap-4">
+                    <div className="w-10 h-10 bg-blue-50 group-hover:bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors">
+                      <Icon className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 group-hover:text-white transition-colors">{item.title}</p>
+                      <p className="text-xs text-gray-500 group-hover:text-blue-50 transition-colors">{item.desc}</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-white transition-colors" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </main>

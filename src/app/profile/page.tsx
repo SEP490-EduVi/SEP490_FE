@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetMeService, useChangePasswordService, useUpdateMeService } from '@/services/authServices';
 import { uploadAvatarToGcs } from '@/services/gcsServices';
+import { getVerificationFile } from '@/services/expertServices';
 import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
 import {
   useBuySubscription,
@@ -74,21 +75,34 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; co
 }
 
 // ── Certificate helpers ────────────────────────────────────────────────────
-const CERT_STATUS_CONFIG: Record<string, { label: string; textColor: string; bgColor: string; borderColor: string; icon: React.ElementType }> = {
-  pending:  { label: 'Chờ duyệt', textColor: 'text-amber-700',   bgColor: 'bg-amber-50',   borderColor: 'border-amber-200',   icon: Clock        },
-  approved: { label: 'Đã duyệt',  textColor: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', icon: CheckCircle2  },
-  rejected: { label: 'Từ chối',   textColor: 'text-red-700',     bgColor: 'bg-red-50',     borderColor: 'border-red-200',     icon: XCircle      },
+const CERT_STATUS_CONFIG: Record<number, { label: string; textColor: string; bgColor: string; borderColor: string; icon: React.ElementType }> = {
+  0: { label: 'Chờ duyệt', textColor: 'text-amber-700',   bgColor: 'bg-amber-50',   borderColor: 'border-amber-200',   icon: Clock       },
+  1: { label: 'Đã duyệt',  textColor: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', icon: CheckCircle2 },
+  2: { label: 'Từ chối',   textColor: 'text-red-700',     bgColor: 'bg-red-50',     borderColor: 'border-red-200',     icon: XCircle     },
 };
 
+function normalizeVerificationStatus(status: number | string | null | undefined): 0 | 1 | 2 {
+  if (typeof status === 'number') {
+    if (status === 1) return 1;
+    if (status === 2) return 2;
+    return 0;
+  }
+
+  const value = (status ?? '').toString().trim().toLowerCase();
+  if (value === 'approved' || value === '1') return 1;
+  if (value === 'rejected' || value === '2') return 2;
+  return 0;
+}
+
 const FILE_TYPE_OPTIONS = [
-  { value: 'degree',          label: 'Bằng cấp'             },
-  { value: 'certificate',     label: 'Chứng chỉ'            },
-  { value: 'work_experience', label: 'Kinh nghiệm làm việc' },
-  { value: 'other',           label: 'Khác'                 },
+  { value: 'degree',      label: 'Bằng cấp'  },
+  { value: 'certificate', label: 'Chứng chỉ' },
+  { value: 'cccd',        label: 'CCCD'      },
 ];
 
-function CertStatusBadge({ status }: { status: string }) {
-  const cfg = CERT_STATUS_CONFIG[status] ?? CERT_STATUS_CONFIG['pending'];
+function CertStatusBadge({ status }: { status: number | string }) {
+  const normalizedStatus = normalizeVerificationStatus(status);
+  const cfg = CERT_STATUS_CONFIG[normalizedStatus] ?? CERT_STATUS_CONFIG[0];
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bgColor} ${cfg.textColor} ${cfg.borderColor}`}>
@@ -127,6 +141,7 @@ function ProfilePageInner() {
     if (meData?.result) setUser(meData.result);
   }, [meData, setUser]);
   const info = meData?.result ?? user;
+  const expertIsVerified = isExpert && Boolean((info as { expertIsVerified?: boolean | null } | null)?.expertIsVerified);
 
   // ── Change password ───────────────────────────────────────────────────────
   const [currentPw, setCurrentPw] = useState('');
@@ -234,6 +249,7 @@ function ProfilePageInner() {
   const [certFileType,  setCertFileType]  = useState('degree');
   const [certDesc,      setCertDesc]      = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [openingCertFile, setOpeningCertFile] = useState(false);
 
   // ── Payment ──────────────────────────────────────────────────────────────
   const [topUpAmount, setTopUpAmount] = useState('10000');
@@ -263,7 +279,7 @@ function ProfilePageInner() {
   const initiateWithdrawal = useInitiateWithdrawal();
   const confirmWithdrawal = useConfirmWithdrawalOtp();
   const { data: myWithdrawals, isLoading: myWithdrawalsLoading } = useMyWithdrawals(1, 10, {
-    enabled: !isStaff && isExpert,
+    enabled: !isStaff && isExpert && expertIsVerified,
   });
 
   useEffect(() => {
@@ -349,6 +365,10 @@ function ProfilePageInner() {
 
   const handleInitiateWithdrawal = () => {
     if (!isExpert) return;
+    if (!expertIsVerified) {
+      setPaymentError('Tài khoản Expert chưa được xác minh nên chưa thể rút tiền.');
+      return;
+    }
 
     const amount = Number(withdrawAmount);
     if (!Number.isFinite(amount) || amount < 200000) {
@@ -387,6 +407,10 @@ function ProfilePageInner() {
 
   const handleConfirmWithdrawal = () => {
     if (!isExpert) return;
+    if (!expertIsVerified) {
+      setPaymentError('Tài khoản Expert chưa được xác minh nên chưa thể rút tiền.');
+      return;
+    }
 
     const amount = Number(withdrawAmount);
     if (!Number.isFinite(amount) || amount < 200000) {
@@ -428,6 +452,11 @@ function ProfilePageInner() {
 
   const handleCertSubmit = () => {
     if (!certFile) return;
+    const expertId = (info as { expertId?: number | null } | null)?.expertId;
+    if (!expertId) {
+      notify.error('Tài khoản chưa có hồ sơ Expert trong hệ thống. Vui lòng đăng xuất/đăng nhập lại hoặc liên hệ admin.');
+      return;
+    }
     submitVerification.mutate(
       { file: certFile, fileType: certFileType, description: certDesc || undefined },
       {
@@ -436,6 +465,19 @@ function ProfilePageInner() {
           setCertFile(null); setCertDesc(''); setCertFileType('degree');
           setShowCertForm(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
+        },
+        onError: (err: unknown) => {
+          const responseData = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data;
+          const msg = responseData?.message;
+          const firstValidationError = responseData?.errors
+            ? Object.values(responseData.errors).flat()[0]
+            : undefined;
+          const rawError = (firstValidationError ?? msg ?? '').toString().toLowerCase();
+          if (rawError.includes('expert') && rawError.includes('không tồn tại')) {
+            notify.error('Backend chưa có bản ghi Expert cho tài khoản này. Vui lòng liên hệ admin để tạo hồ sơ Expert hoặc đăng nhập lại để cập nhật claim.');
+            return;
+          }
+          notify.error(firstValidationError ?? msg ?? 'Upload chứng chỉ thất bại. Vui lòng thử lại.');
         },
       },
     );
@@ -447,12 +489,40 @@ function ProfilePageInner() {
     });
   };
 
+  const handleOpenCertFile = async () => {
+    if (!cert) return;
+
+    try {
+      setOpeningCertFile(true);
+      const { blob } = await getVerificationFile(cert.verificationCode, cert.fileUrl);
+      const url = URL.createObjectURL(blob);
+
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        const fallbackLink = document.createElement('a');
+        fallbackLink.href = url;
+        fallbackLink.download = `${cert.verificationCode}`;
+        document.body.appendChild(fallbackLink);
+        fallbackLink.click();
+        fallbackLink.remove();
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      notify.error(msg ?? 'Không thể mở file chứng chỉ. Vui lòng thử lại.');
+    } finally {
+      setOpeningCertFile(false);
+    }
+  };
+
   // ── Derived ───────────────────────────────────────────────────────────────
   const displayName = info?.fullName || info?.username || 'Tài khoản';
   const initial     = displayName.charAt(0).toUpperCase();
   const roleLabel   = info?.role?.roleName ?? '';
   const isActive    = info?.status === 1;
   const cert        = verifications[0] ?? null;
+  const certStatus  = normalizeVerificationStatus(cert?.status);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
@@ -978,6 +1048,12 @@ function ProfilePageInner() {
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
               className="space-y-5"
             >
+              {!expertIsVerified && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+                  Tài khoản Expert của bạn chưa được xác minh nên chưa thể sử dụng chức năng rút tiền.
+                </div>
+              )}
+
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
                 <h3 className="text-sm font-semibold text-gray-900">Rút tiền cho chuyên gia</h3>
                 <p className="text-xs text-gray-500">Bước 1: nhập thông tin ngân hàng và số tiền để nhận OTP. Bước 2: nhập OTP để tạo yêu cầu rút.</p>
@@ -1129,17 +1205,34 @@ function ProfilePageInner() {
             <motion.div key="certificate"
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+              className="space-y-5"
             >
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 sm:p-7 text-white shadow-xl shadow-blue-900/20">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.24),transparent_42%)]" />
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1 text-xs font-medium mb-3">
+                    <BadgeCheck className="w-3.5 h-3.5" />
+                    Xác minh chuyên gia
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold">Trung tâm Chứng chỉ</h2>
+                  <p className="text-sm sm:text-base text-blue-100 mt-1.5 max-w-2xl">
+                    Hồ sơ chứng chỉ giúp tăng độ tin cậy và mở quyền đăng học liệu lên nền tảng.
+                  </p>
+                </div>
+                <div className="absolute -right-12 -top-12 w-44 h-44 bg-white/10 rounded-full" />
+                <div className="absolute -right-10 -bottom-16 w-64 h-64 bg-white/10 rounded-full" />
+              </div>
+
               {/* Loading */}
               {certLoading && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-center py-16">
+                <div className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100 shadow-sm flex items-center justify-center py-16">
                   <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
                 </div>
               )}
 
               {/* Error */}
               {certError && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-16">
+                <div className="bg-white/90 backdrop-blur rounded-2xl border border-red-100 shadow-sm flex flex-col items-center justify-center py-16">
                   <AlertCircle className="w-10 h-10 text-red-300 mb-3" />
                   <p className="text-sm text-gray-500">Không thể tải thông tin chứng chỉ.</p>
                 </div>
@@ -1149,35 +1242,37 @@ function ProfilePageInner() {
               {!certLoading && !certError && !cert && (
                 <>
                   {!showCertForm ? (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-20 text-center">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 border border-blue-100 flex items-center justify-center mb-4">
-                        <ShieldCheck className="w-8 h-8 text-blue-300" />
+                    <div className="bg-white/90 backdrop-blur rounded-3xl border border-blue-100 shadow-sm p-8 sm:p-10 text-center">
+                      <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 border border-blue-200 flex items-center justify-center mb-4">
+                        <ShieldCheck className="w-8 h-8 text-blue-500" />
                       </div>
-                      <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có chứng chỉ nào</h3>
-                      <p className="text-sm text-gray-400 mb-5 max-w-xs">Nộp chứng chỉ để xác minh danh tính chuyên gia của bạn.</p>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-1">Bạn chưa nộp chứng chỉ</h3>
+                      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                        Nộp chứng chỉ để hoàn tất hồ sơ chuyên gia và tăng độ tin cậy khi chia sẻ học liệu trên hệ thống.
+                      </p>
                       <button
                         onClick={() => setShowCertForm(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold shadow-lg shadow-blue-600/20"
+                        className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold shadow-lg shadow-blue-600/20"
                       >
                         <Upload className="w-4 h-4" />
                         Nộp chứng chỉ
                       </button>
                     </div>
                   ) : (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                      <div className="flex items-center gap-3 mb-5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <div className="bg-white/90 backdrop-blur rounded-3xl border border-blue-100 shadow-sm p-6 sm:p-7">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
                           <Upload className="w-4 h-4 text-blue-600" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-900">Nộp chứng chỉ</h3>
-                          <p className="text-xs text-gray-400">Mỗi chuyên gia chỉ được nộp một chứng chỉ</p>
+                          <h3 className="text-base font-semibold text-gray-900">Nộp hồ sơ chứng chỉ</h3>
+                          <p className="text-xs text-gray-500">Bạn chỉ có thể duy trì một hồ sơ chứng chỉ đang hoạt động</p>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                         {/* Dropzone */}
-                        <div>
+                        <div className="lg:col-span-3">
                           <label className="block text-xs font-medium text-gray-500 mb-1.5">
                             Tệp chứng chỉ <span className="text-red-500">*</span>
                           </label>
@@ -1186,7 +1281,7 @@ function ProfilePageInner() {
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) setCertFile(f); }}
                             className={`border-2 border-dashed rounded-xl p-5 cursor-pointer transition-all ${
-                              certFile ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                              certFile ? 'border-blue-300 bg-blue-50' : 'border-blue-100 hover:border-blue-300 hover:bg-blue-50/40'
                             }`}
                           >
                             {certFile ? (
@@ -1223,34 +1318,39 @@ function ProfilePageInner() {
                           </div>
                         </div>
 
-                        {/* Type - full width */}
-                        <div>
+                        {/* Type + note */}
+                        <div className="lg:col-span-2 space-y-4">
                           <label className="block text-xs font-medium text-gray-500 mb-1.5">
                             Loại chứng chỉ <span className="text-red-500">*</span>
                           </label>
                           <select
                             value={certFileType}
                             onChange={(e) => setCertFileType(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
+                            className="w-full px-3.5 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                           >
                             {FILE_TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                           </select>
+
+                          <div className="rounded-xl border border-blue-100 bg-blue-50/50 px-3.5 py-3">
+                            <p className="text-xs font-medium text-blue-700 mb-1">Lưu ý</p>
+                            <p className="text-xs text-blue-600">Hệ thống ưu tiên file PDF rõ nét. Ảnh chụp cần hiển thị đầy đủ thông tin và không bị cắt góc.</p>
+                          </div>
                         </div>
 
-                        {/* Description - full width textarea */}
-                        <div>
+                        {/* Description */}
+                        <div className="lg:col-span-5">
                           <label className="block text-xs font-medium text-gray-500 mb-1.5">Mô tả</label>
                           <textarea
                             value={certDesc}
                             onChange={(e) => setCertDesc(e.target.value)}
                             placeholder="Mô tả ngắn về chứng chỉ..."
                             rows={3}
-                            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all resize-none"
+                            className="w-full px-3.5 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all resize-none"
                           />
                         </div>
 
                         {/* Buttons */}
-                        <div className="flex items-center gap-3 pt-1">
+                        <div className="lg:col-span-5 flex items-center gap-3 pt-1">
                           <button
                             onClick={handleCertSubmit}
                             disabled={!certFile || submitVerification.isPending}
@@ -1274,20 +1374,16 @@ function ProfilePageInner() {
 
               {/* Has cert → single status card */}
               {!certLoading && !certError && cert && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className={`h-1.5 w-full ${
-                    cert.status === 'approved' ? 'bg-emerald-400' :
-                    cert.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'
-                  }`} />
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4 mb-5">
+                <div className="bg-white/90 backdrop-blur rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+                  <div className="p-6 sm:p-7">
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${(CERT_STATUS_CONFIG[cert.status] ?? CERT_STATUS_CONFIG['pending']).bgColor}`}>
-                          <ShieldCheck className={`w-5 h-5 ${(CERT_STATUS_CONFIG[cert.status] ?? CERT_STATUS_CONFIG['pending']).textColor}`} />
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${(CERT_STATUS_CONFIG[certStatus] ?? CERT_STATUS_CONFIG[0]).bgColor}`}>
+                          <ShieldCheck className={`w-5 h-5 ${(CERT_STATUS_CONFIG[certStatus] ?? CERT_STATUS_CONFIG[0]).textColor}`} />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-900">Chứng chỉ của bạn</h3>
-                          <p className="text-xs text-gray-400">
+                          <h3 className="text-base font-semibold text-gray-900">Hồ sơ chứng chỉ hiện tại</h3>
+                          <p className="text-xs text-gray-500 mt-0.5">
                             Nộp: {new Date(cert.uploadedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             {cert.reviewedAt && ` · Duyệt: ${new Date(cert.reviewedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
                           </p>
@@ -1297,22 +1393,35 @@ function ProfilePageInner() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                      <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-[10px] font-medium text-gray-400 mb-0.5">Loại chứng chỉ</p>
-                        <p className="text-sm font-semibold text-gray-700">
+                      <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-500 mb-1">Loại chứng chỉ</p>
+                        <p className="text-sm font-semibold text-gray-800">
                           {FILE_TYPE_OPTIONS.find(o => o.value === cert.fileType)?.label ?? cert.fileType}
                         </p>
                       </div>
-                      {cert.description && (
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-[10px] font-medium text-gray-400 mb-0.5">Mô tả</p>
-                          <p className="text-sm text-gray-700">{cert.description}</p>
-                        </div>
-                      )}
+                      <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-500 mb-1">Trạng thái</p>
+                        <p className="text-sm font-semibold text-gray-800">{(CERT_STATUS_CONFIG[certStatus] ?? CERT_STATUS_CONFIG[0]).label}</p>
+                      </div>
+                      <div className="sm:col-span-2 rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Mô tả</p>
+                        <p className="text-sm text-gray-700">{cert.description?.trim() || 'Không có mô tả bổ sung.'}</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <button
+                        onClick={handleOpenCertFile}
+                        disabled={openingCertFile}
+                        className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {openingCertFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                        {openingCertFile ? 'Đang mở file...' : 'Xem file đã nộp'}
+                      </button>
                     </div>
 
                     {cert.rejectionReason && (
-                      <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl mb-4">
+                      <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-100 rounded-xl mb-4">
                         <XCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                         <div>
                           <p className="text-xs font-semibold text-red-700 mb-0.5">Lý do từ chối</p>
@@ -1321,15 +1430,15 @@ function ProfilePageInner() {
                       </div>
                     )}
 
-                    {cert.status === 'approved' && (
-                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                    {certStatus === 1 && (
+                      <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                        <p className="text-xs font-medium text-emerald-700">Chứng chỉ đã được xác minh. Bạn có thể đăng tài liệu lên nền tảng.</p>
+                        <p className="text-xs sm:text-sm font-medium text-emerald-700">Chứng chỉ đã được xác minh. Tài khoản của bạn đủ điều kiện đăng tải học liệu.</p>
                       </div>
                     )}
 
-                    {cert.status !== 'approved' && (
-                      <div className="mt-4 flex items-center gap-3">
+                    {certStatus !== 1 && (
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
                         {confirmDelete === cert.verificationCode ? (
                           <>
                             <span className="text-xs text-gray-500">Xác nhận rút lại chứng chỉ?</span>

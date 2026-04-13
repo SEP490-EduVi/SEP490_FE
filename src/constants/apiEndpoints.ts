@@ -142,6 +142,7 @@ export const API_ENDPOINTS = {
   EXPERT_VERIFICATION: {
     SUBMIT:   '/api/expert/verifications',
     GET_ALL:  '/api/expert/verifications',
+    GET_FILE: (code: string) => `/api/expert/verifications/${code}/file`,
     DELETE:   (code: string) => `/api/expert/verifications/${code}`,
   },
 

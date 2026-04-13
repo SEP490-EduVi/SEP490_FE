@@ -275,10 +275,11 @@ export interface VerificationDto {
   verificationCode: string;
   fileType: string;
   description: string;
-  status: string;
+  status: number | string;
   rejectionReason: string | null;
   uploadedAt: string;
   reviewedAt: string | null;
+  fileUrl?: string;
 }
 
 // ─── Expert: Material ──────────────────────────────────────────────────────

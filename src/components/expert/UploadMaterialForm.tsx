@@ -81,7 +81,7 @@ export function UploadMaterialForm({
         exit={{ opacity: 0, height: 0 }}
         className="overflow-hidden mb-8"
       >
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <div className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100 p-6 space-y-4 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">Tải lên tài liệu mới</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -99,7 +99,7 @@ export function UploadMaterialForm({
                   if (f) { setFile(f); if (!form.title) set('title')(f.name.replace(/\.[^.]+$/, '')); }
                 }}
                 className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
-                  file ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                  file ? 'border-blue-300 bg-blue-50' : 'border-blue-100 hover:border-blue-300 hover:bg-blue-50/40'
                 }`}
               >
                 {file ? (
@@ -152,7 +152,7 @@ export function UploadMaterialForm({
                   if (f && f.type.startsWith('image/')) setPreviewFile(f);
                 }}
                 className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
-                  previewFile ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  previewFile ? 'border-emerald-300 bg-emerald-50' : 'border-blue-100 hover:border-blue-300 hover:bg-blue-50/40'
                 }`}
               >
                 {previewFile ? (
@@ -202,7 +202,7 @@ export function UploadMaterialForm({
                 value={form.title}
                 onChange={(e) => set('title')(e.target.value)}
                 placeholder="Nhập tiêu đề tài liệu..."
-                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                className="w-full px-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
               />
             </div>
 
@@ -212,7 +212,7 @@ export function UploadMaterialForm({
               <select
                 value={form.type}
                 onChange={(e) => set('type')(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                className="w-full px-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
               >
                 {MATERIAL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -227,7 +227,7 @@ export function UploadMaterialForm({
                 onChange={(e) => set('price')(Number(e.target.value))}
                 min={0}
                 placeholder="0 = Miễn phí"
-                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                className="w-full px-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
               />
             </div>
 
@@ -256,7 +256,7 @@ export function UploadMaterialForm({
               onChange={(e) => set('description')(e.target.value)}
               rows={2}
               placeholder="Mô tả ngắn về tài liệu..."
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
+              className="w-full px-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
             />
           </div>
 
@@ -264,7 +264,7 @@ export function UploadMaterialForm({
             <button
               onClick={handleSubmit}
               disabled={!file || !form.title || isUploading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-semibold shadow-md shadow-blue-600/20"
             >
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               {isUploading ? 'Đang tải lên...' : 'Tải lên'}

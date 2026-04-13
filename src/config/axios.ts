@@ -26,15 +26,34 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // ─── Request Interceptor ───────────────────────────────────────────────────────
 // Đính kèm access token vào mỗi request
 api.interceptors.request.use(
   (config) => {
+    const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+
+    // Let browser/axios set correct multipart boundary automatically.
+    if (isFormData) {
+      if (typeof (config.headers as { set?: (name: string, value?: string) => void })?.set === 'function') {
+        (config.headers as { set: (name: string, value?: string) => void }).set('Content-Type', undefined);
+      }
+      if (config.headers) {
+        delete (config.headers as Record<string, string>)['Content-Type'];
+        delete (config.headers as Record<string, string>)['content-type'];
+      }
+    } else if (config.data && typeof config.data === 'object') {
+      if (typeof (config.headers as { set?: (name: string, value: string) => void })?.set === 'function') {
+        (config.headers as { set: (name: string, value: string) => void }).set('Content-Type', 'application/json');
+      } else {
+        config.headers = {
+          ...(config.headers ?? {}),
+          'Content-Type': 'application/json',
+        };
+      }
+    }
+
     const isPublic = isPublicAuthRequest(config.url);
     const token =
       typeof window !== "undefined"

@@ -8,16 +8,16 @@ import PublicFooter from '@/components/common/PublicFooter';
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[#f8fbff]">
       <PublicHeader />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-16 sm:py-24">
+      <section className="bg-[radial-gradient(circle_at_top_right,_#e8f0ff_0,_#f8fbff_45%,_#edf4ff_100%)] py-16 sm:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-6">
             Về chúng tôi
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-[#4d6691] max-w-3xl mx-auto leading-relaxed">
             EduVi được tạo ra với sứ mệnh đơn giản: giúp giáo viên Việt Nam tạo bài giảng chất lượng cao một cách nhanh chóng và dễ dàng nhờ trí tuệ nhân tạo.
           </p>
         </div>
@@ -36,8 +36,8 @@ export default function AboutPage() {
                 Chúng tôi tin rằng mọi giáo viên đều xứng đáng có công cụ hỗ trợ tốt nhất. EduVi ra đời để giải phóng giáo viên khỏi những công việc lặp đi lặp lại trong quá trình soạn bài, để họ có thể tập trung vào điều quan trọng nhất: truyền cảm hứng cho học sinh.
               </p>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 lg:p-10 border border-purple-100">
-              <div className="w-14 h-14 bg-purple-600 rounded-xl flex items-center justify-center mb-6">
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-100/60 rounded-2xl p-8 lg:p-10 border border-indigo-100">
+              <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center mb-6">
                 <Lightbulb className="w-7 h-7 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Tầm nhìn</h2>
@@ -50,7 +50,7 @@ export default function AboutPage() {
       </section>
 
       {/* Giá trị cốt lõi */}
-      <section className="py-16 sm:py-24 bg-gray-50">
+      <section className="py-16 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Giá trị cốt lõi</h2>
@@ -65,7 +65,7 @@ export default function AboutPage() {
               { icon: Lightbulb, title: 'Đổi mới không ngừng', desc: 'Liên tục cải tiến công nghệ AI để mang lại trải nghiệm tốt nhất.', color: 'amber' },
               { icon: Globe, title: 'Made in Vietnam', desc: 'Tối ưu hoàn toàn cho giáo dục Việt Nam và tiếng Việt.', color: 'green' },
             ].map((item, i) => (
-              <div key={i} className="bg-white rounded-xl p-6 border border-gray-100 text-center hover:shadow-lg transition-shadow">
+              <div key={i} className="bg-[#f9fbff] rounded-2xl p-6 border border-[#dde8ff] text-center hover:shadow-lg transition-shadow">
                 <div className={`w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ${
                   item.color === 'blue' ? 'bg-blue-100' : item.color === 'red' ? 'bg-red-100' : item.color === 'amber' ? 'bg-amber-100' : 'bg-green-100'
                 }`}>
@@ -90,13 +90,14 @@ export default function AboutPage() {
               EduVi được xây dựng bởi đội ngũ sinh viên và chuyên gia đam mê giáo dục và công nghệ
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { name: 'Đội ngũ phát triển', role: 'SEP490 - FPT University', initials: 'FU' },
-              { name: 'Chuyên gia giáo dục', role: 'Cố vấn nội dung', initials: 'ED' },
-              { name: 'Đội ngũ AI', role: 'Nghiên cứu & phát triển', initials: 'AI' },
+              { name: 'Nguyễn Minh Quang', role: 'Backend Developer', initials: 'NQ' },
+              { name: 'Phạm Hồ Tiến Đạt', role: 'Backend Developer', initials: 'PD' },
+              { name: 'Nguyễn Đào Bách', role: 'Frontend Developer', initials: 'NB' },
+              { name: 'Lê Thiên Phúc', role: 'Frontend Developer', initials: 'LP' },
             ].map((member, i) => (
-              <div key={i} className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100">
+              <div key={i} className="bg-white rounded-2xl p-6 text-center border border-[#dde8ff] shadow-sm">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-lg">
                   {member.initials}
                 </div>
@@ -109,11 +110,11 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 sm:py-20 bg-gradient-to-r from-blue-600 to-indigo-600">
+      <section className="py-16 sm:py-20 bg-gradient-to-r from-[#2e5fb0] to-[#4b79c8]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Bạn muốn trải nghiệm EduVi?</h2>
           <p className="text-blue-100 text-lg mb-8">
-            Đăng ký ngay để bắt đầu tạo bài giảng với AI miễn phí.
+            Bắt đầu trải nghiệm EduVi với quy trình tạo bài giảng trực quan và linh hoạt.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -123,10 +124,10 @@ export default function AboutPage() {
               Đăng ký miễn phí
             </Link>
             <Link
-              href="/contact"
+              href="/subscription"
               className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors"
             >
-              Liên hệ chúng tôi
+              Xem bảng giá
             </Link>
           </div>
         </div>

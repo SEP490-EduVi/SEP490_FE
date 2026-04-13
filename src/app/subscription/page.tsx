@@ -77,39 +77,42 @@ export default function SubscriptionPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[#f6f9ff]">
       {isHydrated && user ? <AppHeader /> : <PublicHeader />}
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-16 sm:py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium mb-6">
+      <section className="relative overflow-hidden py-16 sm:py-20">
+        <div className="pointer-events-none absolute -left-24 top-2 h-72 w-72 rounded-full bg-[#b9cdff]/35 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 top-8 h-80 w-80 rounded-full bg-[#d4e1ff]/45 blur-3xl" />
+
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#d5e3ff] bg-white/90 px-4 py-1.5 text-sm font-medium text-[#2e5fb0] mb-6">
             <Star className="w-4 h-4" />
             Bảng giá
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#122a58] mb-4">
             Chọn gói phù hợp với bạn
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Mua EduCoin để sử dụng các tính năng AI phân tích bài giảng. Gói càng lớn, tiết kiệm càng nhiều.
+          <p className="text-lg text-[#4d6691] max-w-2xl mx-auto">
+            Các gói EduCoin linh hoạt theo nhu cầu sử dụng. Bạn có thể nâng cấp bất kỳ lúc nào.
           </p>
         </div>
       </section>
 
       {/* Plans */}
-      <section className="py-16 sm:py-20 -mt-8">
+      <section className="pb-14 sm:pb-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-              <span className="ml-3 text-gray-500">Đang tải bảng giá...</span>
+            <div className="flex items-center justify-center py-20 rounded-3xl border border-[#dbe7ff] bg-white/80">
+              <Loader2 className="w-8 h-8 animate-spin text-[#2e5fb0]" />
+              <span className="ml-3 text-[#4d6691]">Đang tải bảng giá...</span>
             </div>
           ) : error ? (
-            <div className="text-center py-20">
+            <div className="text-center py-20 rounded-3xl border border-red-100 bg-white/90">
               <p className="text-red-500 mb-4">Không thể tải bảng giá. Vui lòng thử lại.</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="px-6 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200"
               >
                 Thử lại
               </button>
@@ -125,10 +128,10 @@ export default function SubscriptionPage() {
                 return (
                   <div
                     key={plan.planId}
-                    className={`relative bg-gradient-to-br ${colors.bg} rounded-2xl border ${colors.border} p-8 transition-all hover:shadow-xl flex flex-col`}
+                    className={`relative bg-gradient-to-br ${colors.bg} rounded-3xl border ${colors.border} p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-22px_rgba(47,93,184,0.38)] flex flex-col`}
                   >
                     {isPopular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-full">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#2e5fb0] text-white text-xs font-semibold rounded-full">
                         Phổ biến nhất
                       </div>
                     )}
@@ -137,36 +140,36 @@ export default function SubscriptionPage() {
                       {icon}
                     </div>
 
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.planName}</h3>
-                    <p className="text-sm text-gray-500 mb-5">{plan.description}</p>
+                    <h3 className="text-xl font-bold text-[#122a58] mb-1">{plan.planName}</h3>
+                    <p className="text-sm text-[#5f78a4] mb-5">{plan.description}</p>
 
                     <div className="mb-6">
-                      <span className="text-4xl font-extrabold text-gray-900">
+                      <span className="text-4xl font-extrabold text-[#122a58]">
                         {formatPrice(plan.price)}
                       </span>
-                      <span className="text-gray-500 text-sm ml-1">đ</span>
-                      <span className="text-gray-400 text-sm"> / {plan.durationDays} ngày</span>
+                      <span className="text-[#4d6691] text-sm ml-1">đ</span>
+                      <span className="text-[#7b92b8] text-sm"> / {plan.durationDays} ngày</span>
                     </div>
 
                     <ul className="space-y-3 mb-8 flex-1">
-                      <li className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                         <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
                         <span><strong>{plan.analysisQuotaAmount.toLocaleString()}</strong> EduCoin phân tích AI</span>
                       </li>
-                      <li className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                         <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
                         <span>Hiệu lực {plan.durationDays} ngày</span>
                       </li>
-                      <li className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                         <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
                         <span>Tạo slide & video bài giảng</span>
                       </li>
-                      <li className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                         <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
                         <span>Truy cập kho tài liệu</span>
                       </li>
                       {index >= 1 && (
-                        <li className="flex items-start gap-2.5 text-sm text-gray-700">
+                        <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                           <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
                           <span>Hỗ trợ ưu tiên</span>
                         </li>
@@ -199,9 +202,9 @@ export default function SubscriptionPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 sm:py-20 bg-gray-50">
+      <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#122a58] text-center mb-10">
             Câu hỏi thường gặp
           </h2>
           <div className="space-y-4">
@@ -223,9 +226,9 @@ export default function SubscriptionPage() {
                 a: 'Bạn có thể mua thêm gói bất kỳ lúc nào. EduCoin mới sẽ được cộng thêm vào tài khoản hiện tại.',
               },
             ].map((faq, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-100 p-6">
-                <h4 className="font-semibold text-gray-900 mb-2">{faq.q}</h4>
-                <p className="text-sm text-gray-600 leading-relaxed">{faq.a}</p>
+              <div key={i} className="rounded-2xl border border-[#dde8ff] bg-[#f9fbff] p-6">
+                <h4 className="font-semibold text-[#173b7a] mb-2">{faq.q}</h4>
+                <p className="text-sm text-[#4d6691] leading-relaxed">{faq.a}</p>
               </div>
             ))}
           </div>
