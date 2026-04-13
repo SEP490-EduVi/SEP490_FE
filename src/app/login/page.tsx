@@ -7,10 +7,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useGoogleLoginService, useLoginService } from '@/services/authServices';
 import { LoginInput, LoginResponse } from '@/types/auth';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ApiResponse } from '@/types/api';
+import BrandLogo from '@/components/common/BrandLogo';
 
 type GoogleCredentialResponse = {
   credential?: string;
@@ -20,7 +22,6 @@ export default function LoginPage() {
   const [form, setForm] = useState<LoginInput>({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [logoLoadError, setLogoLoadError] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
   const googleInitializedRef = useRef(false);
   const initializedClientIdRef = useRef<string | null>(null);
@@ -133,8 +134,16 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f3f7ff] px-4 py-8">
-      <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#9bbcff]/35 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-[#c3d8ff]/35 blur-3xl" />
+      <motion.div
+        className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#9bbcff]/35 blur-3xl"
+        animate={{ x: [0, 18, 0], y: [0, -14, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-[#c3d8ff]/35 blur-3xl"
+        animate={{ x: [0, -20, 0], y: [0, 16, 0] }}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+      />
 
       <Script
         src="https://accounts.google.com/gsi/client"
@@ -143,8 +152,18 @@ export default function LoginPage() {
         onError={() => setErrorMsg('Không tải được Google Sign-In. Vui lòng thử lại sau.')}
       />
 
-      <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-[#d8e4ff] bg-white/90 shadow-[0_24px_80px_-24px_rgba(44,84,160,0.28)] backdrop-blur md:grid-cols-[1.1fr_0.9fr]">
-        <div className="hidden bg-[radial-gradient(circle_at_top_right,_#eaf1ff_0,_#f4f8ff_45%,_#e3ecff_100%)] p-10 md:flex md:flex-col md:justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-[#d8e4ff] bg-white/90 shadow-[0_24px_80px_-24px_rgba(44,84,160,0.28)] backdrop-blur md:grid-cols-[1.1fr_0.9fr]"
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.1 }}
+          className="hidden bg-[radial-gradient(circle_at_top_right,_#eaf1ff_0,_#f4f8ff_45%,_#e3ecff_100%)] p-10 md:flex md:flex-col md:justify-between"
+        >
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d7e4ff] bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#2b4f93]">
             <Sparkles className="h-3.5 w-3.5" />
             EduVi 
@@ -167,21 +186,17 @@ export default function LoginPage() {
               Dữ liệu dự án được lưu và đồng bộ trên hệ thống.
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="p-6 sm:p-10">
+        <motion.div
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.15 }}
+          className="p-6 sm:p-10"
+        >
           <div className="mx-auto w-full max-w-md space-y-6">
             <div className="space-y-2 text-center md:text-left">
-              {!logoLoadError ? (
-                <img
-                  src="/image.png"
-                  alt="Eduvision"
-                  className="mx-auto h-14 w-auto object-contain md:mx-0"
-                  onError={() => setLogoLoadError(true)}
-                />
-              ) : (
-                <h1 className="text-3xl font-bold tracking-tight text-[#204b93]">Eduvision</h1>
-              )}
+              <BrandLogo className="mx-auto md:mx-0" />
               <h1 className="text-3xl font-bold tracking-tight text-[#173b7a]">Đăng nhập</h1>
               <p className="text-sm text-[#4b6693]">Chào mừng bạn quay lại nền tảng EduVi.</p>
             </div>
@@ -309,8 +324,8 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
