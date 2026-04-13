@@ -234,8 +234,7 @@ export function createDocumentActions(
           return { ...card, renderedHtml: fullHtml };
         }));
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { title: _omittedTitle, ...docWithoutTitle } = document;
+        const { title: _title, ...docWithoutTitle } = document;
         const docWithHtml = { ...docWithoutTitle, cards: cardsWithHtml };
 
         // 1. Upload slide JSON to GCS via Next.js server (no CORS, key stays server-side)
