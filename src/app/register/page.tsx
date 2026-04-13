@@ -6,8 +6,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useRegisterService } from '@/services/authServices';
 import { RegisterInput } from '@/types/auth';
+import BrandLogo from '@/components/common/BrandLogo';
 
 type RegisterForm = RegisterInput & { confirmPassword: string };
 
@@ -40,7 +42,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [logoLoadError, setLogoLoadError] = useState(false);
 
   const router = useRouter();
   const { mutate: register, isPending } = useRegisterService();
@@ -91,43 +92,32 @@ export default function RegisterPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f3f7ff] px-4 py-8">
-      <div className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#9bbcff]/30 blur-3xl" />
-      <div className="pointer-events-none absolute -right-12 bottom-8 h-72 w-72 rounded-full bg-[#c3d8ff]/25 blur-3xl" />
+      <motion.div
+        className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#9bbcff]/30 blur-3xl"
+        animate={{ x: [0, -16, 0], y: [0, 15, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="pointer-events-none absolute -right-12 bottom-8 h-72 w-72 rounded-full bg-[#c3d8ff]/25 blur-3xl"
+        animate={{ x: [0, 14, 0], y: [0, -14, 0] }}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+      />
 
-      <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-[#d8e4ff] bg-white/90 shadow-[0_24px_80px_-24px_rgba(44,84,160,0.28)] backdrop-blur md:grid-cols-[0.95fr_1.05fr]">
-        <div className="hidden bg-[radial-gradient(circle_at_top_left,_#eaf1ff_0,_#f4f8ff_45%,_#e3ecff_100%)] p-10 md:flex md:flex-col md:justify-between">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d7e4ff] bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#2b4f93]">
-            <Sparkles className="h-3.5 w-3.5" />
-            Tạo tài khoản
-          </div>
-          <div className="space-y-4">
-            <h2 className="max-w-md text-4xl font-semibold leading-tight text-[#173b7a]">
-              Bắt đầu xây dựng bài giảng với quy trình mạch lạc.
-            </h2>
-            <p className="max-w-md text-sm leading-7 text-[#35588f]">
-              Một tài khoản để quản lý slide, video và dự án dạy học trên cùng một hệ thống.
-            </p>
-          </div>
-          <div className="space-y-2 text-sm text-[#35588f]">
-            <p>• Không gian làm việc theo vai trò Giáo viên và Chuyên gia</p>
-            <p>• Hỗ trợ quản lý mẫu nội dung và học liệu</p>
-            <p>• Xác thực OTP khi tạo tài khoản</p>
-          </div>
-        </div>
-
-        <div className="p-6 sm:p-10">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-[#d8e4ff] bg-white/90 shadow-[0_24px_80px_-24px_rgba(44,84,160,0.28)] backdrop-blur md:grid-cols-[1.05fr_0.95fr]"
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.1 }}
+          className="p-6 sm:p-10 md:order-1"
+        >
           <div className="mx-auto w-full max-w-lg space-y-6">
             <div className="space-y-2 text-center md:text-left">
-              {!logoLoadError ? (
-                <img
-                  src="/image.png"
-                  alt="Eduvision"
-                  className="mx-auto h-14 w-auto object-contain md:mx-0"
-                  onError={() => setLogoLoadError(true)}
-                />
-              ) : (
-                <h1 className="text-3xl font-bold tracking-tight text-[#204b93]">Eduvision</h1>
-              )}
+              <BrandLogo className="mx-auto md:mx-0" />
               <h1 className="text-3xl font-bold tracking-tight text-[#173b7a]">Tạo tài khoản</h1>
               <p className="text-sm text-[#4b6693]">Hoàn thiện thông tin để bắt đầu sử dụng EduVi.</p>
             </div>
@@ -314,8 +304,33 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.15 }}
+          className="hidden bg-[radial-gradient(circle_at_top_left,_#eaf1ff_0,_#f4f8ff_45%,_#e3ecff_100%)] p-10 md:order-2 md:flex md:flex-col md:justify-between"
+        >
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d7e4ff] bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#2b4f93]">
+            <Sparkles className="h-3.5 w-3.5" />
+            Tạo tài khoản
+          </div>
+          <div className="space-y-4">
+            <h2 className="max-w-md text-4xl font-semibold leading-tight text-[#173b7a]">
+              Bắt đầu xây dựng bài giảng với quy trình mạch lạc.
+            </h2>
+            <p className="max-w-md text-sm leading-7 text-[#35588f]">
+              Một tài khoản để quản lý slide, video và dự án dạy học trên cùng một hệ thống.
+            </p>
+          </div>
+          <div className="space-y-2 text-sm text-[#35588f]">
+            <p>• Không gian làm việc theo vai trò Giáo viên và Chuyên gia</p>
+            <p>• Hỗ trợ quản lý mẫu nội dung và học liệu</p>
+            <p>• Xác thực OTP khi tạo tài khoản</p>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

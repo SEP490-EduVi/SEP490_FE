@@ -13,6 +13,7 @@ import { useAuthStore, type AppRole } from '@/store/useAuthStore';
 import { useLogoutService } from '@/services/authServices';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUserQuota, useWalletInfo, useWalletTransactions } from '@/hooks/usePaymentApi';
+import BrandLogo from '@/components/common/BrandLogo';
 
 // ── Role nav config ────────────────────────────────────────────────────────
 
@@ -76,7 +77,6 @@ export default function AppHeader() {
   const [quotaOpen, setQuotaOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [headerAvatarErr, setHeaderAvatarErr] = useState(false);
-  const [headerLogoErr, setHeaderLogoErr] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const quotaRef = useRef<HTMLDivElement>(null);
@@ -212,7 +212,7 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
 
         {/* ── Mobile hamburger ── */}
         {navItems.length > 0 && (
@@ -227,34 +227,7 @@ export default function AppHeader() {
         )}
 
         {/* ── Logo ── */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition-opacity"
-        >
-          {!headerLogoErr ? (
-            <img
-              src="/image.png"
-              alt="Eduvision"
-              className="h-10 w-auto object-contain hidden sm:block"
-              onError={() => setHeaderLogoErr(true)}
-            />
-          ) : (
-            <>
-              <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-lg font-bold text-gray-900 hidden sm:block">Eduvision</span>
-            </>
-          )}
-          {!headerLogoErr && (
-            <img
-              src="/image.png"
-              alt="Eduvision"
-              className="h-9 w-auto object-contain sm:hidden"
-              onError={() => setHeaderLogoErr(true)}
-            />
-          )}
-        </Link>
+        <BrandLogo href="/" compact className="flex-shrink-0 hover:opacity-90 transition-opacity" />
 
         {/* ── Desktop role nav ── */}
         {navItems.length > 0 && (
