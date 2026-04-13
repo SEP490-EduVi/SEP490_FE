@@ -65,6 +65,8 @@ export default function ProjectDetailPage() {
   const [activeDocCode, setActiveDocCode] = useState<string | null>(null);
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
   const [videoLoadingCode, setVideoLoadingCode] = useState<string | null>(null);
+  const [deletingSlide, setDeletingSlide] = useState<string | null>(null);
+  const [deletingVideo, setDeletingVideo] = useState<string | null>(null);
   const [showVideoConfirm, setShowVideoConfirm] = useState(false);
   const [pendingVideoProductCode, setPendingVideoProductCode] = useState<string | null>(null);
   const [viewingVideo, setViewingVideo] = useState<VideoProductDto | null>(null);
@@ -310,6 +312,30 @@ export default function ProjectDetailPage() {
     finally { setViewSlideLoading(null); }
   };
 
+  const handleDeleteSlide = (productCode: string) => {
+    setDeletingSlide(productCode);
+    deleteProduct.mutate(productCode, {
+      onSuccess: () => {
+        notify.success('Xóa slide thành công.');
+        void refetchProducts();
+      },
+      onError: () => notify.error('Không thể xóa slide. Vui lòng thử lại.'),
+      onSettled: () => setDeletingSlide(null),
+    });
+  };
+
+  const handleDeleteVideo = (productVideoCode: string) => {
+    setDeletingVideo(productVideoCode);
+    deleteVideo.mutate(productVideoCode, {
+      onSuccess: () => {
+        notify.success('Xóa video thành công.');
+        queryClient.invalidateQueries({ queryKey: ['video', 'project', projectCode] });
+      },
+      onError: () => notify.error('Không thể xóa video. Vui lòng thử lại.'),
+      onSettled: () => setDeletingVideo(null),
+    });
+  };
+
   if (isProjectLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center">
@@ -419,6 +445,10 @@ export default function ProjectDetailPage() {
             activeDocCode={activeDocCode}
             onViewSlide={handleViewSlide}
             onWatchVideo={setViewingVideo}
+            onDeleteSlide={handleDeleteSlide}
+            onDeleteVideo={handleDeleteVideo}
+            deletingSlide={deletingSlide}
+            deletingVideo={deletingVideo}
           />
         </main>
 
