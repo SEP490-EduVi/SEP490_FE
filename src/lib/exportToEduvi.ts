@@ -23,15 +23,18 @@ import {
   ICard, 
   ILayout, 
   IBlock,
+  IBlockStyles,
   BlockType,
+  LayoutVariant,
 } from '@/types/nodes';
 
 // ============================================================================
 // EXPORT SCHEMA VERSION
 // ============================================================================
 
-const EDUVI_SCHEMA_VERSION = '1.0.0';
+const EDUVI_SCHEMA_VERSION = '1.1.0';
 const EDUVI_FILE_EXTENSION = '.eduvi';
+const DEFAULT_MEDIA_FETCH_TIMEOUT_MS = 10000;
 
 // ============================================================================
 // TYPES
@@ -56,16 +59,102 @@ export interface EduViFileSchema {
     tags?: string[];
     createdAt: string;
     updatedAt: string;
+    projectCode?: string;
+    projectName?: string;
+    subjectCode?: string;
+    subjectName?: string;
+    gradeCode?: string;
+    gradeName?: string;
+    lessonCode?: string;
+    lessonName?: string;
+    classroomCode?: string;
+    classroomName?: string;
+    curriculumYear?: number;
   };
   
   /** The actual content - array of cards (slides) */
   cards: EduViCard[];
+
+  /** Optional embedded assets for offline playback in Flutter desktop app */
+  assets?: Record<string, EduViAsset>;
+
+  /** Raw source document preserved for exact round-trip rendering/import */
+  sourceDocument?: IDocument;
+
+  /** Export quality details for diagnostics */
+  integrity?: EduViIntegrity;
+}
+
+export interface EduViIntegrity {
+  warnings: string[];
+  stats: EduViStats;
+  offlineReady?: boolean;
+}
+
+export interface EduViStats {
+  totalCards: number;
+  totalLayouts: number;
+  totalBlocks: number;
+  cardsWithoutLayouts: number;
+  blocksByType: Record<string, number>;
+  unresolvedMediaCount: number;
+  embeddedAssetCount: number;
+}
+
+export type EduViAssetKind = 'image' | 'video' | 'poster' | 'card-background' | 'generic';
+
+export interface EduViAsset {
+  mimeType: string;
+  base64: string;
+  originalUrl: string;
+  kind: EduViAssetKind;
+}
+
+export interface EduViExportOptions {
+  /** Embed images/videos as base64 assets and rewrite URLs to asset://<id> */
+  embedAssets?: boolean;
+  /** Pretty-print JSON output */
+  pretty?: boolean;
+  /** Throw error if schema validation fails */
+  failOnValidationError?: boolean;
+  /** Throw error when export is not fully offline-ready */
+  requireOfflineReady?: boolean;
+  /** Optional academic classification metadata to include in export */
+  academicContext?: Partial<EduViAcademicContext>;
+  /** Timeout per asset fetch in milliseconds */
+  mediaFetchTimeoutMs?: number;
+}
+
+export interface EduViAcademicContext {
+  projectCode?: string;
+  projectName?: string;
+  subjectCode?: string;
+  subjectName?: string;
+  gradeCode?: string;
+  gradeName?: string;
+  lessonCode?: string;
+  lessonName?: string;
+  classroomCode?: string;
+  classroomName?: string;
+  curriculumYear?: number;
+}
+
+export interface EduViExportResult {
+  fileName: string;
+  schema: EduViFileSchema;
+  validation: { valid: boolean; errors: string[] };
 }
 
 export interface EduViCard {
   id: string;
   title: string;
   order: number;
+  templateId?: string;
+  backgroundColor?: string;
+  backgroundImage?: string;
+  contentAlignment?: 'top' | 'center' | 'bottom';
+  isVideoSlide?: boolean;
+  renderedHtml?: string;
   layouts: EduViLayout[];
 }
 
@@ -73,6 +162,8 @@ export interface EduViLayout {
   id: string;
   variant: string; // LayoutVariant as string
   order: number;
+  gap?: number;
+  columnWidths?: number[];
   blocks: EduViBlock[];
 }
 
@@ -81,6 +172,8 @@ export interface EduViBlock {
   type: string; // BlockType as string
   columnIndex: number;
   order: number;
+  styles?: IBlockStyles;
+  isResizable?: boolean;
   content: EduViBlockContent;
 }
 
@@ -88,8 +181,15 @@ export interface EduViBlock {
  * Union type for all possible block content
  * Each type has its own structure
  */
+export interface EduViHeadingContent {
+  type: 'HEADING';
+  html: string;
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+}
+
 export type EduViBlockContent = 
   | EduViTextContent
+  | EduViHeadingContent
   | EduViImageContent
   | EduViVideoContent
   | EduViCodeContent
@@ -103,7 +203,8 @@ export type EduViBlockContent =
 
 export interface EduViTextContent {
   type: 'TEXT';
-  text: string;
+  html?: string;
+  text?: string;
   format?: 'plain' | 'html' | 'markdown';
 }
 
@@ -111,15 +212,21 @@ export interface EduViImageContent {
   type: 'IMAGE';
   src: string;
   alt?: string;
+  caption?: string;
   width?: number;
   height?: number;
+  /** Set by export when src is empty — Flutter should render a placeholder with the alt text */
+  missingMedia?: boolean;
 }
 
 export interface EduViVideoContent {
   type: 'VIDEO';
   src: string;
+  provider?: 'youtube' | 'vimeo' | 'direct';
   poster?: string;
   autoplay?: boolean;
+  /** Set by export when src is empty — Flutter should render a placeholder */
+  missingMedia?: boolean;
 }
 
 export interface EduViCodeContent {
@@ -184,15 +291,25 @@ function transformBlock(block: IBlock, order: number, columnIndex: number): EduV
   const contentType = (content as { type?: string }).type || 'UNKNOWN';
   
   // Content already has type field, spread it
-  const contentWithType = {
+  const contentWithType: Record<string, unknown> = {
     ...content,
   };
+
+  // Flag media blocks that have no src so the Flutter app can render a placeholder
+  if (contentType === BlockType.IMAGE || contentType === BlockType.VIDEO) {
+    const src = typeof contentWithType.src === 'string' ? contentWithType.src : '';
+    if (!src) {
+      contentWithType.missingMedia = true;
+    }
+  }
 
   return {
     id: block.id,
     type: contentType,
     columnIndex,
     order,
+    styles: block.styles,
+    isResizable: block.isResizable,
     content: contentWithType as EduViBlockContent,
   };
 }
@@ -202,11 +319,11 @@ function transformBlock(block: IBlock, order: number, columnIndex: number): EduV
  */
 function getColumnCount(variant: string): number {
   switch (variant) {
-    case 'two-column':
-    case 'sidebar-left':
-    case 'sidebar-right':
+    case LayoutVariant.TWO_COLUMN:
+    case LayoutVariant.SIDEBAR_LEFT:
+    case LayoutVariant.SIDEBAR_RIGHT:
       return 2;
-    case 'three-column':
+    case LayoutVariant.THREE_COLUMN:
       return 3;
     default:
       return 1;
@@ -215,9 +332,12 @@ function getColumnCount(variant: string): number {
 
 function transformLayout(layout: ILayout, order: number): EduViLayout {
   const columnCount = getColumnCount(layout.variant);
+  const preservedColumnWidths = preserveColumnWidths(layout.columnWidths, columnCount);
   
   // Map blocks with their calculated column index
-  const blocks = layout.children.map((block, idx) => {
+  const blocks = layout.children
+    .filter((child): child is IBlock => 'content' in child)
+    .map((block, idx) => {
     // Column index is determined by position: index % columnCount
     const columnIndex = idx % columnCount;
     return transformBlock(block as IBlock, idx, columnIndex);
@@ -227,35 +347,573 @@ function transformLayout(layout: ILayout, order: number): EduViLayout {
     id: layout.id,
     variant: layout.variant,
     order,
+    gap: layout.gap,
+    columnWidths: preservedColumnWidths,
     blocks,
   };
 }
 
 function transformCard(card: ICard, order: number): EduViCard {
-  // Filter and transform only layouts (not standalone blocks)
+  // Export explicit layouts first.
   const layouts = card.children
     .filter((child): child is ILayout => 'variant' in child)
     .map((layout, idx) => transformLayout(layout, idx));
+
+  // Backward compatibility: if a card contains direct blocks,
+  // wrap them into an implicit SINGLE layout so no content is lost in export.
+  const standaloneBlocks = card.children
+    .filter((child): child is IBlock => 'content' in child)
+    .map((block, idx) => transformBlock(block, idx, 0));
+
+  if (standaloneBlocks.length > 0) {
+    layouts.push({
+      id: `${card.id}-implicit-single-layout`,
+      variant: LayoutVariant.SINGLE,
+      order: layouts.length,
+      blocks: standaloneBlocks,
+    });
+  }
 
   return {
     id: card.id,
     title: card.title,
     order,
+    templateId: card.templateId,
+    backgroundColor: card.backgroundColor,
+    backgroundImage: card.backgroundImage,
+    contentAlignment: card.contentAlignment,
+    isVideoSlide: card.isVideoSlide,
+    renderedHtml: card.renderedHtml,
     layouts,
   };
 }
 
-function transformDocument(document: IDocument): EduViFileSchema {
+function preserveColumnWidths(columnWidths: number[] | undefined, columnCount: number): number[] | undefined {
+  if (columnCount <= 1) return undefined;
+
+  const fallback = Array.from({ length: columnCount }, () => 100 / columnCount);
+  if (!columnWidths || columnWidths.length !== columnCount) return fallback;
+
+  const parsed = columnWidths.map((value) => {
+    if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.max(value, 0);
+  });
+
+  const total = parsed.reduce((sum, value) => sum + value, 0);
+  if (total <= 0) return fallback;
+
+  return parsed;
+}
+
+function sanitizeFileTitle(title: unknown): string {
+  const safeTitle = typeof title === 'string' ? title : '';
+
+  return safeTitle
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'untitled';
+}
+
+function createExportFileName(document: IDocument): string {
+  const safeTitle = sanitizeFileTitle(document?.title);
+  const timestamp = new Date().toISOString().slice(0, 10);
+  return `${safeTitle}-${timestamp}${EDUVI_FILE_EXTENSION}`;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+
+  return btoa(binary);
+}
+
+function parseDataUrl(url: string): { mimeType: string; base64: string } | null {
+  const match = /^data:([^;]+);base64,(.+)$/i.exec(url);
+  if (!match) return null;
+  return {
+    mimeType: match[1],
+    base64: match[2],
+  };
+}
+
+function cloneDocument(document: IDocument): IDocument {
+  return JSON.parse(JSON.stringify(document)) as IDocument;
+}
+
+function guessAssetKindFromField(fieldName: unknown): EduViAssetKind {
+  const key = typeof fieldName === 'string' ? fieldName.toLowerCase() : '';
+  if (key.includes('poster')) return 'poster';
+  if (key.includes('background')) return 'card-background';
+  if (key.includes('video')) return 'video';
+  if (key.includes('image') || key.includes('thumbnail') || key.includes('avatar')) return 'image';
+  return 'generic';
+}
+
+function isLikelyMediaUrl(url: string): boolean {
+  const trimmed = url.trim().toLowerCase();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('data:') || trimmed.startsWith('asset://') || trimmed.startsWith('gs://')) return true;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return /(\.(png|jpg|jpeg|webp|gif|svg|bmp|avif|mp4|webm|mov|m4v|ogg|ogv|m3u8)(\?|$))/.test(trimmed)
+      || /image|video|thumbnail|poster|avatar|background/.test(trimmed);
+  }
+  return false;
+}
+
+const MEDIA_FIELD_NAMES = new Set([
+  'src',
+  'url',
+  'poster',
+  'thumbnail',
+  'thumbnailurl',
+  'image',
+  'imageurl',
+  'video',
+  'videourl',
+  'preview',
+  'previewurl',
+  'cover',
+  'coverurl',
+  'backgroundimage',
+  'avatarurl',
+]);
+
+function inferKindByFileName(url: string, fallback: EduViAssetKind): EduViAssetKind {
+  const lower = url.toLowerCase();
+  if (/(\.(mp4|webm|mov|m4v|ogg|ogv|m3u8)(\?|$))/.test(lower)) return 'video';
+  if (/(\.(png|jpg|jpeg|webp|gif|svg|bmp|avif)(\?|$))/.test(lower)) return 'image';
+  return fallback;
+}
+
+function guessMimeTypeFromUrl(url: string): string {
+  const lower = url.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.mp4')) return 'video/mp4';
+  if (lower.endsWith('.webm')) return 'video/webm';
+  if (lower.endsWith('.mov')) return 'video/quicktime';
+  return 'application/octet-stream';
+}
+
+async function fetchAsset(url: string, timeoutMs: number): Promise<{ mimeType: string; base64: string }> {
+  if (url.startsWith('data:')) {
+    const parsed = parseDataUrl(url);
+    if (!parsed) {
+      throw new Error('Invalid data URL format');
+    }
+    return parsed;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || guessMimeTypeFromUrl(url);
+    return {
+      mimeType: contentType,
+      base64: arrayBufferToBase64(buffer),
+    };
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+async function resolveGsUrlToSignedHttp(gsUrl: string): Promise<string> {
+  const response = await fetch('/api/gcs/download-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gcsUrl: gsUrl }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to resolve gs:// URL (${response.status})`);
+  }
+
+  const body = (await response.json()) as { signedUrl?: string };
+  if (!body.signedUrl || typeof body.signedUrl !== 'string') {
+    throw new Error('Missing signedUrl in /api/gcs/download-url response');
+  }
+
+  return body.signedUrl;
+}
+
+function toGsUrlFromStorageHttp(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (host !== 'storage.googleapis.com') return null;
+
+    const path = parsed.pathname.replace(/^\/+/, '');
+    if (!path) return null;
+
+    const [bucket, ...rest] = path.split('/');
+    if (!bucket || rest.length === 0) return null;
+
+    return `gs://${bucket}/${rest.join('/')}`;
+  } catch {
+    return null;
+  }
+}
+
+async function embedAssets(
+  schema: EduViFileSchema,
+  options: Required<Pick<EduViExportOptions, 'embedAssets' | 'mediaFetchTimeoutMs'>>,
+): Promise<{ warnings: string[]; failedUrls: string[] }> {
+  if (!options.embedAssets) return { warnings: [], failedUrls: [] };
+
+  const warningSet = new Set<string>();
+  const failedUrls = new Set<string>();
+  const assets: Record<string, EduViAsset> = {};
+  const urlToAssetId = new Map<string, string>();
+
+  const registerAsset = async (
+    url: string | undefined,
+    kind: EduViAssetKind,
+    required: boolean,
+    applyRewrittenUrl: (rewrittenUrl: string) => void,
+  ): Promise<void> => {
+    if (!url) {
+      if (required) {
+        warningSet.add(`Missing required media URL for kind: ${kind}`);
+      }
+      return;
+    }
+
+    if (url.startsWith('asset://')) {
+      return;
+    }
+
+    const existingAssetId = urlToAssetId.get(url);
+    if (existingAssetId) {
+      applyRewrittenUrl(`asset://${existingAssetId}`);
+      return;
+    }
+
+    try {
+      let fetched: { mimeType: string; base64: string } | null = null;
+      let lastError: string | null = null;
+
+      const tryFetch = async (candidateUrl: string): Promise<boolean> => {
+        try {
+          fetched = await fetchAsset(candidateUrl, options.mediaFetchTimeoutMs);
+          return true;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : 'unknown error';
+          return false;
+        }
+      };
+
+      if (url.startsWith('gs://')) {
+        const signed = await resolveGsUrlToSignedHttp(url);
+        await tryFetch(signed);
+      } else {
+        const directOk = await tryFetch(url);
+        if (!directOk) {
+          const inferredGs = toGsUrlFromStorageHttp(url);
+          if (inferredGs) {
+            try {
+              const refreshedSigned = await resolveGsUrlToSignedHttp(inferredGs);
+              await tryFetch(refreshedSigned);
+            } catch (error) {
+              lastError = error instanceof Error ? error.message : 'unknown error';
+            }
+          }
+        }
+      }
+
+      if (!fetched) {
+        throw new Error(lastError || 'unknown error');
+      }
+
+      const assetId = `asset-${Object.keys(assets).length + 1}`;
+
+      assets[assetId] = {
+        mimeType: fetched.mimeType,
+        base64: fetched.base64,
+        originalUrl: url,
+        kind,
+      };
+
+      urlToAssetId.set(url, assetId);
+      applyRewrittenUrl(`asset://${assetId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown error';
+      warningSet.add(`Cannot embed asset (${kind}) from URL: ${url}. Reason: ${message}`);
+      failedUrls.add(url);
+    }
+  };
+
+  const rewriteHtmlMediaUrls = async (html: string): Promise<string> => {
+    if (!html || typeof window === 'undefined' || typeof window.DOMParser === 'undefined') {
+      return html;
+    }
+
+    try {
+      const parser = new window.DOMParser();
+      const parsed = parser.parseFromString(html, 'text/html');
+
+      const imgEls = Array.from(parsed.querySelectorAll('img'));
+      for (const img of imgEls) {
+        const src = img.getAttribute('src') || '';
+        if (!src || !isLikelyMediaUrl(src)) continue;
+        await registerAsset(src, inferKindByFileName(src, 'image'), false, (rewrittenUrl) => {
+          img.setAttribute('src', rewrittenUrl);
+        });
+      }
+
+      const videoEls = Array.from(parsed.querySelectorAll('video'));
+      for (const video of videoEls) {
+        const src = video.getAttribute('src') || '';
+        const poster = video.getAttribute('poster') || '';
+
+        if (src && isLikelyMediaUrl(src)) {
+          await registerAsset(src, inferKindByFileName(src, 'video'), false, (rewrittenUrl) => {
+            video.setAttribute('src', rewrittenUrl);
+          });
+        }
+        if (poster && isLikelyMediaUrl(poster)) {
+          await registerAsset(poster, inferKindByFileName(poster, 'poster'), false, (rewrittenUrl) => {
+            video.setAttribute('poster', rewrittenUrl);
+          });
+        }
+
+        const sources = Array.from(video.querySelectorAll('source'));
+        for (const source of sources) {
+          const sourceSrc = source.getAttribute('src') || '';
+          if (!sourceSrc || !isLikelyMediaUrl(sourceSrc)) continue;
+          await registerAsset(sourceSrc, inferKindByFileName(sourceSrc, 'video'), false, (rewrittenUrl) => {
+            source.setAttribute('src', rewrittenUrl);
+          });
+        }
+      }
+
+      return parsed.body.innerHTML;
+    } catch {
+      return html;
+    }
+  };
+
+  const rewriteDeepMediaFields = async (value: unknown, parentField = ''): Promise<unknown> => {
+    if (Array.isArray(value)) {
+      const nextItems = await Promise.all(value.map((item) => rewriteDeepMediaFields(item, parentField)));
+      return nextItems;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    const obj = value as Record<string, unknown>;
+    for (const [key, raw] of Object.entries(obj)) {
+      const normalizedKey = key.toLowerCase();
+
+      if ((normalizedKey === 'html' || normalizedKey === 'renderedhtml') && typeof raw === 'string') {
+        obj[key] = await rewriteHtmlMediaUrls(raw);
+        continue;
+      }
+
+      if (typeof raw === 'string' && MEDIA_FIELD_NAMES.has(normalizedKey) && isLikelyMediaUrl(raw)) {
+        const fallbackKind = guessAssetKindFromField(normalizedKey || parentField);
+        const inferredKind = inferKindByFileName(raw, fallbackKind);
+        await registerAsset(raw, inferredKind, false, (rewrittenUrl) => {
+          obj[key] = rewrittenUrl;
+        });
+        continue;
+      }
+
+      if (raw && typeof raw === 'object') {
+        obj[key] = await rewriteDeepMediaFields(raw, key);
+      }
+    }
+
+    return obj;
+  };
+
+  for (const card of schema.cards) {
+    const cardLabel = `card[${card.order}] "${card.title}"`;
+
+    await registerAsset(card.backgroundImage, 'card-background', false, (rewrittenUrl) => {
+      card.backgroundImage = rewrittenUrl;
+    });
+
+    for (const layout of card.layouts) {
+      for (const block of layout.blocks) {
+        const content = block.content as Record<string, unknown>;
+        const contentType = String(content.type || block.type || '');
+        const blockLabel = `${cardLabel} > block "${block.id}" (${contentType})`;
+
+        if (contentType === BlockType.IMAGE) {
+          const src = typeof content.src === 'string' ? content.src : undefined;
+          await registerAsset(src, 'image', true, (rewrittenUrl) => {
+            content.src = rewrittenUrl;
+          });
+          if (!src) {
+            warningSet.add(`${blockLabel}: IMAGE has no src — Flutter will show placeholder with alt text`);
+          }
+        }
+
+        if (contentType === BlockType.VIDEO) {
+          const src = typeof content.src === 'string' ? content.src : undefined;
+          const poster = typeof content.poster === 'string' ? content.poster : undefined;
+
+          await registerAsset(src, 'video', true, (rewrittenUrl) => {
+            content.src = rewrittenUrl;
+          });
+
+          await registerAsset(poster, 'poster', false, (rewrittenUrl) => {
+            content.poster = rewrittenUrl;
+          });
+        }
+
+        await rewriteDeepMediaFields(content, contentType);
+      }
+    }
+
+    if (typeof card.renderedHtml === 'string' && card.renderedHtml) {
+      card.renderedHtml = await rewriteHtmlMediaUrls(card.renderedHtml);
+    }
+  }
+
+  if (schema.sourceDocument) {
+    const source = schema.sourceDocument;
+    for (const card of source.cards) {
+      if (card.backgroundImage) {
+        await registerAsset(card.backgroundImage, 'card-background', false, (rewrittenUrl) => {
+          card.backgroundImage = rewrittenUrl;
+        });
+      }
+
+      if (typeof card.renderedHtml === 'string' && card.renderedHtml) {
+        card.renderedHtml = await rewriteHtmlMediaUrls(card.renderedHtml);
+      }
+
+      await rewriteDeepMediaFields(card, 'card');
+    }
+  }
+
+  if (Object.keys(assets).length > 0) {
+    schema.assets = assets;
+  }
+
+  return {
+    warnings: Array.from(warningSet),
+    failedUrls: Array.from(failedUrls),
+  };
+}
+
+function computeStats(schema: EduViFileSchema, failedEmbedUrlCount = 0): EduViStats {
+  let totalLayouts = 0;
+  let totalBlocks = 0;
+  let cardsWithoutLayouts = 0;
+  let unresolvedMediaCount = 0;
+  const blocksByType: Record<string, number> = {};
+
+  for (const card of schema.cards) {
+    if (!card.layouts.length) cardsWithoutLayouts += 1;
+
+    totalLayouts += card.layouts.length;
+
+    for (const layout of card.layouts) {
+      totalBlocks += layout.blocks.length;
+
+      for (const block of layout.blocks) {
+        const type = block.type || 'UNKNOWN';
+        blocksByType[type] = (blocksByType[type] || 0) + 1;
+
+        const content = block.content as Record<string, unknown>;
+        const contentType = String(content.type || type);
+
+        if (contentType === BlockType.IMAGE) {
+          const src = typeof content.src === 'string' ? content.src : '';
+          if (!src || (!src.startsWith('asset://') && !src.startsWith('http') && !src.startsWith('data:'))) {
+            unresolvedMediaCount += 1;
+          }
+        }
+
+        if (contentType === BlockType.VIDEO) {
+          const src = typeof content.src === 'string' ? content.src : '';
+          if (!src || (!src.startsWith('asset://') && !src.startsWith('http') && !src.startsWith('data:'))) {
+            unresolvedMediaCount += 1;
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    totalCards: schema.cards.length,
+    totalLayouts,
+    totalBlocks,
+    cardsWithoutLayouts,
+    blocksByType,
+    unresolvedMediaCount: unresolvedMediaCount + Math.max(0, failedEmbedUrlCount),
+    embeddedAssetCount: schema.assets ? Object.keys(schema.assets).length : 0,
+  };
+}
+
+async function buildEduViData(document: IDocument, options: EduViExportOptions = {}): Promise<EduViFileSchema> {
+  const resolvedOptions: Required<Pick<EduViExportOptions, 'embedAssets' | 'mediaFetchTimeoutMs'>> = {
+    embedAssets: options.embedAssets ?? true,
+    mediaFetchTimeoutMs: options.mediaFetchTimeoutMs ?? DEFAULT_MEDIA_FETCH_TIMEOUT_MS,
+  };
+
+  const schema = transformDocument(document, options.academicContext);
+  const embedResult = await embedAssets(schema, resolvedOptions);
+  const stats = computeStats(schema, embedResult.failedUrls.length);
+  schema.integrity = {
+    warnings: embedResult.warnings,
+    stats,
+    offlineReady: stats.unresolvedMediaCount === 0,
+  };
+
+  return schema;
+}
+
+function transformDocument(document: IDocument, academicContext?: Partial<EduViAcademicContext>): EduViFileSchema {
+  const fallbackTimestamp = new Date().toISOString();
+  const normalizedTitle =
+    typeof document?.title === 'string' && document.title.trim() ? document.title.trim() : 'Untitled';
+
   return {
     version: EDUVI_SCHEMA_VERSION,
-    exportedAt: new Date().toISOString(),
+    exportedAt: fallbackTimestamp,
     metadata: {
-      title: document.title,
+      title: normalizedTitle,
       description: '', // IDocument doesn't have description yet
-      createdAt: document.createdAt,
-      updatedAt: document.updatedAt,
+      createdAt: document.createdAt || fallbackTimestamp,
+      updatedAt: document.updatedAt || fallbackTimestamp,
+      ...(academicContext?.projectCode ? { projectCode: academicContext.projectCode } : {}),
+      ...(academicContext?.projectName ? { projectName: academicContext.projectName } : {}),
+      ...(academicContext?.subjectCode ? { subjectCode: academicContext.subjectCode } : {}),
+      ...(academicContext?.subjectName ? { subjectName: academicContext.subjectName } : {}),
+      ...(academicContext?.gradeCode ? { gradeCode: academicContext.gradeCode } : {}),
+      ...(academicContext?.gradeName ? { gradeName: academicContext.gradeName } : {}),
+      ...(academicContext?.lessonCode ? { lessonCode: academicContext.lessonCode } : {}),
+      ...(academicContext?.lessonName ? { lessonName: academicContext.lessonName } : {}),
+      ...(academicContext?.classroomCode ? { classroomCode: academicContext.classroomCode } : {}),
+      ...(academicContext?.classroomName ? { classroomName: academicContext.classroomName } : {}),
+      ...(typeof academicContext?.curriculumYear === 'number' ? { curriculumYear: academicContext.curriculumYear } : {}),
     },
     cards: document.cards.map((card, idx) => transformCard(card, idx)),
+    sourceDocument: cloneDocument(document),
   };
 }
 
@@ -267,12 +925,25 @@ function transformDocument(document: IDocument): EduViFileSchema {
  * Export the document to a .eduvi file
  * Triggers a browser download
  */
-export function exportToEduvi(document: IDocument): void {
-  // Transform to schema
-  const eduViData = transformDocument(document);
-  
+export async function exportToEduvi(
+  document: IDocument,
+  options: EduViExportOptions = {},
+): Promise<EduViExportResult> {
+  const eduViData = await buildEduViData(document, options);
+  if (options.requireOfflineReady && eduViData.integrity && !eduViData.integrity.offlineReady) {
+    const warningPreview = eduViData.integrity.warnings.slice(0, 5).join('\n');
+    throw new Error(
+      `Export requires offline-ready package, but unresolved media still exists (${eduViData.integrity.stats.unresolvedMediaCount}).` +
+      (warningPreview ? `\n\nTop warnings:\n${warningPreview}` : ''),
+    );
+  }
+  const validation = validateEduViSchema(eduViData);
+  if (!validation.valid && options.failOnValidationError) {
+    throw new Error(`EduVi export schema invalid: ${validation.errors.join('; ')}`);
+  }
+
   // Serialize to JSON with pretty printing for debugging
-  const jsonString = JSON.stringify(eduViData, null, 2);
+  const jsonString = JSON.stringify(eduViData, null, options.pretty === false ? 0 : 2);
   
   // Create blob
   const blob = new Blob([jsonString], { type: 'application/json' });
@@ -282,13 +953,7 @@ export function exportToEduvi(document: IDocument): void {
   const link = window.document.createElement('a');
   
   // Generate filename from document title
-  const safeTitle = document.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'untitled';
-  
-  const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  link.download = `${safeTitle}-${timestamp}${EDUVI_FILE_EXTENSION}`;
+  link.download = createExportFileName(document);
   link.href = url;
   
   // Trigger download
@@ -298,8 +963,18 @@ export function exportToEduvi(document: IDocument): void {
   
   // Cleanup
   URL.revokeObjectURL(url);
-  
-  console.log('[EduVi] Exported document:', link.download);
+
+  if (eduViData.integrity?.warnings.length) {
+    console.warn('[EduVi] Export warnings:', eduViData.integrity.warnings);
+  }
+
+  console.log('[EduVi] Exported document:', link.download, eduViData.integrity?.stats);
+
+  return {
+    fileName: link.download,
+    schema: eduViData,
+    validation,
+  };
 }
 
 /**
@@ -309,6 +984,33 @@ export function exportToEduvi(document: IDocument): void {
 export function serializeToEduvi(document: IDocument): string {
   const eduViData = transformDocument(document);
   return JSON.stringify(eduViData, null, 2);
+}
+
+/**
+ * Serialize document with full export pipeline (including optional asset embedding)
+ */
+export async function serializeToEduviAdvanced(
+  document: IDocument,
+  options: EduViExportOptions = {},
+): Promise<EduViExportResult> {
+  const schema = await buildEduViData(document, options);
+  if (options.requireOfflineReady && schema.integrity && !schema.integrity.offlineReady) {
+    const warningPreview = schema.integrity.warnings.slice(0, 5).join('\n');
+    throw new Error(
+      `Export requires offline-ready package, but unresolved media still exists (${schema.integrity.stats.unresolvedMediaCount}).` +
+      (warningPreview ? `\n\nTop warnings:\n${warningPreview}` : ''),
+    );
+  }
+  const validation = validateEduViSchema(schema);
+  if (!validation.valid && options.failOnValidationError) {
+    throw new Error(`EduVi export schema invalid: ${validation.errors.join('; ')}`);
+  }
+
+  return {
+    fileName: createExportFileName(document),
+    schema,
+    validation,
+  };
 }
 
 /**
@@ -334,6 +1036,54 @@ export function validateEduViSchema(data: unknown): { valid: boolean; errors: st
   if (obj.metadata && typeof obj.metadata === 'object') {
     const meta = obj.metadata as Record<string, unknown>;
     if (!meta.title) errors.push('Missing required field: metadata.title');
+    if (!meta.createdAt) errors.push('Missing required field: metadata.createdAt');
+    if (!meta.updatedAt) errors.push('Missing required field: metadata.updatedAt');
+  }
+
+  if (Array.isArray(obj.cards)) {
+    obj.cards.forEach((cardRaw, cardIndex) => {
+      if (!cardRaw || typeof cardRaw !== 'object') {
+        errors.push(`cards[${cardIndex}] must be an object`);
+        return;
+      }
+
+      const card = cardRaw as Record<string, unknown>;
+      if (!card.id) errors.push(`cards[${cardIndex}] missing id`);
+      if (!card.title) errors.push(`cards[${cardIndex}] missing title`);
+      if (!Array.isArray(card.layouts)) {
+        errors.push(`cards[${cardIndex}].layouts must be an array`);
+        return;
+      }
+
+      card.layouts.forEach((layoutRaw, layoutIndex) => {
+        if (!layoutRaw || typeof layoutRaw !== 'object') {
+          errors.push(`cards[${cardIndex}].layouts[${layoutIndex}] must be an object`);
+          return;
+        }
+
+        const layout = layoutRaw as Record<string, unknown>;
+        if (!layout.id) errors.push(`cards[${cardIndex}].layouts[${layoutIndex}] missing id`);
+        if (!layout.variant) errors.push(`cards[${cardIndex}].layouts[${layoutIndex}] missing variant`);
+        if (!Array.isArray(layout.blocks)) {
+          errors.push(`cards[${cardIndex}].layouts[${layoutIndex}].blocks must be an array`);
+          return;
+        }
+
+        layout.blocks.forEach((blockRaw, blockIndex) => {
+          if (!blockRaw || typeof blockRaw !== 'object') {
+            errors.push(`cards[${cardIndex}].layouts[${layoutIndex}].blocks[${blockIndex}] must be an object`);
+            return;
+          }
+
+          const block = blockRaw as Record<string, unknown>;
+          if (!block.id) errors.push(`cards[${cardIndex}].layouts[${layoutIndex}].blocks[${blockIndex}] missing id`);
+          if (!block.type) errors.push(`cards[${cardIndex}].layouts[${layoutIndex}].blocks[${blockIndex}] missing type`);
+          if (!block.content || typeof block.content !== 'object') {
+            errors.push(`cards[${cardIndex}].layouts[${layoutIndex}].blocks[${blockIndex}] missing content object`);
+          }
+        });
+      });
+    });
   }
 
   return {

@@ -6,6 +6,7 @@ import {
   AdminLessonResponse,
   AdminOrderResponse,
   AdminRoleResponse,
+  AdminWithdrawalResponse,
   AdminSubjectResponse,
   AdminTransactionResponse,
   AdminUserResponse,
@@ -63,6 +64,12 @@ interface ListOrdersParams {
 }
 
 interface ListPlansParams {
+  page?: number;
+  pageSize?: number;
+}
+
+interface ListWithdrawalsParams {
+  status?: number;
   page?: number;
   pageSize?: number;
 }
@@ -247,6 +254,28 @@ export const adminServices = {
           PageSize: pageSize,
         }),
       }
+    );
+    return res.data;
+  },
+
+  listWithdrawals: async (params: ListWithdrawalsParams) => {
+    const res = await api.get<ApiResponse<PagedResponse<AdminWithdrawalResponse>>>(
+      API_ENDPOINTS.WITHDRAWAL.LIST,
+      {
+        params: normalizeParams({
+          status: params.status,
+          page: params.page,
+          pageSize: params.pageSize,
+        }),
+      }
+    );
+    return res.data;
+  },
+
+  processWithdrawal: async (withdrawalId: number, approved: boolean, adminNote?: string) => {
+    const res = await api.post<ApiResponse<AdminWithdrawalResponse>>(
+      API_ENDPOINTS.WITHDRAWAL.PROCESS(withdrawalId),
+      normalizeParams({ approved, adminNote })
     );
     return res.data;
   },

@@ -291,7 +291,7 @@ export default function AppHeader() {
               <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
                 {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
               </span>
-              Xem quota
+              Xem giới hạn sử dụng
             </button>
 
             {quotaOpen && (

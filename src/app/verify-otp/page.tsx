@@ -3,9 +3,19 @@
 // src/app/verify-otp/page.tsx
 
 import { useState, useRef, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, MailCheck, ShieldCheck } from 'lucide-react';
 import { useVerifyOtpService, useResendOtpService } from '@/services/authServices';
+
+const cleanUserError = (message?: string, fallback = 'Có lỗi xảy ra, vui lòng thử lại.') => {
+  if (!message) return fallback;
+  const sanitized = message
+    .replace(/\s*\(?\b\d{3}\b\)?\.?\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return sanitized || fallback;
+};
 
 function VerifyOtpForm() {
   const router = useRouter();
@@ -89,15 +99,12 @@ function VerifyOtpForm() {
             }, 1500);
           } else {
             setSuccessMsg('');
-            setErrorMsg('OTP không hợp lệ.');
+            setErrorMsg(cleanUserError(res.message, 'OTP không hợp lệ.'));
           }
         },
-        onError: (err) => {
+        onError: () => {
           setSuccessMsg('');
-          setErrorMsg(
-
-              'OTP không hợp lệ hoặc đã hết hạn.'
-          );
+          setErrorMsg('OTP không hợp lệ hoặc đã hết hạn.');
         },
       }
     );
@@ -119,15 +126,12 @@ function VerifyOtpForm() {
             inputRefs.current[0]?.focus();
           } else {
             setSuccessMsg('');
-            setErrorMsg( 'Gửi lại OTP thất bại.');
+            setErrorMsg(cleanUserError(res.message, 'Gửi lại OTP thất bại.'));
           }
         },
         onError: (err) => {
           setSuccessMsg('');
-          setErrorMsg(
-            (err.response?.data as { message?: string })?.message ??
-              'Có lỗi xảy ra, vui lòng thử lại.'
-          );
+          setErrorMsg(cleanUserError((err.response?.data as { message?: string })?.message));
         },
       }
     );
@@ -135,108 +139,130 @@ function VerifyOtpForm() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4">
-        <p className="text-slate-500">
+      <div className="min-h-screen flex items-center justify-center bg-[#f3f7ff] px-4">
+        <p className="text-[#4b6693]">
           Liên kết không hợp lệ.{' '}
-          <a href="/register" className="text-indigo-600 hover:underline">Đăng ký lại</a>
+          <Link href="/register" className="font-medium text-[#2e5fb0] hover:underline">Đăng ký lại</Link>
         </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+    <div className="relative min-h-screen overflow-hidden bg-[#f3f7ff] px-4 py-8">
+      <div className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-[#9bbcff]/30 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 bottom-4 h-72 w-72 rounded-full bg-[#c3d8ff]/25 blur-3xl" />
+
+      <div className="relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#d8e4ff] bg-white/90 shadow-[0_24px_80px_-24px_rgba(44,84,160,0.28)] backdrop-blur md:grid-cols-[1fr_1fr]">
+        <div className="hidden bg-[radial-gradient(circle_at_top_left,_#eaf1ff_0,_#f4f8ff_45%,_#e3ecff_100%)] p-10 md:flex md:flex-col md:justify-between">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d7e4ff] bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#2b4f93]">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Xác minh tài khoản
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Xác minh email</h1>
-          <p className="text-sm text-slate-500">
-            Chúng tôi đã gửi mã OTP 6 chữ số đến email của bạn
-          </p>
+          <div className="space-y-4">
+            <h2 className="max-w-sm text-4xl font-semibold leading-tight text-[#173b7a]">
+              Hoàn tất đăng ký với mã OTP.
+            </h2>
+            <p className="max-w-sm text-sm leading-7 text-[#35588f]">
+              Nhập mã 6 chữ số đã gửi qua email để kích hoạt tài khoản và bắt đầu sử dụng hệ thống.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#d7e4ff] bg-white/80 p-4 text-sm text-[#35588f]">
+            Nếu chưa nhận được mã, bạn có thể gửi lại sau khi bộ đếm kết thúc.
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* OTP Boxes */}
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-3 text-center">
-              Nhập mã OTP
-            </label>
-            <div className="flex gap-2 justify-center" onPaste={handleOtpPaste}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-11 h-12 text-center text-lg font-semibold rounded-lg border border-slate-300 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              ))}
+        <div className="p-6 sm:p-10">
+          <div className="mx-auto w-full max-w-md space-y-6">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e9f1ff] md:mx-0">
+                <MailCheck className="h-7 w-7 text-[#2e5fb0]" />
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight text-[#173b7a]">Xác minh email</h1>
+              <p className="text-sm text-[#4b6693]">Chúng tôi đã gửi mã OTP 6 chữ số đến email của bạn.</p>
             </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-3 block text-center text-sm font-medium text-[#274c8f]">
+                  Nhập mã OTP
+                </label>
+                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                  {otp.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => {
+                        inputRefs.current[i] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      className="h-12 w-11 rounded-xl border border-[#d5e3ff] text-center text-lg font-semibold outline-none transition focus:border-[#2e5fb0] focus:ring-2 focus:ring-[#a8c4ff]/60"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {errorMsg && (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-600">
+                  {errorMsg}
+                </p>
+              )}
+              {successMsg && (
+                <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-center text-sm text-green-700">
+                  {successMsg}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isPending || otpString.length < 6}
+                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-[#2e5fb0] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#254f95] focus:outline-none focus:ring-2 focus:ring-[#9ab8f5] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang xác minh...
+                  </>
+                ) : (
+                  <>
+                    Xác minh
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={isResending || secondsLeft > 0}
+                className="text-sm font-medium text-[#2e5fb0] hover:underline disabled:opacity-60 disabled:no-underline"
+              >
+                {isResending
+                  ? 'Đang gửi...'
+                  : secondsLeft > 0
+                    ? `Gửi lại mã OTP (${secondsLeft}s)`
+                    : 'Gửi lại mã OTP'}
+              </button>
+              {secondsLeft > 0 && (
+                <p className="mt-1 text-sm text-[#4b6693]">
+                  Bạn có thể gửi lại sau <span className="font-semibold text-[#2e5fb0]">{secondsLeft}s</span>
+                </p>
+              )}
+            </div>
+
+            <p className="text-center text-sm text-[#4b6693]">
+              <Link href="/login" className="font-semibold text-[#2e5fb0] hover:underline">
+                ← Quay lại đăng nhập
+              </Link>
+            </p>
           </div>
-
-          {errorMsg && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
-              {errorMsg}
-            </p>
-          )}
-          {successMsg && (
-            <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-center">
-              {successMsg}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isPending || otpString.length < 6}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isPending ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Đang xác minh...
-              </span>
-            ) : (
-              'Xác minh'
-            )}
-          </button>
-        </form>
-
-        {/* Resend */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={isResending || secondsLeft > 0}
-            className="text-sm font-medium text-indigo-600 hover:underline disabled:opacity-60 disabled:no-underline"
-          >
-            {isResending
-              ? 'Đang gửi...'
-              : secondsLeft > 0
-                ? `Gửi lại mã OTP (${secondsLeft}s)`
-                : 'Gửi lại mã OTP'}
-          </button>
-          {secondsLeft > 0 && (
-            <p className="mt-1 text-sm text-slate-500">
-              Bạn có thể gửi lại sau{' '}
-              <span className="font-semibold text-indigo-600">{secondsLeft}s</span>
-            </p>
-          )}
         </div>
-
-        <p className="text-center text-sm text-slate-500">
-          <a href="/login" className="text-indigo-600 hover:underline">
-            ← Quay lại đăng nhập
-          </a>
-        </p>
       </div>
     </div>
   );
@@ -246,8 +272,8 @@ export default function VerifyOtpPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+        <div className="min-h-screen flex items-center justify-center bg-[#f3f7ff]">
+          <Loader2 className="h-6 w-6 animate-spin text-[#2e5fb0]" />
         </div>
       }
     >

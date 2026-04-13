@@ -10,6 +10,7 @@ const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
 const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
 const buildPaymentEndpoint       = (path: string) => `/api/Payment${path}`;
+const buildWithdrawalEndpoint    = (path: string) => `/api/withdrawal${path}`;
 const buildStaffEndpoint         = (path: string) => `/api/staff${path}`;
 const buildGamesEndpoint         = (path: string) => `/api/Games${path}`;
 
@@ -141,6 +142,7 @@ export const API_ENDPOINTS = {
   EXPERT_VERIFICATION: {
     SUBMIT:   '/api/expert/verifications',
     GET_ALL:  '/api/expert/verifications',
+    GET_FILE: (code: string) => `/api/expert/verifications/${code}/file`,
     DELETE:   (code: string) => `/api/expert/verifications/${code}`,
   },
 
@@ -205,6 +207,20 @@ export const API_ENDPOINTS = {
     BUY_SUBSCRIPTION: buildPaymentEndpoint('/buy-subscription'),
     TRANSACTIONS: buildPaymentEndpoint('/transactions'),
     USER_QUOTA: buildPaymentEndpoint('/user-quota'),
+  },
+
+  // Withdrawal (Expert + Admin)
+  WITHDRAWAL: {
+    // Expert step 1: submit bank info + amount, send OTP to email
+    INITIATE: buildWithdrawalEndpoint('/initiate'),
+    // Expert step 2: confirm OTP and create withdrawal request
+    CONFIRM: buildWithdrawalEndpoint('/confirm'),
+    // Expert history
+    MY: buildWithdrawalEndpoint('/my'),
+    // Admin list all
+    LIST: buildWithdrawalEndpoint(''),
+    // Admin process request
+    PROCESS: (withdrawalId: number) => buildWithdrawalEndpoint(`/${withdrawalId}/process`),
   },
 
   // Card Templates (Admin CRUD)

@@ -201,12 +201,12 @@ export default function AdminDashboardPage() {
               <tr className="border-b border-slate-100">
                 <td className="px-2 py-3 font-medium text-slate-900">Doanh thu subscription</td>
                 <td className="px-2 py-3 text-slate-700">{formatVND(totalRevenue)}</td>
-                <td className="px-2 py-3 text-slate-500">totalSubscriptionRevenue</td>
+                <td className="px-2 py-3 text-slate-500">Tổng doanh thu đăng ký</td>
               </tr>
               <tr>
                 <td className="px-2 py-3 font-medium text-slate-900">Số subscription thành công</td>
                 <td className="px-2 py-3 text-slate-700">{(overview.totalSubscriptionCount ?? overview.subscriptionCount ?? 0).toLocaleString('vi-VN')}</td>
-                <td className="px-2 py-3 text-slate-500">totalSubscriptionCount</td>
+                <td className="px-2 py-3 text-slate-500">Tổng số đăng kí thành công</td>
               </tr>
             </tbody>
           </table>

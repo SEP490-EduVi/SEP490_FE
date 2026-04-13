@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: '/', label: 'Trang chủ' },
   { href: '/subscription', label: 'Bảng giá' },
   { href: '/about', label: 'Về chúng tôi' },
-  { href: '/contact', label: 'Liên hệ' },
+  { href: '/policy', label: 'Chính sách' },
 ];
 
 export default function PublicHeader() {

@@ -35,7 +35,7 @@ export default function PublicFooter() {
             <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Công ty</h4>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/about" className="hover:text-white transition-colors">Về chúng tôi</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition-colors">Liên hệ</Link></li>
+              <li><Link href="/subscription" className="hover:text-white transition-colors">Bảng giá</Link></li>
               <li><Link href="/policy" className="hover:text-white transition-colors">Chính sách bảo mật</Link></li>
             </ul>
           </div>
@@ -44,7 +44,7 @@ export default function PublicFooter() {
           <div>
             <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Liên hệ</h4>
             <ul className="space-y-2.5 text-sm">
-              <li>Email: support@eduvi.tech</li>
+              <li>Email: pdat1746@gmail.com</li>
               <li>Hotline: 1900-xxxx</li>
               <li>Địa chỉ: TP. Hồ Chí Minh, Việt Nam</li>
             </ul>

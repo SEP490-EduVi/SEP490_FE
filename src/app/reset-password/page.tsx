@@ -3,11 +3,20 @@
 // src/app/reset-password/page.tsx
 
 import { useState, useRef, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from 'lucide-react';
 import { useResetPasswordService, useResendResetOtpService } from '@/services/authServices';
 
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const cleanUserError = (message?: string, fallback = 'Có lỗi xảy ra, vui lòng thử lại.') => {
+  if (!message) return fallback;
+  const sanitized = message
+    .replace(/\s*\(?\b\d{3}\b\)?\.?\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return sanitized || fallback;
+};
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -82,14 +91,11 @@ function ResetPasswordForm() {
             setSuccessMsg('Đặt lại mật khẩu thành công! Đang chuyển hướng...');
             setTimeout(() => router.push('/login'), 1500);
           } else {
-            setErrorMsg(res.message ?? 'OTP không hợp lệ hoặc đã hết hạn.');
+            setErrorMsg(cleanUserError(res.message, 'OTP không hợp lệ hoặc đã hết hạn.'));
           }
         },
         onError: (err) => {
-          setErrorMsg(
-            (err.response?.data as { message?: string })?.message ??
-              'Có lỗi xảy ra, vui lòng thử lại.'
-          );
+          setErrorMsg(cleanUserError((err.response?.data as { message?: string })?.message));
         },
       }
     );
@@ -110,14 +116,11 @@ function ResetPasswordForm() {
             setOtp(['', '', '', '', '', '']);
             inputRefs.current[0]?.focus();
           } else {
-            setErrorMsg(res.message ?? 'Gửi lại OTP thất bại.');
+            setErrorMsg(cleanUserError(res.message, 'Gửi lại OTP thất bại.'));
           }
         },
         onError: (err) => {
-          setErrorMsg(
-            (err.response?.data as { message?: string })?.message ??
-              'Có lỗi xảy ra, vui lòng thử lại.'
-          );
+          setErrorMsg(cleanUserError((err.response?.data as { message?: string })?.message));
         },
       }
     );
@@ -125,159 +128,187 @@ function ResetPasswordForm() {
 
   if (!email) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4">
-        <p className="text-slate-500">
+      <div className="min-h-screen flex items-center justify-center bg-[#f3f7ff] px-4">
+        <p className="text-[#4b6693]">
           Liên kết không hợp lệ.{' '}
-          <a href="/forgot-password" className="text-indigo-600 hover:underline">Thử lại</a>
+          <Link href="/forgot-password" className="font-medium text-[#2e5fb0] hover:underline">Thử lại</Link>
         </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
+    <div className="relative min-h-screen overflow-hidden bg-[#f3f7ff] px-4 py-8">
+      <div className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-[#9bbcff]/30 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 bottom-4 h-72 w-72 rounded-full bg-[#c3d8ff]/25 blur-3xl" />
+
+      <div className="relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#d8e4ff] bg-white/90 shadow-[0_24px_80px_-24px_rgba(44,84,160,0.28)] backdrop-blur md:grid-cols-[1fr_1fr]">
+        <div className="hidden bg-[radial-gradient(circle_at_top_left,_#eaf1ff_0,_#f4f8ff_45%,_#e3ecff_100%)] p-10 md:flex md:flex-col md:justify-between">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d7e4ff] bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#2b4f93]">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Bảo mật tài khoản
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Đặt lại mật khẩu</h1>
-          <p className="text-sm text-slate-500">
-            Nhập mã OTP đã gửi đến{' '}
-            <span className="font-medium text-slate-700">{email}</span>
-          </p>
+          <div className="space-y-4">
+            <h2 className="max-w-sm text-4xl font-semibold leading-tight text-[#173b7a]">
+              Đặt lại mật khẩu nhanh và an toàn.
+            </h2>
+            <p className="max-w-sm text-sm leading-7 text-[#35588f]">
+              Nhập mã OTP đã nhận qua email để cập nhật mật khẩu mới cho tài khoản của bạn.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#d7e4ff] bg-white/80 p-4 text-sm text-[#35588f]">
+            Gợi ý: nếu chưa nhận OTP, hãy kiểm tra thêm thư mục Spam/Junk.
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {/* OTP Boxes */}
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-3 text-center">
-              Mã OTP
-            </label>
-            <div className="flex gap-2 justify-center" onPaste={handleOtpPaste}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-11 h-12 text-center text-lg font-semibold rounded-lg border border-slate-300 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              ))}
+        <div className="p-6 sm:p-10">
+          <div className="mx-auto w-full max-w-md space-y-6">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e9f1ff] md:mx-0">
+                <KeyRound className="h-7 w-7 text-[#2e5fb0]" />
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight text-[#173b7a]">Đặt lại mật khẩu</h1>
+              <p className="text-sm text-[#4b6693]">
+                Nhập mã OTP đã gửi đến <span className="font-semibold text-[#2b4f93]">{email}</span>
+              </p>
             </div>
-            <div className="text-center mt-2">
-              {secondsLeft > 0 ? (
-                <p className="text-xs text-slate-500">
-                  Gửi lại sau{' '}
-                  <span className="font-semibold text-indigo-600">{secondsLeft}s</span>
+
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <div>
+                <label className="mb-3 block text-center text-sm font-medium text-[#274c8f]">
+                  Mã OTP
+                </label>
+                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                  {otp.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => {
+                        inputRefs.current[i] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      className="h-12 w-11 rounded-xl border border-[#d5e3ff] text-center text-lg font-semibold outline-none transition focus:border-[#2e5fb0] focus:ring-2 focus:ring-[#a8c4ff]/60"
+                    />
+                  ))}
+                </div>
+                <div className="mt-2 text-center">
+                  {secondsLeft > 0 ? (
+                    <p className="text-xs text-[#4b6693]">
+                      Gửi lại sau <span className="font-semibold text-[#2e5fb0]">{secondsLeft}s</span>
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={isResending}
+                      className="text-xs font-medium text-[#2e5fb0] hover:underline disabled:opacity-60"
+                    >
+                      {isResending ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="newPassword" className="text-sm font-medium text-[#274c8f]">
+                  Mật khẩu mới
+                </label>
+                <div className="relative">
+                  <input
+                    id="newPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      setErrorMsg('');
+                    }}
+                    placeholder="Ít nhất 8 ký tự"
+                    className="w-full rounded-xl border border-[#d5e3ff] bg-white px-3.5 py-2.5 pr-10 text-sm outline-none transition focus:border-[#2e5fb0] focus:ring-2 focus:ring-[#a8c4ff]/60"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Toggle password visibility"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-[#5f78a4]">
+                  Bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)
                 </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={isResending}
-                  className="text-xs font-medium text-indigo-600 hover:underline disabled:opacity-60"
-                >
-                  {isResending ? 'Đang gửi...' : 'Gửi lại mã OTP'}
-                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-[#274c8f]">
+                  Xác nhận mật khẩu mới
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirm ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setErrorMsg('');
+                    }}
+                    placeholder="Nhập lại mật khẩu mới"
+                    className="w-full rounded-xl border border-[#d5e3ff] bg-white px-3.5 py-2.5 pr-10 text-sm outline-none transition focus:border-[#2e5fb0] focus:ring-2 focus:ring-[#a8c4ff]/60"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Toggle confirm password visibility"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {errorMsg && (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {errorMsg}
+                </p>
               )}
-            </div>
-          </div>
+              {successMsg && (
+                <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                  {successMsg}
+                </p>
+              )}
 
-          {/* New Password */}
-          <div className="space-y-1">
-            <label htmlFor="newPassword" className="text-sm font-medium text-slate-700">
-              Mật khẩu mới
-            </label>
-            <div className="relative">
-              <input
-                id="newPassword"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => { setNewPassword(e.target.value); setErrorMsg(''); }}
-                placeholder="Ít nhất 8 ký tự"
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 pr-10 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              />
               <button
-                type="button"
-                aria-label="Toggle password visibility"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                type="submit"
+                disabled={isPending}
+                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-[#2e5fb0] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#254f95] focus:outline-none focus:ring-2 focus:ring-[#9ab8f5] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang cập nhật...
+                  </>
+                ) : (
+                  <>
+                    Đặt lại mật khẩu
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </>
+                )}
               </button>
-            </div>
-            <p className="text-xs text-slate-400">
-              Bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)
+            </form>
+
+            <p className="text-center text-sm text-[#4b6693]">
+              <Link href="/login" className="font-semibold text-[#2e5fb0] hover:underline">
+                ← Quay lại đăng nhập
+              </Link>
             </p>
           </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-1">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700">
-              Xác nhận mật khẩu mới
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showConfirm ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); setErrorMsg(''); }}
-                placeholder="Nhập lại mật khẩu mới"
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 pr-10 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              />
-              <button
-                type="button"
-                aria-label="Toggle confirm password visibility"
-                onClick={() => setShowConfirm((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {errorMsg && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {errorMsg}
-            </p>
-          )}
-          {successMsg && (
-            <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-              {successMsg}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isPending ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Đang cập nhật...
-              </span>
-            ) : (
-              'Đặt lại mật khẩu'
-            )}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-slate-500">
-          <a href="/login" className="text-indigo-600 hover:underline">
-            ← Quay lại đăng nhập
-          </a>
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -287,8 +318,8 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+        <div className="min-h-screen flex items-center justify-center bg-[#f3f7ff]">
+          <Loader2 className="h-6 w-6 animate-spin text-[#2e5fb0]" />
         </div>
       }
     >

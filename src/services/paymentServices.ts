@@ -1,13 +1,18 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type {
+  AdminProcessWithdrawalInput,
   ApiResponse,
   BuySubscriptionResponse,
+  ConfirmWithdrawalOtpInput,
+  InitiateWithdrawalInput,
   SubscriptionPlanDto,
   TopUpInput,
   TopUpResponse,
   TransactionHistoryDto,
   UserQuotaDto,
+  WithdrawalDto,
+  WithdrawalListResult,
   WalletDto,
 } from '@/types/api';
 
@@ -16,6 +21,30 @@ export interface WalletTransactionListResult {
   totalCount: number;
   page: number;
   pageSize: number;
+}
+
+function normalizeWithdrawalsResult(raw: unknown): WithdrawalListResult {
+  if (!raw || typeof raw !== 'object') {
+    return { items: [], totalCount: 0, page: 1, pageSize: 20 };
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const items = Array.isArray(obj.items)
+    ? (obj.items as WithdrawalDto[])
+    : Array.isArray(obj.data)
+      ? (obj.data as WithdrawalDto[])
+      : [];
+
+  return {
+    items,
+    totalCount: typeof obj.totalCount === 'number'
+      ? obj.totalCount
+      : typeof obj.total === 'number'
+        ? obj.total
+        : items.length,
+    page: typeof obj.page === 'number' ? obj.page : 1,
+    pageSize: typeof obj.pageSize === 'number' ? obj.pageSize : items.length || 20,
+  };
 }
 
 function normalizeTransactionsResult(raw: unknown): WalletTransactionListResult {
@@ -82,5 +111,48 @@ export async function getWalletTransactions(page = 1, pageSize = 20): Promise<Wa
 
 export async function getUserQuota(): Promise<UserQuotaDto> {
   const { data } = await api.get<ApiResponse<UserQuotaDto>>(API_ENDPOINTS.PAYMENT.USER_QUOTA);
+  return data.result;
+}
+
+export async function initiateWithdrawal(input: InitiateWithdrawalInput): Promise<unknown> {
+  const { data } = await api.post<ApiResponse<unknown>>(API_ENDPOINTS.WITHDRAWAL.INITIATE, input);
+  return data.result;
+}
+
+export async function confirmWithdrawalOtp(input: ConfirmWithdrawalOtpInput): Promise<WithdrawalDto> {
+  const { data } = await api.post<ApiResponse<WithdrawalDto>>(API_ENDPOINTS.WITHDRAWAL.CONFIRM, input);
+  return data.result;
+}
+
+export async function getMyWithdrawals(page = 1, pageSize = 20): Promise<WithdrawalListResult> {
+  const { data } = await api.get<ApiResponse<unknown>>(API_ENDPOINTS.WITHDRAWAL.MY, {
+    params: { page, pageSize },
+  });
+  return normalizeWithdrawalsResult(data.result);
+}
+
+export async function getAdminWithdrawals(
+  page = 1,
+  pageSize = 20,
+  status?: number,
+): Promise<WithdrawalListResult> {
+  const { data } = await api.get<ApiResponse<unknown>>(API_ENDPOINTS.WITHDRAWAL.LIST, {
+    params: {
+      page,
+      pageSize,
+      ...(status !== undefined ? { status } : {}),
+    },
+  });
+  return normalizeWithdrawalsResult(data.result);
+}
+
+export async function processWithdrawal(
+  withdrawalId: number,
+  payload: AdminProcessWithdrawalInput,
+): Promise<WithdrawalDto> {
+  const { data } = await api.post<ApiResponse<WithdrawalDto>>(
+    API_ENDPOINTS.WITHDRAWAL.PROCESS(withdrawalId),
+    payload,
+  );
   return data.result;
 }

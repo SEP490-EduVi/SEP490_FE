@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign, X } from 'lucide-react';
+import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign, X, Sparkles, ArrowRight } from 'lucide-react';
 
 import { useMyMaterials, useUploadMaterial, useUpdateMaterial, useDeleteMaterial } from '@/hooks/useExpertApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
@@ -218,10 +218,26 @@ export default function MaterialPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_0%,#dbeafe_0%,#f8fafc_42%,#eef2ff_100%)]">
       <AppHeader />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 sm:p-8 text-white shadow-xl shadow-blue-900/20 mb-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.24),transparent_42%)]" />
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-medium mb-4">
+              <Sparkles className="w-3.5 h-3.5" />
+              Expert Material Studio
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Không gian quản lý học liệu</h1>
+            <p className="text-blue-100 mt-2 max-w-2xl text-sm sm:text-base">
+              Tải lên, theo dõi trạng thái duyệt và tối ưu chất lượng tài liệu của bạn trong một giao diện trực quan, nhất quán.
+            </p>
+          </div>
+          <div className="absolute -right-10 -top-12 w-44 h-44 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-14 w-64 h-64 bg-white/10 rounded-full" />
+        </div>
+
         {showForm && (
           <UploadMaterialForm
             subjects={subjects}
@@ -245,16 +261,16 @@ export default function MaterialPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm tài liệu theo tên hoặc mã..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/90 border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
             />
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-colors text-sm font-semibold whitespace-nowrap"
           >
             <Upload className="w-4 h-4" /> Tải lên tài liệu
           </button>
-          <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex items-center bg-white/90 border border-blue-100 rounded-xl overflow-hidden">
             {(['grid', 'list'] as const).map((mode) => (
               <button key={mode} onClick={() => setViewMode(mode)} className={`p-2.5 transition-colors ${viewMode === mode ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
                 {mode === 'grid' ? <Grid3X3 className="w-4 h-4" /> : <List className="w-4 h-4" />}
@@ -270,7 +286,7 @@ export default function MaterialPage() {
             { label: 'Đã duyệt', value: materials.filter((m) => m.approvalStatus === 1).length, color: 'text-emerald-600 bg-emerald-50', icon: BookOpen },
             { label: 'Có phí', value: materials.filter((m) => m.price > 0).length, color: 'text-purple-600 bg-purple-50', icon: DollarSign },
           ].map(({ label, value, color, icon: Icon }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
+            <div key={label} className="bg-white/85 backdrop-blur rounded-2xl border border-blue-100 p-4 flex items-center gap-3 shadow-sm">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}><Icon className="w-5 h-5" /></div>
               <div><p className="text-lg font-bold text-gray-900">{value}</p><p className="text-xs text-gray-500">{label}</p></div>
             </div>
@@ -296,8 +312,8 @@ export default function MaterialPage() {
             <h3 className="text-lg font-semibold text-gray-700 mb-1">{searchQuery ? 'Không tìm thấy tài liệu' : 'Chưa có tài liệu nào'}</h3>
             <p className="text-sm text-gray-500 mb-6">{searchQuery ? 'Thử thay đổi từ khóa tìm kiếm' : 'Hãy tải lên tài liệu đầu tiên!'}</p>
             {!searchQuery && (
-              <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium">
-                <Upload className="w-4 h-4" /> Tải lên tài liệu
+              <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold shadow-md shadow-blue-600/20">
+                <Upload className="w-4 h-4" /> Tải lên tài liệu <ArrowRight className="w-4 h-4" />
               </button>
             )}
           </div>

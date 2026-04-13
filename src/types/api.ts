@@ -275,10 +275,11 @@ export interface VerificationDto {
   verificationCode: string;
   fileType: string;
   description: string;
-  status: string;
+  status: number | string;
   rejectionReason: string | null;
   uploadedAt: string;
   reviewedAt: string | null;
+  fileUrl?: string;
 }
 
 // ─── Expert: Material ──────────────────────────────────────────────────────
@@ -404,6 +405,44 @@ export interface UserQuotaDto {
   availableVideoQuota: number;
   usedVideoQuota: number;
   updatedAt: string;
+}
+
+export interface InitiateWithdrawalInput {
+  bankAccountNumber: string;
+  bankName: string;
+  accountHolderName: string;
+  amount: number;
+}
+
+export interface ConfirmWithdrawalOtpInput extends InitiateWithdrawalInput {
+  otpCode: string;
+}
+
+export interface AdminProcessWithdrawalInput {
+  approved: boolean;
+  adminNote?: string;
+}
+
+export interface WithdrawalDto {
+  withdrawalId: number;
+  expertId?: number | null;
+  expertName?: string | null;
+  amount: number;
+  bankAccountNumber: string;
+  bankName: string;
+  accountHolderName: string;
+  status?: number | string;
+  statusName?: string | null;
+  adminNote?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface WithdrawalListResult {
+  items: WithdrawalDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
 // ─── Staff Review ─────────────────────────────────────────────────────────

@@ -111,10 +111,12 @@ export default function PolicyPage() {
               Nếu bạn có bất kỳ thắc mắc nào về chính sách bảo mật hoặc cách chúng tôi xử lý dữ liệu của bạn, vui lòng liên hệ:
             </p>
             <a
-              href="mailto:support@eduvi.tech"
+              href="mailto:pdat1746@gmail.com"
               className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-blue-600 bg-white rounded-xl border border-blue-200 hover:bg-blue-600 hover:text-white transition-all"
             >
-              support@eduvi.tech
+              pdat1746@gmail.com
+
+
             </a>
           </div>
         </div>

@@ -18,6 +18,7 @@ import { exportToEduvi } from '@/lib/exportToEduvi';
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
 import { createPlayableGameTask } from '@/services/gamesServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
+import { getProjectByCode } from '@/services/projectServices';
 import {
   Undo2,
   Redo2,
@@ -318,7 +319,62 @@ export function Toolbar() {
                   </button>
                 )}
                 <button
-                  onClick={() => { if (document) exportToEduvi(document); setShowShareMenu(false); }}
+                  onClick={async () => {
+                    if (!document) {
+                      setShowShareMenu(false);
+                      return;
+                    }
+
+                    try {
+                      let academicContext: {
+                        projectCode?: string;
+                        projectName?: string;
+                        subjectCode?: string;
+                        subjectName?: string;
+                        gradeCode?: string;
+                        gradeName?: string;
+                      } | undefined;
+
+                      if (currentProjectCode) {
+                        try {
+                          const project = await getProjectByCode(currentProjectCode);
+                          academicContext = {
+                            projectCode: project.projectCode,
+                            projectName: project.projectName,
+                            subjectCode: project.subjectCode,
+                            subjectName: project.subjectName,
+                            gradeCode: project.gradeCode,
+                            gradeName: project.gradeName,
+                          };
+                        } catch {
+                          // Keep export flow smooth even if metadata lookup fails.
+                        }
+                      }
+
+                      const result = await exportToEduvi(document, {
+                        requireOfflineReady: false,
+                        academicContext,
+                      });
+                      const integrity = result.schema.integrity;
+
+                      if (integrity && !integrity.offlineReady) {
+                        window.alert(
+                          'Đã xuất file .eduvi thành công.\n\n' +
+                          `Lưu ý: còn ${integrity.stats.unresolvedMediaCount} media chưa thể đóng gói offline hoàn toàn. ` +
+                          'Khi không có mạng, các media này sẽ hiện ô trống.\n\n' 
+                          
+                          ,
+                        );
+                      }
+                    } catch (error) {
+                      const message = error instanceof Error ? error.message : 'Xuất file .eduvi thất bại';
+                      window.alert(
+                        'Xuất file .eduvi thất bại.\n\n' + message,
+                      );
+                    } finally {
+                      setShowShareMenu(false);
+                    }
+                  }}
                   disabled={!document}
                   className={cn(
                     'flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors',
@@ -326,7 +382,7 @@ export function Toolbar() {
                   )}
                 >
                   <Download className="w-4 h-4 text-blue-500" />
-                  Tải file edu
+                  Tải file .eduvi
                 </button>
               </div>
             )}
