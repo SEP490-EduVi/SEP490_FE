@@ -89,12 +89,10 @@ export default function ProjectDetailPage() {
     const allTasks = usePipelineTaskStore.getState().getAllTasks();
     if (allTasks.length > 0) {
       const videoTask = allTasks.find((t) => t.key.startsWith('video:'));
-      const slidesTask = allTasks.find((t) => t.key.startsWith('slides:'));
       const evalTask = allTasks.find((t) => t.key.startsWith('eval:'));
-      if (videoTask) setPipelineType('video');
-      else if (slidesTask) setPipelineType('slides');
-      else if (evalTask) setPipelineType('evaluation');
-      setShowPipelineModal(true);
+      // Slide generation progress is shown in the editor overlay — no modal needed here
+      if (videoTask) { setPipelineType('video'); setShowPipelineModal(true); }
+      else if (evalTask) { setPipelineType('evaluation'); setShowPipelineModal(true); }
     }
   }, [hydrateTaskStore]); // eslint-disable-line
 
@@ -148,7 +146,8 @@ export default function ProjectDetailPage() {
           else { setPipelineType('evaluation'); resolvedType = 'evaluation'; }
         }
         setGlobalProgress(event, resolvedType, projectCode);
-        setShowPipelineModal(true);
+        // Slide progress is shown in the editor overlay — skip modal for slides
+        if (resolvedType !== 'slides') setShowPipelineModal(true);
       }
 
       if (event.status === 'completed' || event.status === 'failed') {
@@ -242,7 +241,7 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleGenerateSlides = (productCode: string) => {
+  const handleGenerateSlides = (productCode: string, slideRange: 'short' | 'medium' | 'detailed' = 'medium') => {
     if (getTaskId('slides', productCode)) {
       // Pipeline already running — navigate to editor where SlideGenerationOverlay resumes
       router.push('/teacher/editor');
@@ -250,7 +249,7 @@ export default function ProjectDetailPage() {
     }
     pendingTaskRef.current = { type: 'slides', productCode };
     generateSlides.mutate(
-      { productCode, slideRange: 'short' },
+      { productCode, slideRange },
       {
         onSuccess: () => {
           notify.success('Đang tạo slide...');

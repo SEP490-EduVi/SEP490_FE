@@ -110,7 +110,7 @@ export function Toolbar() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         const state = useDocumentStore.getState();
-        if (state.isDirty) state.saveSlide();
+        if (state.isDirty || (state.isNewlyGenerated && !state.isSlideEdited)) state.saveSlide();
       }
     };
 
@@ -267,10 +267,10 @@ export function Toolbar() {
 
           <button
             onClick={saveSlide}
-            disabled={!isDirty || !document || !currentProductCode || isSaving}
+            disabled={(!isDirty && !(isNewlyGenerated && !isSlideEdited)) || !document || !currentProductCode || isSaving}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-sm transition-colors',
-              isDirty && document && currentProductCode && !isSaving
+              (isDirty || (isNewlyGenerated && !isSlideEdited)) && document && currentProductCode && !isSaving
                 ? 'bg-blue-500 hover:bg-blue-400 text-white shadow-md'
                 : 'bg-white/10 text-white/40 cursor-not-allowed'
             )}
@@ -548,18 +548,30 @@ export function Toolbar() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900 mb-1">Chưa thể thoát</h3>
-                <p className="text-sm text-gray-500">Slide vừa được AI tạo ra. Vui lòng chỉnh sửa nội dung và lưu slide trước khi quay lại.</p>
+                <p className="text-sm text-gray-500">Slide vừa được AI tạo ra. Bạn cần lưu slide ít nhất một lần trước khi quay lại.</p>
               </div>
             </div>
             <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
-              <p className="text-xs text-orange-700 font-medium">💡 Hãy chỉnh sửa ít nhất một nội dung rồi nhấn <strong>Lưu</strong> (Ctrl+S) để hoàn tất.</p>
+              <p className="text-xs text-orange-700 font-medium">💡 Nhấn <strong>Lưu và thoát</strong> bên dưới hoặc <strong>Ctrl+S</strong> để lưu, sau đó bạn có thể thoát.</p>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowExitWarning(false)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
               >
                 Tiếp tục chỉnh sửa
+              </button>
+              <button
+                onClick={async () => {
+                  setShowExitWarning(false);
+                  await saveSlide();
+                  if (currentProjectCode) router.push(`/teacher/${currentProjectCode}`);
+                  else router.back();
+                }}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Lưu và thoát
               </button>
             </div>
           </div>
