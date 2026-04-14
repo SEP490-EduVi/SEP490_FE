@@ -409,18 +409,27 @@ function preserveColumnWidths(columnWidths: number[] | undefined, columnCount: n
 
 function sanitizeFileTitle(title: unknown): string {
   const safeTitle = typeof title === 'string' ? title : '';
-
-  return safeTitle
+  const normalizedTitle = safeTitle
     .trim()
-    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+
+  return normalizedTitle
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'untitled';
+    .replace(/^-|-$/g, '') || 'eduvi-presentation';
 }
 
 function createExportFileName(document: IDocument): string {
   const safeTitle = sanitizeFileTitle(document?.title);
-  const timestamp = new Date().toISOString().slice(0, 10);
-  return `${safeTitle}-${timestamp}${EDUVI_FILE_EXTENSION}`;
+  const now = new Date();
+  const pad2 = (value: number): string => String(value).padStart(2, '0');
+  const datePart = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
+  const timePart = `${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
+
+  return `${safeTitle}-${datePart}-${timePart}${EDUVI_FILE_EXTENSION}`;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
