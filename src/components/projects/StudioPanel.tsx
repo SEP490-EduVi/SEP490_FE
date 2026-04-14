@@ -23,7 +23,7 @@ interface StudioPanelProps {
   isPipelineRunning: boolean;
   onOpenPipelineModal: () => void;
   onAnalyze: (doc: InputDocumentDto) => void;
-  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium' | 'detailed') => void;
+  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
   videoLoadingCode: string | null;
@@ -79,7 +79,7 @@ export default function StudioPanel({
   // ── Slide detail picker state ─────────────────────────────────────────────
   const [showSlideDetailPicker, setShowSlideDetailPicker] = useState(false);
   const [pendingSlideProductCode, setPendingSlideProductCode] = useState<string | null>(null);
-  const [selectedSlideRange, setSelectedSlideRange] = useState<'short' | 'medium' | 'detailed'>('medium');
+  const [selectedSlideRange, setSelectedSlideRange] = useState<'short' | 'medium'>('medium');
 
   // ── Click handlers ────────────────────────────────────────────────────────
   const handleAnalyzeClick = () => {

@@ -241,7 +241,7 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleGenerateSlides = (productCode: string, slideRange: 'short' | 'medium' | 'detailed' = 'medium') => {
+  const handleGenerateSlides = (productCode: string, slideRange: 'short' | 'medium' = 'medium') => {
     if (getTaskId('slides', productCode)) {
       // Pipeline already running — navigate to editor where SlideGenerationOverlay resumes
       router.push('/teacher/editor');
