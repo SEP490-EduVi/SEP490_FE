@@ -318,7 +318,6 @@ export default function StudioPanel({
                 {([
                   { value: 'short',    label: 'Ngắn gọn',   desc: 'Ý chính, súc tích, ít chữ trên mỗi slide' },
                   { value: 'medium',   label: 'Trung bình', desc: 'Cân bằng giữa nội dung và trình bày' },
-                  { value: 'detailed', label: 'Chi tiết',   desc: 'Đầy đủ nội dung, giải thích sâu hơn' },
                 ] as const).map((opt) => (
                   <button
                     key={opt.value}
