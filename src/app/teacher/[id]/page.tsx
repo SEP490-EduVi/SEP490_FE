@@ -73,6 +73,7 @@ export default function ProjectDetailPage() {
   const [showAnalysisForm, setShowAnalysisForm] = useState(false);
   const [analysisDocCode, setAnalysisDocCode] = useState<string | null>(null);
   const [pendingGameProductCode, setPendingGameProductCode] = useState<string | null>(null);
+  const [pendingGameProductName, setPendingGameProductName] = useState<string>('');
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
   const [gameTemplateId, setGameTemplateId] = useState<GameTemplateId>(GAME_BLUEPRINTS.HOVER_SELECT as GameTemplateId);
   const [gameRoundCount, setGameRoundCount] = useState(1);
@@ -181,7 +182,9 @@ export default function ProjectDetailPage() {
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
   const handleGenerateGame = (productCode: string) => {
+    const product = products.find((p) => p.productCode === productCode);
     setPendingGameProductCode(productCode);
+    setPendingGameProductName(product?.productName ?? '');
     setShowGameConfigModal(true);
   };
 
@@ -201,7 +204,7 @@ export default function ProjectDetailPage() {
       setShowGameConfigModal(false);
       setGameStatus('');
       setPendingGameProductCode(null);
-      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}`);
+      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}&productName=${encodeURIComponent(pendingGameProductName)}`);
     } catch (e) {
       setGameStatus(e instanceof Error ? e.message : 'Tạo game thất bại. Vui lòng thử lại.');
     } finally {
@@ -537,12 +540,12 @@ export default function ProjectDetailPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {(
                     [
-                      { id: 'HOVER_SELECT', label: 'Hover & Chọn', desc: 'Giơ tay chọn đáp án', icon: '🖐️' },
-                      { id: 'DRAG_DROP',    label: 'Drag & Drop',  desc: 'Kéo thả đáp án',     icon: '✋' },
-                      { id: 'RUNNER_QUIZ',  label: 'Runner Quiz',  desc: 'Mario chạy (1 người)', icon: '🏃' },
-                      { id: 'SNAKE_QUIZ',   label: 'Snake Quiz',   desc: 'Rắn quiz (1 người)',  icon: '🐍' },
-                      { id: 'RUNNER_RACE',  label: 'Runner Race',  desc: 'Mario đua (2 người)',  icon: '🏁' },
-                      { id: 'SNAKE_DUEL',   label: 'Snake Duel',   desc: 'Rắn đấu (2 người)',   icon: '⚔️' },
+                      { id: 'HOVER_SELECT', label: 'Giơ tay & Chọn',  desc: 'Giơ tay chọn đáp án',   icon: '🖐️' },
+                      { id: 'DRAG_DROP',    label: 'Kéo & Thả',     desc: 'Kéo thả đáp án',        icon: '✋' },
+                      { id: 'RUNNER_QUIZ',  label: 'Chạy trắc nghiệm', desc: 'Mario chạy (1 người)', icon: '🏃' },
+                      { id: 'SNAKE_QUIZ',   label: 'Rắn trắc nghiệm',  desc: 'Rắn quiz (1 người)',   icon: '🐍' },
+                      { id: 'RUNNER_RACE',  label: 'Đua tốc độ',    desc: 'Mario đua (2 người)',   icon: '🏁' },
+                      { id: 'SNAKE_DUEL',   label: 'Rắn đấu',       desc: 'Rắn đấu (2 người)',    icon: '⚔️' },
                     ] as { id: GameTemplateId; label: string; desc: string; icon: string }[]
                   ).map((opt) => (
                     <button
@@ -565,7 +568,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số round</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
                 <input
                   type="number"
                   min={1}

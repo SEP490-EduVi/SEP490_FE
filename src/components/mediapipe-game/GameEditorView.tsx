@@ -25,6 +25,7 @@ type Playable    = { templateId: string; payload: unknown; settings?: Record<str
 type Props = {
   playable: Playable;
   onStart: (edited: Playable) => void;
+  productName?: string;
 };
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -335,7 +336,7 @@ function DragRoundEditor({
 
 // ── Main Editor ───────────────────────────────────────────────────────────────
 
-export function GameEditorView({ playable, onStart }: Props) {
+export function GameEditorView({ playable, onStart, productName }: Props) {
   const [edited, setEdited] = React.useState<Playable>(() => cloneDeep(playable));
 
   // Rounds as array regardless of single/multi
@@ -385,8 +386,9 @@ export function GameEditorView({ playable, onStart }: Props) {
           <div>
             <p className="text-slate-800 font-semibold text-sm leading-tight">Chỉnh sửa nội dung game</p>
             <p className="text-slate-500 text-xs">
-              {isHover ? 'Trắc nghiệm (Hover Select)' : isDrag ? 'Nối cặp (Drag Drop)' : edited.templateId}
+              {isHover ? 'Trắc nghiệm (Giơ tay chọn)' : isDrag ? 'Nối cặp (Kéo thả)' : edited.templateId}
               {rounds.length > 1 ? ` · ${rounds.length} câu` : ''}
+              {productName ? ` · ${productName}` : ''}
             </p>
           </div>
         </div>

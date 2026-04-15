@@ -55,6 +55,7 @@ export default function GameMakerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const taskIdParam = searchParams.get('taskId');
+  const [productName] = useState(() => searchParams.get('productName') ?? '');
 
   const taskIdRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -174,6 +175,7 @@ export default function GameMakerPage() {
     return (
       <GameEditorView
         playable={playable as any}
+        productName={productName}
         onStart={(edited) => {
           setPlayable(edited);
           setIsEditing(false);

@@ -442,25 +442,42 @@ export function Toolbar() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Dạng trò chơi</label>
-                <select
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-                  value={gameTemplateId}
-                  onChange={(e) => setGameTemplateId(e.target.value as TemplateId)}
-                >
-                  <option value={GAME_BLUEPRINTS.HOVER_SELECT}>HOVER_SELECT — Chọn đáp án bằng tay</option>
-                  <option value={GAME_BLUEPRINTS.DRAG_DROP}>DRAG_DROP — Kéo thả đáp án</option>
-                  <option value={GAME_BLUEPRINTS.RUNNER_QUIZ}>RUNNER_QUIZ — Mario chạy quiz (1 người)</option>
-                  <option value={GAME_BLUEPRINTS.SNAKE_QUIZ}>SNAKE_QUIZ — Rắn quiz (1 người)</option>
-                  <option value={GAME_BLUEPRINTS.RUNNER_RACE}>RUNNER_RACE — Mario đua 2 người</option>
-                  <option value={GAME_BLUEPRINTS.SNAKE_DUEL}>SNAKE_DUEL — Rắn đấu 2 người</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dạng trò chơi</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: GAME_BLUEPRINTS.HOVER_SELECT, label: 'Giơ tay & Chọn',     desc: 'Giơ tay chọn đáp án',    icon: '🖐️' },
+                      { id: GAME_BLUEPRINTS.DRAG_DROP,    label: 'Kéo & Thả',           desc: 'Kéo thả đáp án',         icon: '✋' },
+                      { id: GAME_BLUEPRINTS.RUNNER_QUIZ,  label: 'Chạy trắc nghiệm',    desc: 'Mario chạy (1 người)',   icon: '🏃' },
+                      { id: GAME_BLUEPRINTS.SNAKE_QUIZ,   label: 'Rắn trắc nghiệm',     desc: 'Rắn quiz (1 người)',     icon: '🐍' },
+                      { id: GAME_BLUEPRINTS.RUNNER_RACE,  label: 'Đua tốc độ',           desc: 'Mario đua (2 người)',    icon: '🏁' },
+                      { id: GAME_BLUEPRINTS.SNAKE_DUEL,   label: 'Rắn đấu',              desc: 'Rắn đấu (2 người)',      icon: '⚔️' },
+                    ] as { id: TemplateId; label: string; desc: string; icon: string }[]
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setGameTemplateId(opt.id)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                        gameTemplateId === opt.id
+                          ? 'border-violet-400 bg-violet-50 text-violet-700'
+                          : 'border-gray-200 bg-gray-50 hover:border-violet-300 hover:bg-violet-50/40 text-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{opt.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{opt.label}</p>
+                        <p className="text-[11px] text-gray-400 truncate">{opt.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Số round</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
                 <input
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                   type="number"
                   min={1}
                   value={gameRoundCount}
@@ -469,7 +486,7 @@ export function Toolbar() {
               </div>
 
               {!!gameStatus && (
-                <p className="text-sm text-slate-600">{gameStatus}</p>
+                <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2">{gameStatus}</p>
               )}
             </div>
 
