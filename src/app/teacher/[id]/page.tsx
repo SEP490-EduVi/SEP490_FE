@@ -26,7 +26,7 @@ import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskS
 import { usePipelineProgressStore } from '@/store/usePipelineProgressStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices'; // used for game creation
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import type { PipelineProgress, VideoProductDto, InputDocumentDto } from '@/types/api';
 
 export default function ProjectDetailPage() {
@@ -194,7 +194,7 @@ export default function ProjectDetailPage() {
     setGameCreating(true);
     try {
       const url = await getEditedSlideGcsUrl(pendingGameProductCode);
-      if (!url) { setGameStatus('Không tìm thấy dữ liệu slide. Vui lòng lưu slide trước.'); setGameCreating(false); return; }
+      if (!url) { setGameStatus(MSGS.game.noSlideError); setGameCreating(false); return; }
       setGameStatus('Đang gửi yêu cầu tạo game...');
       const task = await createPlayableGameTask({
         templateId: gameTemplateId,
@@ -204,9 +204,12 @@ export default function ProjectDetailPage() {
       setShowGameConfigModal(false);
       setGameStatus('');
       setPendingGameProductCode(null);
+      notify.success(MSGS.game.createSuccess);
       router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}&productName=${encodeURIComponent(pendingGameProductName)}`);
     } catch (e) {
-      setGameStatus(e instanceof Error ? e.message : 'Tạo game thất bại. Vui lòng thử lại.');
+      const msg = e instanceof Error ? e.message : MSGS.game.createError;
+      setGameStatus(msg);
+      notify.error(msg);
     } finally {
       setGameCreating(false);
     }
@@ -236,10 +239,11 @@ export default function ProjectDetailPage() {
       { documentCode: docCode, projectCode, productName, curriculumYear: year },
       {
         onSuccess: async () => {
-          notify.info('Đang phân tích tài liệu...');
+          notify.info(MSGS.analysis.startInfo);
           setPipelineType('evaluation'); setShowPipelineModal(true);
           await refetchProducts().catch(() => {/* ignore */});
         },
+        onError: () => notify.error(MSGS.analysis.error),
       },
     );
   };
@@ -255,13 +259,11 @@ export default function ProjectDetailPage() {
       { productCode, slideRange },
       {
         onSuccess: () => {
-          notify.success('Đang tạo slide...');
-          // Mark store + sessionStorage as generating BEFORE navigating so
-          // the editor's loadDocument sees isGenerating=true and the
-          // SlideGenerationOverlay renders immediately.
+          notify.success(MSGS.slide.generateStart);
           startGeneration(productCode, projectCode);
           router.push('/teacher/editor');
         },
+        onError: () => notify.error(MSGS.slide.generateError),
       },
     );
   };
@@ -282,13 +284,13 @@ export default function ProjectDetailPage() {
     try {
       setVideoLoadingCode(productCode);
       const url = await getEditedSlideGcsUrl(productCode);
-      if (!url) { setVideoLoadingCode(null); notify.error('Không thể lấy đường dẫn slide. Vui lòng thử lại.'); return; }
+      if (!url) { setVideoLoadingCode(null); notify.error(MSGS.slide.noSlideError); return; }
       pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url },
-        { onSuccess: () => { notify.info('Yêu cầu tạo video đã được gửi'); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
+        { onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
       );
-    } catch { setVideoLoadingCode(null); notify.error('Đã xảy ra lỗi khi tạo video. Vui lòng thử lại.'); }
+    } catch { setVideoLoadingCode(null); notify.error(MSGS.video.generateError); }
   };
 
   const handleViewEvaluation = (productCode: string) => {
@@ -316,7 +318,7 @@ export default function ProjectDetailPage() {
         product?.productName,
       );
       router.push('/teacher/editor');
-    } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
+    } catch { notify.error(MSGS.slide.openError); }
     finally { setViewSlideLoading(null); }
   };
 
@@ -324,10 +326,10 @@ export default function ProjectDetailPage() {
     setDeletingSlide(productCode);
     deleteProduct.mutate(productCode, {
       onSuccess: () => {
-        notify.success('Xóa slide thành công.');
+        notify.success(MSGS.slide.deleteSuccess);
         void refetchProducts();
       },
-      onError: () => notify.error('Không thể xóa slide. Vui lòng thử lại.'),
+      onError: () => notify.error(MSGS.slide.deleteError),
       onSettled: () => setDeletingSlide(null),
     });
   };
@@ -336,10 +338,10 @@ export default function ProjectDetailPage() {
     setDeletingVideo(productVideoCode);
     deleteVideo.mutate(productVideoCode, {
       onSuccess: () => {
-        notify.success('Xóa video thành công.');
+        notify.success(MSGS.video.deleteSuccess);
         queryClient.invalidateQueries({ queryKey: ['video', 'project', projectCode] });
       },
-      onError: () => notify.error('Không thể xóa video. Vui lòng thử lại.'),
+      onError: () => notify.error(MSGS.video.deleteError),
       onSettled: () => setDeletingVideo(null),
     });
   };

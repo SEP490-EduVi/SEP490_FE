@@ -8,7 +8,7 @@ import PublicFooter from '@/components/common/PublicFooter';
 import AppHeader from '@/components/sidebar/AppHeader';
 import { useSubscriptionPlans, useBuySubscription } from '@/hooks/usePaymentApi';
 import { useAuthStore } from '@/store/useAuthStore';
-import toast from 'react-hot-toast';
+import { notify, MSGS } from '@/components/common';
 
 const PLAN_ICONS: Record<number, React.ReactNode> = {
   1: <Zap className="w-6 h-6" />,
@@ -66,11 +66,11 @@ export default function SubscriptionPage() {
     setSelectedPlanId(planId);
     buyPlan(planId, {
       onSuccess: (res) => {
-        toast.success(`Mua gói thành công! +${res.analysisQuotaAdded} EduCoin`);
+        notify.success(MSGS.subscription.buySuccess(res.planName, res.analysisQuotaAdded));
         setSelectedPlanId(null);
       },
       onError: () => {
-        toast.error('Mua gói thất bại. Vui lòng kiểm tra số dư ví.');
+        notify.error(MSGS.subscription.buyError);
         setSelectedPlanId(null);
       },
     });

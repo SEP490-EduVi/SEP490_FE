@@ -46,7 +46,7 @@ import * as productService from '@/services/productServices';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import type { VideoProductDto } from '@/types/api';
 import AppHeader from '@/components/sidebar/AppHeader';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Tab = 'profile' | 'security' | 'payment' | 'withdrawal' | 'certificate' | 'slides' | 'videos' | 'library';
@@ -413,14 +413,15 @@ function ProfilePageInner() {
       { currentPassword: currentPw, newPassword: newPw, confirmPassword: confirmPw },
       {
         onSuccess: () => {
-          notify.success('Đổi mật khẩu thành công!');
+          notify.success(MSGS.profile.changePwSuccess);
           setPwSuccess(true);
           setCurrentPw(''); setNewPw(''); setConfirmPw('');
           setTimeout(() => setPwSuccess(false), 4000);
         },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-          setPwError(msg ?? 'Đổi mật khẩu thất bại. Vui lòng thử lại.');
+          setPwError(msg ?? MSGS.profile.changePwError);
+          notify.error(msg ?? MSGS.profile.changePwError);
         },
       },
     );
@@ -482,12 +483,16 @@ function ProfilePageInner() {
     setPaymentError(null);
     verifyTopUp.mutate(orderCode, {
       onSuccess: (result) => {
+        const msg = MSGS.topUp.verifySuccess(result.orderCode, result.status);
         setPaymentMessage(`Đã xác minh giao dịch #${result.orderCode} (${result.status}).`);
+        notify.success(msg);
         void refetchWallet();
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        setPaymentError(msg ?? 'Không thể xác minh giao dịch nạp tiền.');
+        const text = msg ?? MSGS.topUp.verifyError;
+        setPaymentError(text);
+        notify.error(text);
       },
     });
   }, [searchParams, verifyTopUp, verifyingOrder, refetchWallet, isStaff]);
@@ -518,14 +523,19 @@ function ProfilePageInner() {
       {
         onSuccess: (res) => {
           if (res.checkoutUrl) {
+            notify.info(MSGS.topUp.redirecting);
             window.location.href = res.checkoutUrl;
             return;
           }
-          setPaymentError('Không nhận được đường dẫn thanh toán từ hệ thống.');
+          const err = MSGS.topUp.noCheckoutUrl;
+          setPaymentError(err);
+          notify.error(err);
         },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-          setPaymentError(msg ?? 'Tạo yêu cầu nạp tiền thất bại.');
+          const text = msg ?? MSGS.topUp.createError;
+          setPaymentError(text);
+          notify.error(text);
         },
       },
     );
@@ -539,13 +549,15 @@ function ProfilePageInner() {
 
     buySubscription.mutate(planId, {
       onSuccess: (res) => {
-        notify.success(`Mua gói ${res.planName} thành công!`);
+        notify.success(MSGS.subscription.buySuccess(res.planName, res.analysisQuotaAdded));
         setPaymentMessage(`Mua gói ${res.planName} thành công. Số dư còn lại: ${formatEduCoin(res.walletBalanceAfter)}.`);
         void refetchWallet();
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        setPaymentError(msg ?? 'Mua gói thất bại.');
+        const text = msg ?? MSGS.subscription.buyError;
+        setPaymentError(text);
+        notify.error(text);
       },
     });
   };
@@ -582,11 +594,13 @@ function ProfilePageInner() {
         onSuccess: () => {
           setWithdrawStep('otp');
           setWithdrawHint('Mã OTP đã được gửi đến email của bạn (hiệu lực 5 phút).');
-          notify.success('Đã gửi OTP xác nhận rút tiền.');
+          notify.success(MSGS.withdrawalRequest.otpSentSuccess);
         },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-          setPaymentError(msg ?? 'Không thể gửi OTP rút tiền. Vui lòng thử lại.');
+          const text = msg ?? MSGS.withdrawalRequest.otpSentError;
+          setPaymentError(text);
+          notify.error(text);
         },
       },
     );
@@ -626,12 +640,14 @@ function ProfilePageInner() {
           setWithdrawOtp('');
           setWithdrawStep('form');
           setWithdrawHint(null);
-          notify.success('Yêu cầu rút tiền đã được tạo.');
+          notify.success(MSGS.withdrawalRequest.confirmSuccess);
           void refetchWallet();
         },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-          setPaymentError(msg ?? 'OTP không hợp lệ hoặc đã hết hạn.');
+          const text = msg ?? MSGS.withdrawalRequest.confirmError;
+          setPaymentError(text);
+          notify.error(text);
         },
       },
     );
@@ -672,7 +688,8 @@ function ProfilePageInner() {
 
   const handleCertDelete = (code: string) => {
     deleteVerification.mutate(code, {
-      onSuccess: () => { setConfirmDelete(null); notify.success('Đã xóa hồ sơ thành công'); },
+      onSuccess: () => { setConfirmDelete(null); notify.success(MSGS.cert.deleteSuccess); },
+      onError:   () => notify.error(MSGS.cert.deleteError),
     });
   };
 
