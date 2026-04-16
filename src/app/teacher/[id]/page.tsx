@@ -65,12 +65,15 @@ export default function ProjectDetailPage() {
   const [activeDocCode, setActiveDocCode] = useState<string | null>(null);
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
   const [videoLoadingCode, setVideoLoadingCode] = useState<string | null>(null);
+  const [deletingSlide, setDeletingSlide] = useState<string | null>(null);
+  const [deletingVideo, setDeletingVideo] = useState<string | null>(null);
   const [showVideoConfirm, setShowVideoConfirm] = useState(false);
   const [pendingVideoProductCode, setPendingVideoProductCode] = useState<string | null>(null);
   const [viewingVideo, setViewingVideo] = useState<VideoProductDto | null>(null);
   const [showAnalysisForm, setShowAnalysisForm] = useState(false);
   const [analysisDocCode, setAnalysisDocCode] = useState<string | null>(null);
   const [pendingGameProductCode, setPendingGameProductCode] = useState<string | null>(null);
+  const [pendingGameProductName, setPendingGameProductName] = useState<string>('');
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
   const [gameTemplateId, setGameTemplateId] = useState<GameTemplateId>(GAME_BLUEPRINTS.HOVER_SELECT as GameTemplateId);
   const [gameRoundCount, setGameRoundCount] = useState(1);
@@ -87,12 +90,10 @@ export default function ProjectDetailPage() {
     const allTasks = usePipelineTaskStore.getState().getAllTasks();
     if (allTasks.length > 0) {
       const videoTask = allTasks.find((t) => t.key.startsWith('video:'));
-      const slidesTask = allTasks.find((t) => t.key.startsWith('slides:'));
       const evalTask = allTasks.find((t) => t.key.startsWith('eval:'));
-      if (videoTask) setPipelineType('video');
-      else if (slidesTask) setPipelineType('slides');
-      else if (evalTask) setPipelineType('evaluation');
-      setShowPipelineModal(true);
+      // Slide generation progress is shown in the editor overlay — no modal needed here
+      if (videoTask) { setPipelineType('video'); setShowPipelineModal(true); }
+      else if (evalTask) { setPipelineType('evaluation'); setShowPipelineModal(true); }
     }
   }, [hydrateTaskStore]); // eslint-disable-line
 
@@ -146,7 +147,8 @@ export default function ProjectDetailPage() {
           else { setPipelineType('evaluation'); resolvedType = 'evaluation'; }
         }
         setGlobalProgress(event, resolvedType, projectCode);
-        setShowPipelineModal(true);
+        // Slide progress is shown in the editor overlay — skip modal for slides
+        if (resolvedType !== 'slides') setShowPipelineModal(true);
       }
 
       if (event.status === 'completed' || event.status === 'failed') {
@@ -180,7 +182,9 @@ export default function ProjectDetailPage() {
   usePipelineHub({ accessToken, onProgress: handlePipelineProgress });
 
   const handleGenerateGame = (productCode: string) => {
+    const product = products.find((p) => p.productCode === productCode);
     setPendingGameProductCode(productCode);
+    setPendingGameProductName(product?.productName ?? '');
     setShowGameConfigModal(true);
   };
 
@@ -200,7 +204,7 @@ export default function ProjectDetailPage() {
       setShowGameConfigModal(false);
       setGameStatus('');
       setPendingGameProductCode(null);
-      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}`);
+      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}&productName=${encodeURIComponent(pendingGameProductName)}`);
     } catch (e) {
       setGameStatus(e instanceof Error ? e.message : 'Tạo game thất bại. Vui lòng thử lại.');
     } finally {
@@ -240,16 +244,25 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleGenerateSlides = (productCode: string) => {
+  const handleGenerateSlides = (productCode: string, slideRange: 'short' | 'medium' = 'medium') => {
     if (getTaskId('slides', productCode)) {
-      setPipelineType('slides');
-      setShowPipelineModal(true);
+      // Pipeline already running — navigate to editor where SlideGenerationOverlay resumes
+      router.push('/teacher/editor');
       return;
     }
     pendingTaskRef.current = { type: 'slides', productCode };
     generateSlides.mutate(
-      { productCode, slideRange: 'short' },
-      { onSuccess: () => { notify.success('Đang tạo slide...'); startGeneration(productCode, projectCode); setPipelineType('slides'); setShowPipelineModal(true); } },
+      { productCode, slideRange },
+      {
+        onSuccess: () => {
+          notify.success('Đang tạo slide...');
+          // Mark store + sessionStorage as generating BEFORE navigating so
+          // the editor's loadDocument sees isGenerating=true and the
+          // SlideGenerationOverlay renders immediately.
+          startGeneration(productCode, projectCode);
+          router.push('/teacher/editor');
+        },
+      },
     );
   };
 
@@ -305,6 +318,30 @@ export default function ProjectDetailPage() {
       router.push('/teacher/editor');
     } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
     finally { setViewSlideLoading(null); }
+  };
+
+  const handleDeleteSlide = (productCode: string) => {
+    setDeletingSlide(productCode);
+    deleteProduct.mutate(productCode, {
+      onSuccess: () => {
+        notify.success('Xóa slide thành công.');
+        void refetchProducts();
+      },
+      onError: () => notify.error('Không thể xóa slide. Vui lòng thử lại.'),
+      onSettled: () => setDeletingSlide(null),
+    });
+  };
+
+  const handleDeleteVideo = (productVideoCode: string) => {
+    setDeletingVideo(productVideoCode);
+    deleteVideo.mutate(productVideoCode, {
+      onSuccess: () => {
+        notify.success('Xóa video thành công.');
+        queryClient.invalidateQueries({ queryKey: ['video', 'project', projectCode] });
+      },
+      onError: () => notify.error('Không thể xóa video. Vui lòng thử lại.'),
+      onSettled: () => setDeletingVideo(null),
+    });
   };
 
   if (isProjectLoading) {
@@ -416,6 +453,10 @@ export default function ProjectDetailPage() {
             activeDocCode={activeDocCode}
             onViewSlide={handleViewSlide}
             onWatchVideo={setViewingVideo}
+            onDeleteSlide={handleDeleteSlide}
+            onDeleteVideo={handleDeleteVideo}
+            deletingSlide={deletingSlide}
+            deletingVideo={deletingVideo}
           />
         </main>
 
@@ -505,12 +546,12 @@ export default function ProjectDetailPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {(
                     [
-                      { id: 'HOVER_SELECT', label: 'Hover & Chọn', desc: 'Giơ tay chọn đáp án', icon: '🖐️' },
-                      { id: 'DRAG_DROP',    label: 'Drag & Drop',  desc: 'Kéo thả đáp án',     icon: '✋' },
-                      { id: 'RUNNER_QUIZ',  label: 'Runner Quiz',  desc: 'Mario chạy (1 người)', icon: '🏃' },
-                      { id: 'SNAKE_QUIZ',   label: 'Snake Quiz',   desc: 'Rắn quiz (1 người)',  icon: '🐍' },
-                      { id: 'RUNNER_RACE',  label: 'Runner Race',  desc: 'Mario đua (2 người)',  icon: '🏁' },
-                      { id: 'SNAKE_DUEL',   label: 'Snake Duel',   desc: 'Rắn đấu (2 người)',   icon: '⚔️' },
+                      { id: 'HOVER_SELECT', label: 'Giơ tay & Chọn',  desc: 'Giơ tay chọn đáp án',   icon: '🖐️' },
+                      { id: 'DRAG_DROP',    label: 'Kéo & Thả',     desc: 'Kéo thả đáp án',        icon: '✋' },
+                      { id: 'RUNNER_QUIZ',  label: 'Chạy trắc nghiệm', desc: 'Mario chạy (1 người)', icon: '🏃' },
+                      { id: 'SNAKE_QUIZ',   label: 'Rắn trắc nghiệm',  desc: 'Rắn quiz (1 người)',   icon: '🐍' },
+                      { id: 'RUNNER_RACE',  label: 'Đua tốc độ',    desc: 'Mario đua (2 người)',   icon: '🏁' },
+                      { id: 'SNAKE_DUEL',   label: 'Rắn đấu',       desc: 'Rắn đấu (2 người)',    icon: '⚔️' },
                     ] as { id: GameTemplateId; label: string; desc: string; icon: string }[]
                   ).map((opt) => (
                     <button
@@ -533,7 +574,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số round</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
                 <input
                   type="number"
                   min={1}

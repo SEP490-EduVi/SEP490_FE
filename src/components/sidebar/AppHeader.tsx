@@ -491,7 +491,7 @@ export default function AppHeader() {
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
                   >
                     <Layers className="w-4 h-4 text-violet-400" />
-                    Slide của tôi
+                    Slide
                   </button>
                   <button
                     role="menuitem"
@@ -499,7 +499,7 @@ export default function AppHeader() {
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
                   >
                     <Film className="w-4 h-4 text-rose-400" />
-                    Video của tôi
+                    Video
                   </button>
                   <button
                     role="menuitem"

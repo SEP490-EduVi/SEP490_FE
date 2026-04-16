@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
+  Trash2,
 } from 'lucide-react';
 import { useProductEvaluation } from '@/hooks/useProductApi';
 import type { ProductDto, VideoProductDto } from '@/types/api';
@@ -28,6 +29,10 @@ interface ProductResultsCenterProps {
   activeDocCode?: string | null;
   onViewSlide: (productCode: string) => void;
   onWatchVideo: (video: VideoProductDto) => void;
+  onDeleteSlide: (productCode: string) => void;
+  onDeleteVideo: (productVideoCode: string) => void;
+  deletingSlide: string | null;
+  deletingVideo: string | null;
 }
 
 function formatDate(value?: string | null) {
@@ -184,8 +189,14 @@ export default function ProductResultsCenter({
   activeDocCode,
   onViewSlide,
   onWatchVideo,
+  onDeleteSlide,
+  onDeleteVideo,
+  deletingSlide,
+  deletingVideo,
 }: ProductResultsCenterProps) {
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+  const [confirmDeleteSlide, setConfirmDeleteSlide] = useState<string | null>(null);
+  const [confirmDeleteVideo, setConfirmDeleteVideo] = useState<string | null>(null);
 
   // Filter to active document when one is selected
   const visibleProducts = activeDocCode
@@ -272,26 +283,49 @@ export default function ProductResultsCenter({
 
                 {/* Slide */}
                 {(product.hasSlide || product.hasEditedSlide) && (
-                  <button
-                    type="button"
-                    onClick={() => onViewSlide(product.productCode)}
-                    disabled={viewSlideLoading === product.productCode}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50/80 transition-colors group disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-gray-50 group hover:bg-gray-50/80 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => onViewSlide(product.productCode)}
+                      disabled={viewSlideLoading === product.productCode}
+                      className="flex flex-1 items-center gap-2.5 disabled:opacity-50"
+                    >
                       <GalleryVerticalEnd className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                       <span className="text-sm text-gray-700">
                         {product.hasEditedSlide ? 'Slide đã chỉnh sửa' : 'Slide bài giảng'}
                       </span>
-                    </div>
-                    {viewSlideLoading === product.productCode ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      {viewSlideLoading === product.productCode ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-400 ml-auto" />
+                      ) : (
+                        <span className="ml-auto text-xs text-blue-600 group-hover:underline flex items-center gap-0.5">
+                          Mở trong editor <ChevronRight className="w-3 h-3" />
+                        </span>
+                      )}
+                    </button>
+                    {confirmDeleteSlide === product.productCode ? (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-xs text-gray-500">Xóa?</span>
+                        <button
+                          type="button"
+                          disabled={deletingSlide === product.productCode}
+                          onClick={() => { onDeleteSlide(product.productCode); setConfirmDeleteSlide(null); }}
+                          className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded-md disabled:opacity-50"
+                        >
+                          {deletingSlide === product.productCode ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Có'}
+                        </button>
+                        <button type="button" onClick={() => setConfirmDeleteSlide(null)} className="text-xs text-gray-500 hover:bg-gray-100 px-2 py-0.5 rounded-md">Không</button>
+                      </div>
                     ) : (
-                      <span className="text-xs text-blue-600 group-hover:underline flex items-center gap-0.5">
-                        Mở trong editor <ChevronRight className="w-3 h-3" />
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteSlide(product.productCode)}
+                        className="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Xóa slide"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </button>
+                  </div>
                 )}
 
                 {/* Videos */}
@@ -314,7 +348,7 @@ export default function ProductResultsCenter({
                             )}
                             <span className="text-xs text-gray-500 truncate">{video.productName}</span>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             <VideoStatusChip status={video.status} />
                             {video.status === 'completed' && video.videoUrl && (
                               <button
@@ -323,6 +357,29 @@ export default function ProductResultsCenter({
                                 className="flex items-center gap-1 text-xs text-white bg-rose-500 hover:bg-rose-600 px-2.5 py-1 rounded-lg transition-colors"
                               >
                                 <Play className="w-3 h-3" /> Xem
+                              </button>
+                            )}
+                            {confirmDeleteVideo === video.productVideoCode ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500">Xóa?</span>
+                                <button
+                                  type="button"
+                                  disabled={deletingVideo === video.productVideoCode}
+                                  onClick={() => { onDeleteVideo(video.productVideoCode); setConfirmDeleteVideo(null); }}
+                                  className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded-md disabled:opacity-50"
+                                >
+                                  {deletingVideo === video.productVideoCode ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Có'}
+                                </button>
+                                <button type="button" onClick={() => setConfirmDeleteVideo(null)} className="text-xs text-gray-500 hover:bg-gray-100 px-2 py-0.5 rounded-md">Không</button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteVideo(video.productVideoCode)}
+                                className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Xóa video"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>

@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Upload, Loader2, FileText, X } from 'lucide-react';
+import { Upload, Loader2, FileText, X, ChevronDown } from 'lucide-react';
 import type { SubjectDto, GradeDto } from '@/types/api';
 import { MetadataSelect } from './MetadataSelect';
 import { MATERIAL_TYPE_OPTIONS } from './materialConstants';
@@ -46,6 +46,7 @@ export function UploadMaterialForm({
   const [form, setForm] = useState<UploadForm>({
     title: '', description: '', type: 'image', price: 0, subjectCode: '', gradeCode: '',
   });
+  const [showTypePicker, setShowTypePicker] = useState(false);
 
   const set = (key: keyof UploadForm) => (value: string | number) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -209,13 +210,40 @@ export function UploadMaterialForm({
             {/* Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Loại <span className="text-red-500">*</span></label>
-              <select
-                value={form.type}
-                onChange={(e) => set('type')(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-              >
-                {MATERIAL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowTypePicker((v) => !v)}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-white border rounded-xl text-sm transition-colors ${
+                    showTypePicker ? 'border-blue-400 ring-2 ring-blue-500/20' : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                >
+                  <span className="text-gray-800">
+                    {MATERIAL_TYPE_OPTIONS.find((o) => o.value === form.type)?.label ?? form.type}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showTypePicker ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {showTypePicker && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 right-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden"
+                    >
+                      {MATERIAL_TYPE_OPTIONS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => { set('type')(o.value); setShowTypePicker(false); }}
+                          className={`w-full flex items-center px-3 py-2 text-left hover:bg-blue-50 transition-colors ${form.type === o.value ? 'bg-blue-50' : ''}`}
+                        >
+                          <span className={`text-sm ${form.type === o.value ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>{o.label}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Price */}

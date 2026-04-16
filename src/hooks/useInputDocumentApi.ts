@@ -46,6 +46,13 @@ export function useDeleteInputDocument() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (documentCode: string) => inputDocService.deleteInputDocument(documentCode),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [INPUT_DOCS_KEY] }),
+    onSuccess: () => {
+      // Invalidate input documents
+      qc.invalidateQueries({ queryKey: [INPUT_DOCS_KEY] });
+      // Also invalidate products and videos — the backend cascades the delete
+      // so their cache would be stale without this.
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['video'] });
+    },
   });
 }

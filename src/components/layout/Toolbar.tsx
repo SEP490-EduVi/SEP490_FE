@@ -65,14 +65,28 @@ export function Toolbar() {
 
   useEffect(() => {
     const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
+      if (isDirty || (isNewlyGenerated && !isSlideEdited)) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', beforeUnloadHandler);
     return () => window.removeEventListener('beforeunload', beforeUnloadHandler);
-  }, [isDirty]);
+  }, [isDirty, isNewlyGenerated, isSlideEdited]);
+
+  // Block browser native back button when user hasn't edited+saved an AI-generated slide
+  useEffect(() => {
+    if (!isNewlyGenerated || isSlideEdited) return;
+    // Push a dummy entry so the native back button triggers popstate instead of leaving
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      // Re-push to stay on this page, then show the warning
+      window.history.pushState(null, '', window.location.href);
+      setShowExitWarning(true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isNewlyGenerated, isSlideEdited]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -96,7 +110,7 @@ export function Toolbar() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         const state = useDocumentStore.getState();
-        if (state.isDirty) state.saveSlide();
+        if (state.isDirty || (state.isNewlyGenerated && !state.isSlideEdited)) state.saveSlide();
       }
     };
 
@@ -253,10 +267,10 @@ export function Toolbar() {
 
           <button
             onClick={saveSlide}
-            disabled={!isDirty || !document || !currentProductCode || isSaving}
+            disabled={(!isDirty && !(isNewlyGenerated && !isSlideEdited)) || !document || !currentProductCode || isSaving}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-sm transition-colors',
-              isDirty && document && currentProductCode && !isSaving
+              (isDirty || (isNewlyGenerated && !isSlideEdited)) && document && currentProductCode && !isSaving
                 ? 'bg-blue-500 hover:bg-blue-400 text-white shadow-md'
                 : 'bg-white/10 text-white/40 cursor-not-allowed'
             )}
@@ -432,25 +446,42 @@ export function Toolbar() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Dạng trò chơi</label>
-                <select
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-                  value={gameTemplateId}
-                  onChange={(e) => setGameTemplateId(e.target.value as TemplateId)}
-                >
-                  <option value={GAME_BLUEPRINTS.HOVER_SELECT}>HOVER_SELECT — Chọn đáp án bằng tay</option>
-                  <option value={GAME_BLUEPRINTS.DRAG_DROP}>DRAG_DROP — Kéo thả đáp án</option>
-                  <option value={GAME_BLUEPRINTS.RUNNER_QUIZ}>RUNNER_QUIZ — Mario chạy quiz (1 người)</option>
-                  <option value={GAME_BLUEPRINTS.SNAKE_QUIZ}>SNAKE_QUIZ — Rắn quiz (1 người)</option>
-                  <option value={GAME_BLUEPRINTS.RUNNER_RACE}>RUNNER_RACE — Mario đua 2 người</option>
-                  <option value={GAME_BLUEPRINTS.SNAKE_DUEL}>SNAKE_DUEL — Rắn đấu 2 người</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dạng trò chơi</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: GAME_BLUEPRINTS.HOVER_SELECT, label: 'Giơ tay & Chọn',     desc: 'Giơ tay chọn đáp án',    icon: '🖐️' },
+                      { id: GAME_BLUEPRINTS.DRAG_DROP,    label: 'Kéo & Thả',           desc: 'Kéo thả đáp án',         icon: '✋' },
+                      { id: GAME_BLUEPRINTS.RUNNER_QUIZ,  label: 'Chạy trắc nghiệm',    desc: 'Mario chạy (1 người)',   icon: '🏃' },
+                      { id: GAME_BLUEPRINTS.SNAKE_QUIZ,   label: 'Rắn trắc nghiệm',     desc: 'Rắn quiz (1 người)',     icon: '🐍' },
+                      { id: GAME_BLUEPRINTS.RUNNER_RACE,  label: 'Đua tốc độ',           desc: 'Mario đua (2 người)',    icon: '🏁' },
+                      { id: GAME_BLUEPRINTS.SNAKE_DUEL,   label: 'Rắn đấu',              desc: 'Rắn đấu (2 người)',      icon: '⚔️' },
+                    ] as { id: TemplateId; label: string; desc: string; icon: string }[]
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setGameTemplateId(opt.id)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                        gameTemplateId === opt.id
+                          ? 'border-violet-400 bg-violet-50 text-violet-700'
+                          : 'border-gray-200 bg-gray-50 hover:border-violet-300 hover:bg-violet-50/40 text-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{opt.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{opt.label}</p>
+                        <p className="text-[11px] text-gray-400 truncate">{opt.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Số round</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
                 <input
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                   type="number"
                   min={1}
                   value={gameRoundCount}
@@ -459,7 +490,7 @@ export function Toolbar() {
               </div>
 
               {!!gameStatus && (
-                <p className="text-sm text-slate-600">{gameStatus}</p>
+                <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2">{gameStatus}</p>
               )}
             </div>
 
@@ -538,18 +569,30 @@ export function Toolbar() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900 mb-1">Chưa thể thoát</h3>
-                <p className="text-sm text-gray-500">Slide vừa được AI tạo ra. Vui lòng chỉnh sửa nội dung và lưu slide trước khi quay lại.</p>
+                <p className="text-sm text-gray-500">Slide vừa được AI tạo ra. Bạn cần lưu slide ít nhất một lần trước khi quay lại.</p>
               </div>
             </div>
             <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
-              <p className="text-xs text-orange-700 font-medium">💡 Hãy chỉnh sửa ít nhất một nội dung rồi nhấn <strong>Lưu</strong> (Ctrl+S) để hoàn tất.</p>
+              <p className="text-xs text-orange-700 font-medium">💡 Nhấn <strong>Lưu và thoát</strong> bên dưới hoặc <strong>Ctrl+S</strong> để lưu, sau đó bạn có thể thoát.</p>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowExitWarning(false)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
               >
                 Tiếp tục chỉnh sửa
+              </button>
+              <button
+                onClick={async () => {
+                  setShowExitWarning(false);
+                  await saveSlide();
+                  if (currentProjectCode) router.push(`/teacher/${currentProjectCode}`);
+                  else router.back();
+                }}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Lưu và thoát
               </button>
             </div>
           </div>

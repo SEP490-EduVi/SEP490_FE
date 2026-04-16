@@ -13,7 +13,6 @@ import {
   Lock,
   FileText,
   ChevronDown,
-  AlertTriangle,
 } from 'lucide-react';
 import { useInputDocumentsByProject } from '@/hooks/useInputDocumentApi';
 import type { ProductDto, InputDocumentDto } from '@/types/api';
@@ -24,7 +23,7 @@ interface StudioPanelProps {
   isPipelineRunning: boolean;
   onOpenPipelineModal: () => void;
   onAnalyze: (doc: InputDocumentDto) => void;
-  onGenerateSlides: (productCode: string) => void;
+  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
   videoLoadingCode: string | null;
@@ -77,67 +76,40 @@ export default function StudioPanel({
   const latestEval  = docProducts.filter((p) => p.hasEvaluation).at(-1) ?? null;
   const latestSlide = docProducts.filter((p) => p.hasSlide || p.hasEditedSlide).at(-1) ?? null;
 
-  // ── Confirm modal state ────────────────────────────────────────────────────
-  type ConfirmType = 'analyze' | 'slides' | 'video' | 'game';
-  const [confirmAction, setConfirmAction] = useState<{
-    type: ConfirmType;
-    doc?: InputDocumentDto;
-    productCode?: string;
-  } | null>(null);
+  // ── Slide detail picker state ─────────────────────────────────────────────
+  const [showSlideDetailPicker, setShowSlideDetailPicker] = useState(false);
+  const [pendingSlideProductCode, setPendingSlideProductCode] = useState<string | null>(null);
+  const [selectedSlideRange, setSelectedSlideRange] = useState<'short' | 'medium'>('medium');
 
-  const handleConfirm = () => {
-    if (!confirmAction) return;
-    if (confirmAction.type === 'analyze' && confirmAction.doc) onAnalyze(confirmAction.doc);
-    if (confirmAction.type === 'slides' && confirmAction.productCode) onGenerateSlides(confirmAction.productCode);
-    if (confirmAction.type === 'video' && confirmAction.productCode) onGenerateVideo(confirmAction.productCode);
-    if (confirmAction.type === 'game' && confirmAction.productCode) onGenerateGame(confirmAction.productCode);
-    setConfirmAction(null);
-  };
-
-  // ── Click handlers (open confirm first) ───────────────────────────────────
+  // ── Click handlers ────────────────────────────────────────────────────────
   const handleAnalyzeClick = () => {
     if (isPipelineRunning) { onOpenPipelineModal(); return; }
     if (!activeDoc) return;
-    setConfirmAction({ type: 'analyze', doc: activeDoc });
+    onAnalyze(activeDoc);
   };
 
   const handleSlideClick = () => {
     if (!hasEvaluation || !latestEval) return;
-    setConfirmAction({ type: 'slides', productCode: latestEval.productCode });
+    setPendingSlideProductCode(latestEval.productCode);
+    setSelectedSlideRange('medium');
+    setShowSlideDetailPicker(true);
+  };
+
+  const handleSlideDetailConfirm = () => {
+    if (!pendingSlideProductCode) return;
+    onGenerateSlides(pendingSlideProductCode, selectedSlideRange);
+    setShowSlideDetailPicker(false);
+    setPendingSlideProductCode(null);
   };
 
   const handleVideoClick = () => {
     if (!hasSlide || !latestSlide) return;
-    setConfirmAction({ type: 'video', productCode: latestSlide.productCode });
+    onGenerateVideo(latestSlide.productCode);
   };
 
   const handleGameClick = () => {
     if (!hasSlide || !latestSlide) return;
-    setConfirmAction({ type: 'game', productCode: latestSlide.productCode });
-  };
-
-  // ── Confirm labels ─────────────────────────────────────────────────────────
-  const CONFIRM_LABELS: Record<ConfirmType, { title: string; body: string; cta: string }> = {
-    analyze: {
-      title: 'Phân tích tài liệu?',
-      body: `AI sẽ phân tích tài liệu "${activeDoc?.title ?? ''}". Quá trình này có thể mất vài phút.`,
-      cta: 'Phân tích',
-    },
-    slides: {
-      title: 'Tạo slide bài giảng?',
-      body: `Hệ thống sẽ tự động tạo slide từ kết quả phân tích của "${latestEval?.productName ?? ''}".`,
-      cta: 'Tạo slide',
-    },
-    video: {
-      title: 'Tạo video bài giảng?',
-      body: `Hệ thống sẽ tạo video từ slide đã có của "${latestSlide?.productName ?? ''}". Quá trình này có thể mất vài phút.`,
-      cta: 'Tạo video',
-    },
-    game: {
-      title: 'Tạo trò chơi học tập?',
-      body: `Hệ thống sẽ tạo minigame tương tác từ slide của "${latestSlide?.productName ?? ''}". Bạn sẽ chọn kiểu game ở bước tiếp theo.`,
-      cta: 'Tiếp tục',
-    },
+    onGenerateGame(latestSlide.productCode);
   };
 
   return (
@@ -169,9 +141,11 @@ export default function StudioPanel({
             <button
               type="button"
               onClick={() => setShowDocPicker((v) => !v)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:border-blue-300 transition-colors text-left"
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${showDocPicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-left`}
             >
-              <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-3.5 h-3.5 text-blue-500" />
+              </div>
               <span className="flex-1 text-xs font-medium text-gray-700 truncate">
                 {activeDoc?.title ?? 'Chọn tài liệu'}
               </span>
@@ -192,12 +166,14 @@ export default function StudioPanel({
                       type="button"
                       onClick={() => { setActiveDoc(doc); setShowDocPicker(false); }}
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-blue-50 ${
-                        activeDoc?.documentCode === doc.documentCode ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        activeDoc?.documentCode === doc.documentCode ? 'bg-blue-50' : ''
                       }`}
                     >
-                      <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                      <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-3 h-3 text-blue-400" />
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium truncate">{doc.title}</p>
+                        <p className={`text-xs font-medium truncate ${activeDoc?.documentCode === doc.documentCode ? 'text-blue-600' : 'text-gray-700'}`}>{doc.title}</p>
                         <p className="text-[11px] text-gray-400">{doc.lessonName || doc.lessonCode}</p>
                       </div>
                     </button>
@@ -315,15 +291,15 @@ export default function StudioPanel({
         </div>
       </StepSection>
 
-      {/* ─── Confirm modal ─────────────────────────────────────────────── */}
+      {/* ─── Slide detail picker modal ──────────────────────────────────── */}
       <AnimatePresence>
-        {confirmAction && (
+        {showSlideDetailPicker && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
-            onClick={() => setConfirmAction(null)}
+            onClick={() => setShowSlideDetailPicker(false)}
           >
             <motion.div
               initial={{ scale: 0.93, opacity: 0 }}
@@ -333,29 +309,57 @@ export default function StudioPanel({
               className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{CONFIRM_LABELS[confirmAction.type].title}</p>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">{CONFIRM_LABELS[confirmAction.type].body}</p>
-                </div>
+              <div className="mb-5">
+                <p className="text-base font-bold text-gray-900 mb-1">Mức độ chi tiết của slide</p>
+                <p className="text-xs text-gray-500">Chọn mức độ chi tiết cho nội dung được tạo.</p>
               </div>
+
+              <div className="space-y-2.5 mb-6">
+                {([
+                  { value: 'short',    label: 'Ngắn gọn',   desc: 'Ý chính, súc tích, ít chữ trên mỗi slide' },
+                  { value: 'medium',   label: 'Trung bình', desc: 'Cân bằng giữa nội dung và trình bày' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSelectedSlideRange(opt.value)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
+                      selectedSlideRange === opt.value
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-100 bg-white hover:border-gray-200'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                      selectedSlideRange === opt.value ? 'border-blue-500' : 'border-gray-300'
+                    }`}>
+                      {selectedSlideRange === opt.value && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold ${
+                        selectedSlideRange === opt.value ? 'text-blue-700' : 'text-gray-800'
+                      }`}>{opt.label}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
-                  onClick={() => setConfirmAction(null)}
+                  onClick={() => setShowSlideDetailPicker(false)}
                   className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   Hủy
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirm}
+                  onClick={handleSlideDetailConfirm}
                   className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                 >
-                  {CONFIRM_LABELS[confirmAction.type].cta}
+                  Tạo slide
                 </button>
               </div>
             </motion.div>
