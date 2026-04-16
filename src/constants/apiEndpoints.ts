@@ -8,10 +8,13 @@ const buildTemplateEndpoint  = (path: string) => `/api/Template${path}`;
 const buildProductEndpoint       = (path: string) => `/api/Product${path}`;
 const buildInputDocumentEndpoint = (path: string) => `/api/InputDocument${path}`;
 const buildCurriculumEndpoint    = (path: string) => `/api/curriculum-ingestion${path}`;
+const buildTextbookEndpoint      = (path: string) => `/api/textbook-ingestion${path}`;
 const buildAdminEndpoint         = (path: string) => `/api/Admin${path}`;
 const buildPaymentEndpoint       = (path: string) => `/api/Payment${path}`;
 const buildWithdrawalEndpoint    = (path: string) => `/api/withdrawal${path}`;
 const buildStaffEndpoint         = (path: string) => `/api/staff${path}`;
+const buildExpertEndpoint        = (path: string) => `/api/expert${path}`;
+const buildTeacherEndpoint       = (path: string) => `/api/teacher${path}`;
 const buildGamesEndpoint         = (path: string) => `/api/Games${path}`;
 
 // ─── Main API Endpoints ────────────────────────────────────────────────────────
@@ -56,8 +59,10 @@ export const API_ENDPOINTS = {
 
   // Project
   PROJECT: {
+    // GET    /api/Project
+    GET_ALL:   buildProjectEndpoint(''),
     // GET    /api/Project/grouped
-    GET_ALL:   buildProjectEndpoint('/grouped'),
+    GET_GROUPED: buildProjectEndpoint('/grouped'),
     // POST   /api/Project
     CREATE:    buildProjectEndpoint(""),
     // GET    /api/Project/{projectCode}
@@ -146,6 +151,12 @@ export const API_ENDPOINTS = {
     DELETE:   (code: string) => `/api/expert/verifications/${code}`,
   },
 
+  // Expert Profile
+  EXPERT_PROFILE: {
+    GET: buildExpertEndpoint('/profile'),
+    UPDATE: buildExpertEndpoint('/profile'),
+  },
+
   // Material (Expert)
   MATERIAL: {
     UPLOAD:   '/api/material/file',
@@ -170,6 +181,20 @@ export const API_ENDPOINTS = {
     GET_ALL: buildCurriculumEndpoint(''),
     // GET /api/curriculum-ingestion/{documentCode}
     GET_BY_CODE: (documentCode: string) => buildCurriculumEndpoint(`/${documentCode}`),
+    // DELETE /api/curriculum-ingestion/{documentCode}/neo4j
+    DELETE_NEO4J: (documentCode: string) => buildCurriculumEndpoint(`/${documentCode}/neo4j`),
+  },
+
+  // Textbook Ingestion
+  TEXTBOOK: {
+    // POST /api/textbook-ingestion
+    UPLOAD: buildTextbookEndpoint(''),
+    // GET /api/textbook-ingestion
+    GET_ALL: buildTextbookEndpoint(''),
+    // GET /api/textbook-ingestion/{documentCode}
+    GET_BY_CODE: (documentCode: string) => buildTextbookEndpoint(`/${documentCode}`),
+    // DELETE /api/textbook-ingestion/{documentCode}/neo4j
+    DELETE_NEO4J: (documentCode: string) => buildTextbookEndpoint(`/${documentCode}/neo4j`),
   },
 
   // Admin
@@ -196,6 +221,12 @@ export const API_ENDPOINTS = {
     VERIFICATION_DETAIL: (code: string) => buildStaffEndpoint(`/verifications/${code}`),
     VERIFICATION_FILE: (code: string) => buildStaffEndpoint(`/verifications/${code}/file`),
     REVIEW_VERIFICATION: (code: string) => buildStaffEndpoint(`/verifications/${code}/review`),
+    PROFILE: buildStaffEndpoint('/profile'),
+  },
+
+  // Teacher
+  TEACHER: {
+    PROFILE: buildTeacherEndpoint('/profile'),
   },
 
   // Payment

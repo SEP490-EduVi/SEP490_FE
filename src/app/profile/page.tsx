@@ -11,11 +11,20 @@ import {
   Mail, Phone, BadgeCheck, LockKeyhole, Wallet, CreditCard,
   PencilLine, X, Check, ArrowRight,
 } from 'lucide-react';
+import type { UserInfo as AuthUserInfo } from '@/types/auth';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetMeService, useChangePasswordService, useUpdateMeService } from '@/services/authServices';
 import { uploadAvatarToGcs } from '@/services/gcsServices';
 import { getVerificationFile } from '@/services/expertServices';
-import { useVerifications, useSubmitVerification, useDeleteVerification } from '@/hooks/useExpertApi';
+import {
+  useExpertProfile,
+  useUpdateExpertProfile,
+  useVerifications,
+  useSubmitVerification,
+  useDeleteVerification,
+} from '@/hooks/useExpertApi';
+import { useStaffProfile, useUpdateStaffProfile } from '@/hooks/useStaffApi';
+import { useTeacherProfile, useUpdateTeacherProfile } from '@/hooks/useTeacherApi';
 import {
   useBuySubscription,
   useConfirmWithdrawalOtp,
@@ -33,6 +42,32 @@ import { notify } from '@/components/common';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Tab = 'profile' | 'security' | 'payment' | 'withdrawal' | 'certificate';
+type ProfileRole = 'guest' | 'admin' | 'teacher' | 'staff' | 'expert';
+
+function resolveProfileRole(roleName?: string | null): ProfileRole {
+  if (!roleName) return 'guest';
+  const normalized = roleName.trim().toLowerCase();
+  if (normalized === 'admin') return 'admin';
+  if (normalized === 'teacher') return 'teacher';
+  if (normalized === 'staff') return 'staff';
+  if (normalized === 'expert') return 'expert';
+  return 'guest';
+}
+
+function toRoleDisplayName(role: ProfileRole): string {
+  if (role === 'admin') return 'Admin';
+  if (role === 'teacher') return 'Teacher';
+  if (role === 'staff') return 'Staff';
+  if (role === 'expert') return 'Expert';
+  return '';
+}
+
+function formatIsoDate(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('vi-VN');
+}
 
 function formatEduCoin(value: number | null | undefined): string {
   const amount = Number.isFinite(value) ? Number(value) : 0;
@@ -115,9 +150,22 @@ function CertStatusBadge({ status }: { status: number | string }) {
 // ── Inner page (needs Suspense because of useSearchParams) ───────────────
 function ProfilePageInner() {
   const searchParams    = useSearchParams();
-  const { user, role, setUser } = useAuthStore();
-  const isStaff = role === 'staff';
-  const isExpert = role === 'expert';
+  const { user, role: storeRole, setUser } = useAuthStore();
+
+  // Fallback only: role-specific profile is the source of truth for profile data.
+  const { data: meData, isLoading: isMeLoading } = useGetMeService({ enabled: !user });
+
+  useEffect(() => {
+    if (meData?.result && !user) setUser(meData.result);
+  }, [meData, setUser, user]);
+
+  const effectiveRole = storeRole !== 'guest'
+    ? storeRole
+    : resolveProfileRole(meData?.result?.role?.roleName ?? user?.role?.roleName ?? null);
+
+  const isStaff = effectiveRole === 'staff';
+  const isExpert = effectiveRole === 'expert';
+  const isTeacher = effectiveRole === 'teacher';
 
   const defaultTab = (): Tab => {
     const t = searchParams.get('tab');
@@ -135,13 +183,73 @@ function ProfilePageInner() {
     }
   }, [isStaff, activeTab]);
 
-  // ── GET /me ──────────────────────────────────────────────────────────────
-  const { data: meData, isLoading: isMeLoading } = useGetMeService({ enabled: true });
-  useEffect(() => {
-    if (meData?.result) setUser(meData.result);
-  }, [meData, setUser]);
-  const info = meData?.result ?? user;
-  const expertIsVerified = isExpert && Boolean((info as { expertIsVerified?: boolean | null } | null)?.expertIsVerified);
+  const { data: staffProfile, isLoading: isStaffProfileLoading } = useStaffProfile({ enabled: isStaff });
+  const {
+    data: expertProfile,
+    isLoading: isExpertProfileLoading,
+    refetch: refetchExpertProfile,
+  } = useExpertProfile({ enabled: isExpert });
+  const { data: teacherProfile, isLoading: isTeacherProfileLoading } = useTeacherProfile({ enabled: isTeacher });
+
+  const roleProfile = isStaff
+    ? staffProfile
+    : isExpert
+      ? expertProfile
+      : isTeacher
+        ? teacherProfile
+        : null;
+
+  const isRoleProfileLoading = (isStaff && !staffProfile && isStaffProfileLoading)
+    || (isExpert && !expertProfile && isExpertProfileLoading)
+    || (isTeacher && !teacherProfile && isTeacherProfileLoading);
+
+  const isProfileLoading = isRoleProfileLoading || (isMeLoading && !user && !meData?.result);
+
+  const baseInfo = (user ?? meData?.result ?? null) as ({
+    userId?: number;
+    userCode?: string | null;
+    fullName?: string | null;
+    email?: string | null;
+    phoneNumber?: string | null;
+    avatarUrl?: string | null;
+    username?: string | null;
+    role?: { roleName?: string | null };
+    status?: number;
+    expertId?: number | null;
+    expertIsVerified?: boolean | null;
+  } | null);
+
+  const info = {
+    ...(baseInfo ?? {}),
+    fullName: roleProfile?.fullName ?? baseInfo?.fullName ?? null,
+    email: roleProfile?.email ?? baseInfo?.email ?? null,
+    phoneNumber: roleProfile?.phoneNumber ?? baseInfo?.phoneNumber ?? null,
+    avatarUrl: roleProfile?.avatarUrl ?? baseInfo?.avatarUrl ?? null,
+  };
+
+  const roleExtraLabel = isStaff ? 'Phòng ban' : isTeacher ? 'Trường học' : isExpert ? 'Giới thiệu' : null;
+  const roleExtraValue = isStaff
+    ? (staffProfile?.department ?? null)
+    : isTeacher
+      ? (teacherProfile?.schoolName ?? null)
+      : isExpert
+        ? (expertProfile?.bio ?? null)
+        : null;
+  const staffHireDate = isStaff ? formatIsoDate(staffProfile?.hireDate) : null;
+  const expertUserCode = isExpert
+    ? (expertProfile?.userCode ?? baseInfo?.userCode ?? null)
+    : null;
+  const expertVerificationText = isExpert
+    ? (expertProfile?.isVerified == null
+      ? null
+      : expertProfile.isVerified
+        ? 'Đã xác minh'
+        : 'Chưa xác minh')
+    : null;
+
+  const expertIsVerified = isExpert && Boolean(
+    expertProfile?.isVerified ?? (baseInfo as { expertIsVerified?: boolean | null } | null)?.expertIsVerified,
+  );
 
   // ── Change password ───────────────────────────────────────────────────────
   const [currentPw, setCurrentPw] = useState('');
@@ -159,7 +267,17 @@ function ProfilePageInner() {
   const [editFullName,   setEditFullName]   = useState('');
   const [editPhone,      setEditPhone]      = useState('');
   const [editAvatarUrl,  setEditAvatarUrl]  = useState('');
+  const [editRoleExtra,  setEditRoleExtra]  = useState('');
   const updateMe = useUpdateMeService();
+  const updateExpertProfile = useUpdateExpertProfile();
+  const updateStaffProfile = useUpdateStaffProfile();
+  const updateTeacherProfile = useUpdateTeacherProfile();
+  const canUpdateAvatar = !isStaff && !isTeacher && !isExpert;
+  const profileUpdatePending =
+    updateMe.isPending ||
+    updateExpertProfile.isPending ||
+    updateStaffProfile.isPending ||
+    updateTeacherProfile.isPending;
   const [avatarImgError, setAvatarImgError] = useState(false);
   useEffect(() => { setAvatarImgError(false); }, [info?.avatarUrl]);
   const [avatarLocalPreview, setAvatarLocalPreview] = useState<string | null>(null);
@@ -170,11 +288,16 @@ function ProfilePageInner() {
     setEditFullName(info?.fullName ?? '');
     setEditPhone(info?.phoneNumber ?? '');
     setEditAvatarUrl(info?.avatarUrl ?? '');
+    setEditRoleExtra(roleExtraValue ?? '');
     setAvatarLocalPreview(null);
     setIsEditing(true);
   };
 
   const handleAvatarFileSelect = (file: File) => {
+    if (!canUpdateAvatar) {
+      notify.error('Vai trò hiện tại không hỗ trợ cập nhật ảnh đại diện tại màn này.');
+      return;
+    }
     if (!file.type.startsWith('image/')) { notify.error('Chỉ chấp nhận file ảnh.'); return; }
     if (file.size > 5 * 1024 * 1024) { notify.error('File ảnh tối đa 5 MB.'); return; }
 
@@ -201,19 +324,68 @@ function ProfilePageInner() {
     e.preventDefault();
     if (!editFullName.trim()) { notify.error('Họ và tên không được để trống.'); return; }
     if (avatarUploading) { notify.error('Vui lòng chờ ảnh tải lên xong.'); return; }
+
+    const fullName = editFullName.trim();
+    const phoneNumber = editPhone.trim();
+    const avatarUrl = editAvatarUrl.trim();
+    const roleExtra = editRoleExtra.trim();
+
+    const handleSuccess = (nextUser?: unknown) => {
+      if (nextUser && typeof nextUser === 'object') {
+        setUser(nextUser as AuthUserInfo);
+      } else if (baseInfo) {
+        setUser({
+          ...baseInfo,
+          fullName,
+          phoneNumber,
+          avatarUrl: canUpdateAvatar ? avatarUrl : (baseInfo.avatarUrl ?? null),
+        } as AuthUserInfo);
+      }
+      notify.success('Cập nhật hồ sơ thành công!');
+      setIsEditing(false);
+    };
+
+    const handleError = (err: unknown) => {
+      const responseMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      const genericMsg = err instanceof Error ? err.message : null;
+      notify.error(responseMsg ?? genericMsg ?? 'Cập nhật thất bại. Vui lòng thử lại.');
+    };
+
+    if (isStaff) {
+      updateStaffProfile.mutate(
+        { fullName, phoneNumber, department: roleExtra || undefined },
+        { onSuccess: () => handleSuccess(), onError: handleError },
+      );
+      return;
+    }
+
+    if (isTeacher) {
+      updateTeacherProfile.mutate(
+        { fullName, phoneNumber, schoolName: roleExtra || undefined },
+        { onSuccess: () => handleSuccess(), onError: handleError },
+      );
+      return;
+    }
+
+    if (isExpert) {
+      updateExpertProfile.mutate(
+        { fullName, phoneNumber, bio: roleExtra.length > 0 ? roleExtra : null },
+        {
+          onSuccess: () => {
+            void refetchExpertProfile();
+            handleSuccess();
+          },
+          onError: handleError,
+        },
+      );
+      return;
+    }
+
     updateMe.mutate(
-      { fullName: editFullName.trim(), phoneNumber: editPhone.trim(), avatarUrl: editAvatarUrl.trim() },
+      { fullName, phoneNumber, avatarUrl },
       {
-        onSuccess: (res) => {
-          if (res?.result) setUser(res.result);
-          notify.success('Cập nhật hồ sơ thành công!');
-          setIsEditing(false);
-          window.location.reload();
-        },
-        onError: (err: unknown) => {
-          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-          notify.error(msg ?? 'Cập nhật thất bại. Vui lòng thử lại.');
-        },
+        onSuccess: (res) => handleSuccess(res?.result),
+        onError: handleError,
       },
     );
   };
@@ -519,7 +691,7 @@ function ProfilePageInner() {
   // ── Derived ───────────────────────────────────────────────────────────────
   const displayName = info?.fullName || info?.username || 'Tài khoản';
   const initial     = displayName.charAt(0).toUpperCase();
-  const roleLabel   = info?.role?.roleName ?? '';
+  const roleLabel   = info?.role?.roleName ?? toRoleDisplayName(effectiveRole);
   const isActive    = info?.status === 1;
   const cert        = verifications[0] ?? null;
   const certStatus  = normalizeVerificationStatus(cert?.status);
@@ -566,7 +738,7 @@ function ProfilePageInner() {
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-lg select-none">
-                    {isMeLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : initial}
+                    {isProfileLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : initial}
                   </div>
                 )}
                 {/* <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -614,7 +786,7 @@ function ProfilePageInner() {
             </div>
 
             {/* Quota summary — teacher only */}
-            {role === 'teacher' && (
+            {isTeacher && (
               <div className="flex flex-wrap items-center gap-2 mt-4 pb-3 border-b border-gray-100 -mx-8 px-8">
                 {quotaLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
@@ -624,6 +796,7 @@ function ProfilePageInner() {
                       { label: 'Phân tích', available: userQuota.availableAnalysisQuota, total: userQuota.totalAnalysisQuota, color: 'bg-blue-100 text-blue-700' },
                       { label: 'Slide', available: userQuota.availableSlideQuota, total: userQuota.totalSlideQuota, color: 'bg-violet-100 text-violet-700' },
                       { label: 'Video', available: userQuota.availableVideoQuota, total: userQuota.totalVideoQuota, color: 'bg-rose-100 text-rose-700' },
+                      { label: 'Game', available: userQuota.availableGameQuota, total: userQuota.totalGameQuota, color: 'bg-amber-100 text-amber-700' },
                     ].map((q) => (
                       <span key={q.label} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${q.color}`}>
                         <span className="font-semibold">{q.available.toLocaleString('vi-VN')}</span>
@@ -688,7 +861,7 @@ function ProfilePageInner() {
                       <p className="text-xs text-gray-400">Chi tiết tài khoản của bạn</p>
                     </div>
                   </div>
-                  {!isMeLoading && !isEditing && (
+                  {!isProfileLoading && !isEditing && (
                     <button
                       onClick={openEdit}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -699,7 +872,7 @@ function ProfilePageInner() {
                   )}
                 </div>
 
-                {isMeLoading ? (
+                {isProfileLoading ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                   </div>
@@ -733,62 +906,96 @@ function ProfilePageInner() {
                         placeholder="Nhập số điện thoại"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-2">Ảnh đại diện</label>
-                      <div className="flex items-center gap-4">
-                        <button
-                          type="button"
-                          onClick={() => avatarFileInputRef.current?.click()}
-                          className="relative group flex-shrink-0 rounded-full overflow-hidden"
-                        >
-                          {(avatarLocalPreview ?? editAvatarUrl) ? (
-                            <img
-                              src={avatarLocalPreview ?? editAvatarUrl}
-                              alt="Ảnh đại diện"
-                              className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xl font-bold">
-                              {initial}
+                    {roleExtraLabel && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">{roleExtraLabel}</label>
+                        {isExpert ? (
+                          <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-blue-50/70 p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">Giới thiệu chuyên gia</span>
+                              <span className="text-[11px] text-indigo-500">{editRoleExtra.length}/500</span>
                             </div>
-                          )}
-                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
-                            <Camera className="w-5 h-5 text-white" />
+                            <textarea
+                              value={editRoleExtra}
+                              onChange={(e) => setEditRoleExtra(e.target.value)}
+                              rows={4}
+                              maxLength={500}
+                              className="w-full px-3.5 py-3 border border-indigo-100 rounded-xl text-sm bg-white/90 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all resize-none leading-6"
+                              placeholder="Ví dụ: Chuyên gia STEM với 8 năm kinh nghiệm thiết kế học liệu số..."
+                            />
+                            <p className="mt-2 text-[11px] text-indigo-600/80">
+                              Bio ngắn gọn giúp học viên hiểu chuyên môn và kinh nghiệm của bạn.
+                            </p>
                           </div>
-                        </button>
-                        <div>
+                        ) : (
+                          <input
+                            type="text"
+                            value={editRoleExtra}
+                            onChange={(e) => setEditRoleExtra(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                            placeholder={`Nhập ${roleExtraLabel.toLowerCase()}`}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {canUpdateAvatar && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-2">Ảnh đại diện</label>
+                        <div className="flex items-center gap-4">
                           <button
                             type="button"
                             onClick={() => avatarFileInputRef.current?.click()}
-                            disabled={avatarUploading}
-                            className="px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="relative group flex-shrink-0 rounded-full overflow-hidden"
                           >
-                            {avatarUploading ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Đang tải lên...</span> : 'Chọn ảnh'}
+                            {(avatarLocalPreview ?? editAvatarUrl) ? (
+                              <img
+                                src={avatarLocalPreview ?? editAvatarUrl}
+                                alt="Ảnh đại diện"
+                                className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xl font-bold">
+                                {initial}
+                              </div>
+                            )}
+                            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
+                              <Camera className="w-5 h-5 text-white" />
+                            </div>
                           </button>
-                          <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, GIF · Tối đa 5 MB</p>
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => avatarFileInputRef.current?.click()}
+                              disabled={avatarUploading}
+                              className="px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {avatarUploading ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Đang tải lên...</span> : 'Chọn ảnh'}
+                            </button>
+                            <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, GIF · Tối đa 5 MB</p>
+                          </div>
+                          <input
+                            ref={avatarFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFileSelect(f); e.target.value = ''; }}
+                          />
                         </div>
-                        <input
-                          ref={avatarFileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFileSelect(f); e.target.value = ''; }}
-                        />
                       </div>
-                    </div>
+                    )}
                     <div className="flex items-center gap-3 pt-2">
                       <button
                         type="submit"
-                        disabled={updateMe.isPending || avatarUploading}
+                        disabled={profileUpdatePending || avatarUploading}
                         className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {updateMe.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        {updateMe.isPending ? 'Đang lưu...' : avatarUploading ? 'Đợi ảnh tải lên...' : 'Lưu thay đổi'}
+                        {profileUpdatePending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        {profileUpdatePending ? 'Đang lưu...' : avatarUploading ? 'Đợi ảnh tải lên...' : 'Lưu thay đổi'}
                       </button>
                       <button
                         type="button"
                         onClick={() => { setAvatarLocalPreview(null); setAvatarUploading(false); setIsEditing(false); }}
-                        disabled={updateMe.isPending}
+                        disabled={profileUpdatePending}
                         className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl text-sm font-medium transition-colors"
                       >
                         <X className="w-4 h-4" />
@@ -797,17 +1004,43 @@ function ProfilePageInner() {
                     </div>
                   </form>
                 ) : (
-                  <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-gray-50">
-                    <div className="space-y-5 sm:pr-8">
-                      <InfoField icon={User}     label="Họ và tên"     value={info?.fullName}    />
-                      <InfoField icon={User}     label="Tên đăng nhập" value={info?.username}    />
-                      <InfoField icon={Mail}     label="Email"         value={info?.email}       />
+                  <>
+                    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-gray-50">
+                      <div className="space-y-5 sm:pr-8">
+                        <InfoField icon={User}     label="Họ và tên"     value={info?.fullName}    />
+                        <InfoField icon={User}     label="Tên đăng nhập" value={info?.username}    />
+                        <InfoField icon={Mail}     label="Email"         value={info?.email}       />
+                      </div>
+                      <div className="space-y-5 pt-5 sm:pt-0 sm:pl-8">
+                        <InfoField icon={Phone}    label="Số điện thoại" value={info?.phoneNumber} />
+                        {isExpert && <InfoField icon={BadgeCheck} label="Mã người dùng" value={expertUserCode} />}
+                        {roleLabel && <InfoField icon={BadgeCheck} label="Vai trò" value={roleLabel} />}
+                        {roleExtraLabel && !isExpert && <InfoField icon={FileText} label={roleExtraLabel} value={roleExtraValue} />}
+                        {isExpert && (
+                          <InfoField
+                            icon={ShieldCheck}
+                            label="Xác minh chuyên gia"
+                            value={expertVerificationText}
+                            highlight={expertIsVerified}
+                          />
+                        )}
+                        {isStaff && <InfoField icon={Clock} label="Ngày tuyển dụng" value={staffHireDate} />}
+                      </div>
                     </div>
-                    <div className="space-y-5 pt-5 sm:pt-0 sm:pl-8">
-                      <InfoField icon={Phone}    label="Số điện thoại" value={info?.phoneNumber} />
-                      {roleLabel && <InfoField icon={BadgeCheck} label="Vai trò" value={roleLabel} />}
-                    </div>
-                  </div>
+                    {isExpert && (
+                      <div className="px-6 pb-6">
+                        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-blue-50 p-4 sm:p-5 shadow-sm">
+                          <div className="flex items-center gap-2 mb-2.5 text-indigo-700">
+                            <FileText className="w-4 h-4" />
+                            <p className="text-xs font-semibold uppercase tracking-wide">Giới thiệu chuyên gia</p>
+                          </div>
+                          <p className={`text-sm leading-6 whitespace-pre-wrap ${roleExtraValue ? 'text-gray-700' : 'text-gray-500 italic'}`}>
+                            {roleExtraValue || 'Chưa có bio. Hãy thêm phần giới thiệu để hồ sơ của bạn chuyên nghiệp hơn.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </motion.div>

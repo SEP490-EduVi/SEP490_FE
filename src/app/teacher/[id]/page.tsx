@@ -295,7 +295,13 @@ export default function ProjectDetailPage() {
         const result = await productService.getProductSlide(productCode);
         slideDoc = result.slideDocument;
       }
-      setDocument(slideDoc, productCode, projectCode, product?.hasEditedSlide ?? false);
+      setDocument(
+        slideDoc,
+        productCode,
+        projectCode,
+        product?.hasEditedSlide ?? false,
+        product?.productName,
+      );
       router.push('/teacher/editor');
     } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
     finally { setViewSlideLoading(null); }

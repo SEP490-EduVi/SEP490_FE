@@ -270,6 +270,31 @@ export interface UploadCurriculumInput {
   Note?: string;
 }
 
+export interface TextbookDto {
+  documentCode: string;
+  subjectCode: string;
+  gradeCode: string;
+  publishYear?: number | null;
+  publisher?: string | null;
+  originalFileName: string;
+  fileUrl?: string;
+  note?: string | null;
+  errorMessage?: string | null;
+  warning?: string | null;
+  status: number;
+  statusName: string;
+  createdAt?: string;
+}
+
+export interface UploadTextbookInput {
+  File: File;
+  SubjectCode: string;
+  GradeCode: string;
+  PublishYear?: number;
+  Publisher?: string;
+  Note?: string;
+}
+
 // ─── Expert: Verification (Certificate) ────────────────────────────────────
 export interface VerificationDto {
   verificationCode: string;
@@ -280,6 +305,22 @@ export interface VerificationDto {
   uploadedAt: string;
   reviewedAt: string | null;
   fileUrl?: string;
+}
+
+export interface ExpertProfileDto {
+  userCode: string | null;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  isVerified: boolean | null;
+}
+
+export interface UpdateExpertProfileInput {
+  fullName?: string;
+  phoneNumber?: string;
+  bio?: string | null;
 }
 
 // ─── Expert: Material ──────────────────────────────────────────────────────
@@ -404,6 +445,9 @@ export interface UserQuotaDto {
   totalVideoQuota: number;
   availableVideoQuota: number;
   usedVideoQuota: number;
+  totalGameQuota: number;
+  availableGameQuota: number;
+  usedGameQuota: number;
   updatedAt: string;
 }
 
@@ -468,6 +512,37 @@ export interface ReviewVerificationInput {
 export interface ReviewMaterialInput {
   approved: boolean;
   rejectionReason?: string;
+}
+
+export interface StaffProfileDto {
+  userCode: string | null;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  department: string | null;
+  hireDate: string | null;
+}
+
+export interface UpdateStaffProfileInput {
+  fullName?: string;
+  phoneNumber?: string;
+  department?: string;
+}
+
+export interface TeacherProfileDto {
+  userCode: string | null;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  schoolName: string | null;
+}
+
+export interface UpdateTeacherProfileInput {
+  fullName?: string;
+  phoneNumber?: string;
+  schoolName?: string;
 }
 
 // ─── Card Template ────────────────────────────────────────────────────────

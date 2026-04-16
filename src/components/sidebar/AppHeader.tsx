@@ -145,12 +145,15 @@ export default function AppHeader() {
     slideTotal: userQuota?.totalSlideQuota ?? 0,
     videoAvailable: userQuota?.availableVideoQuota ?? 0,
     videoTotal: userQuota?.totalVideoQuota ?? 0,
+    gameAvailable: userQuota?.availableGameQuota ?? 0,
+    gameTotal: userQuota?.totalGameQuota ?? 0,
   };
 
   const quotaDetailRows = [
     {
       key: 'ai',
-      label: 'AI',
+      label: 'AI phân tích',
+      shortLabel: 'AI',
       available: quotaSummary.analysisAvailable,
       total: quotaSummary.analysisTotal,
       color: 'bg-blue-500',
@@ -158,7 +161,8 @@ export default function AppHeader() {
     },
     {
       key: 'slide',
-      label: 'Slide',
+      label: 'Tạo slide',
+      shortLabel: 'S',
       available: quotaSummary.slideAvailable,
       total: quotaSummary.slideTotal,
       color: 'bg-violet-500',
@@ -166,11 +170,21 @@ export default function AppHeader() {
     },
     {
       key: 'video',
-      label: 'Video',
+      label: 'Tạo video',
+      shortLabel: 'V',
       available: quotaSummary.videoAvailable,
       total: quotaSummary.videoTotal,
       color: 'bg-rose-500',
       textColor: 'text-rose-700',
+    },
+    {
+      key: 'game',
+      label: 'Trò chơi',
+      shortLabel: 'G',
+      available: quotaSummary.gameAvailable,
+      total: quotaSummary.gameTotal,
+      color: 'bg-amber-500',
+      textColor: 'text-amber-700',
     },
   ].map((item) => {
     const total = Math.max(0, item.total);
@@ -187,7 +201,23 @@ export default function AppHeader() {
 
   const formatBalance = (amount?: number) => {
     const safe = Number.isFinite(amount) ? Number(amount) : 0;
-    return `${safe.toLocaleString('vi-VN')} xu`;
+    return `${safe.toLocaleString('vi-VN')} EduCoin`;
+  };
+
+  const formatCompactBalance = (amount?: number) => {
+    const safe = Number.isFinite(amount) ? Number(amount) : 0;
+    return new Intl.NumberFormat('vi-VN', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(safe);
+  };
+
+  const formatCompactQuota = (amount?: number) => {
+    const safe = Number.isFinite(amount) ? Number(amount) : 0;
+    return new Intl.NumberFormat('vi-VN', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(safe);
   };
 
   const formatTxTime = (createdAt: string) => {
@@ -212,7 +242,7 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
 
         {/* ── Mobile hamburger ── */}
         {navItems.length > 0 && (
@@ -231,7 +261,7 @@ export default function AppHeader() {
 
         {/* ── Desktop role nav ── */}
         {navItems.length > 0 && (
-          <nav className="hidden md:flex items-center gap-1 flex-1" aria-label="Điều hướng chính">
+          <nav className="hidden md:flex items-center gap-0.5 flex-1" aria-label="Điều hướng chính">
             {navItems.map(({ href, label, icon: Icon }) => {
               const active = isActive(href);
               return (
@@ -239,13 +269,13 @@ export default function AppHeader() {
                   key={href}
                   href={href}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     active
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <Icon className="w-4 h-4 flex-shrink-0" />
                   {label}
                 </Link>
               );
@@ -253,149 +283,159 @@ export default function AppHeader() {
           </nav>
         )}
 
-        {isTeacher && (
-          <div className="relative hidden sm:block" ref={quotaRef}>
-            <button
-              onClick={() => setQuotaOpen((o) => !o)}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              aria-label="Xem quota"
-              aria-expanded={quotaOpen}
-            >
-              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-              </span>
-              Xem giới hạn sử dụng
-            </button>
-
-            {quotaOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50">
-                <div className="mb-3">
-                  <p className="text-sm font-semibold text-slate-900">Chi tiết quota</p>
-                  <p className="text-xs text-slate-500">Còn lại / tổng và tỉ lệ đã dùng</p>
-                </div>
-
-                {quotaLoading ? (
-                  <div className="py-6 flex items-center justify-center gap-2 text-sm text-slate-500">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Đang tải quota...
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {quotaDetailRows.map((item) => (
-                      <div key={item.key} className="rounded-xl border border-slate-100 p-2.5">
-                        <div className="mb-1.5 flex items-center justify-between text-xs">
-                          <span className={`font-semibold ${item.textColor}`}>{item.label}</span>
-                          <span className="text-slate-600 tabular-nums">
-                            {item.available.toLocaleString('vi-VN')}/{item.total.toLocaleString('vi-VN')}
-                          </span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                          <div className={`h-full ${item.color}`} style={{ width: `${item.percentUsed}%` }} />
-                        </div>
-                        <p className="mt-1 text-[11px] text-slate-500 tabular-nums">Đã dùng: {item.used.toLocaleString('vi-VN')} ({item.percentUsed}%)</p>
-                      </div>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuotaOpen(false);
-                        router.push('/profile?tab=payment');
-                      }}
-                      className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-                    >
-                      Mở trang thanh toán
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {isTeacher && (
-          <div
-            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/60"
-            title="Số dư ví"
-          >
-            <Wallet className="w-4 h-4 text-emerald-700" />
-            {walletLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-            ) : (
-              <span className="text-xs font-semibold text-emerald-800 tabular-nums">
-                Số dư: {formatBalance(walletInfo?.balance)}
-              </span>
-            )}
-          </div>
-        )}
-
-        {isTeacher && (
-          <div className="relative hidden sm:block" ref={notifRef}>
-            <button
-              onClick={() => setNotifOpen((o) => !o)}
-              className="relative w-11 h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center"
-              aria-label="Thông báo thanh toán"
-              aria-expanded={notifOpen}
-            >
-              <Bell className="w-5 h-5 text-slate-700" />
-              {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-semibold flex items-center justify-center">
-                  {notificationCount > 9 ? '9+' : notificationCount}
+        <div className="ml-auto flex items-center gap-2">
+          {isTeacher && (
+            <div className="relative hidden md:block" ref={quotaRef}>
+              <button
+                onClick={() => setQuotaOpen((o) => !o)}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                aria-label="Xem tài nguyên"
+                aria-expanded={quotaOpen}
+              >
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                  {quotaLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
                 </span>
-              )}
-            </button>
+                <span className="font-semibold">Tài nguyên</span>
+                {!quotaLoading && (
+                  <span className="hidden 2xl:inline text-[11px] text-slate-500 tabular-nums whitespace-nowrap">
+                    {quotaDetailRows.map((item) => `${item.shortLabel} ${formatCompactQuota(item.available)}`).join(' · ')}
+                  </span>
+                )}
+                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${quotaOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-xl py-2 z-50">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-sm font-semibold text-gray-900">Thông báo giao dịch</p>
-                  <p className="text-xs text-gray-400">5 giao dịch mới nhất</p>
-                </div>
-
-                {txLoading ? (
-                  <div className="px-4 py-6 flex items-center justify-center text-sm text-gray-500 gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Đang tải thông báo...
+              {quotaOpen && (
+                <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50">
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-slate-900">Tài nguyên khả dụng</p>
+                    <p className="text-xs text-slate-500">Số còn lại trên tổng lượt theo gói hiện tại</p>
                   </div>
-                ) : latestTransactions.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-gray-500 text-center">Chưa có thông báo mới.</p>
-                ) : (
-                  <div className="max-h-80 overflow-auto">
-                    {latestTransactions.map((tx) => (
+
+                  {quotaLoading ? (
+                    <div className="py-6 flex items-center justify-center gap-2 text-sm text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Đang tải quota...
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {quotaDetailRows.map((item) => (
+                        <div key={item.key} className="rounded-xl border border-slate-100 p-2.5">
+                          <div className="mb-1.5 flex items-center justify-between text-xs">
+                            <span className={`font-semibold ${item.textColor}`}>{item.label}</span>
+                            <span className="text-slate-600 tabular-nums">
+                              {item.available.toLocaleString('vi-VN')}/{item.total.toLocaleString('vi-VN')} lượt
+                            </span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                            <div className={`h-full ${item.color}`} style={{ width: `${item.percentUsed}%` }} />
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-500 tabular-nums">Đã dùng: {item.used.toLocaleString('vi-VN')} ({item.percentUsed}%)</p>
+                        </div>
+                      ))}
+
                       <button
-                        key={tx.transactionId}
+                        type="button"
                         onClick={() => {
-                          setNotifOpen(false);
+                          setQuotaOpen(false);
                           router.push('/profile?tab=payment');
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
+                        className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{tx.description || tx.transactionType}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{formatTxTime(tx.createdAt)}</p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className={`text-sm font-semibold ${tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                              {formatTxAmount(tx.amount)}
-                            </p>
-                            <p className="text-[11px] text-gray-400 mt-0.5">{tx.status}</p>
-                          </div>
-                        </div>
+                        Mở trang thanh toán
                       </button>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isTeacher && (
+            <div
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/70"
+              title={`Số dư: ${formatBalance(walletInfo?.balance)}`}
+            >
+              <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+              <div className="leading-none">
+                <p className="text-[10px] font-medium text-emerald-700">Ví EduCoin</p>
+                {walletLoading ? (
+                  <Loader2 className="mt-0.5 w-3.5 h-3.5 animate-spin text-emerald-700" />
+                ) : (
+                  <p className="mt-0.5 text-xs font-semibold text-emerald-800 tabular-nums whitespace-nowrap">
+                    {formatCompactBalance(walletInfo?.balance)}
+                  </p>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* ── User menu ── */}
-        <div className="relative flex-shrink-0 ml-auto" ref={menuRef}>
+          {isTeacher && (
+            <div className="relative hidden md:block" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen((o) => !o)}
+                className="relative w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center"
+                aria-label="Thông báo thanh toán"
+                aria-expanded={notifOpen}
+              >
+                <Bell className="w-4 h-4 text-slate-700" />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-xl py-2 z-50">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900">Thông báo giao dịch</p>
+                    <p className="text-xs text-gray-400">5 giao dịch mới nhất</p>
+                  </div>
+
+                  {txLoading ? (
+                    <div className="px-4 py-6 flex items-center justify-center text-sm text-gray-500 gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Đang tải thông báo...
+                    </div>
+                  ) : latestTransactions.length === 0 ? (
+                    <p className="px-4 py-6 text-sm text-gray-500 text-center">Chưa có thông báo mới.</p>
+                  ) : (
+                    <div className="max-h-80 overflow-auto">
+                      {latestTransactions.map((tx) => (
+                        <button
+                          key={tx.transactionId}
+                          onClick={() => {
+                            setNotifOpen(false);
+                            router.push('/profile?tab=payment');
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{tx.description || tx.transactionType}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{formatTxTime(tx.createdAt)}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className={`text-sm font-semibold ${tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {formatTxAmount(tx.amount)}
+                              </p>
+                              <p className="text-[11px] text-gray-400 mt-0.5">{tx.status}</p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── User menu ── */}
+          <div className="relative flex-shrink-0" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="flex items-center gap-2 px-2.5 py-1 rounded-xl hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Menu tài khoản"
             aria-expanded={menuOpen}
             aria-haspopup="true"
@@ -404,15 +444,15 @@ export default function AppHeader() {
               <img
                 src={avatarUrl}
                 alt={displayName}
-                className="w-11 h-11 rounded-full object-cover ring-2 ring-blue-100"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-100"
                 onError={() => setHeaderAvatarErr(true)}
               />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                 {initial}
               </div>
             )}
-            <p className="hidden sm:block text-base font-semibold text-gray-900 leading-none">{displayName}</p>
+            <p className="hidden xl:block text-sm font-semibold text-gray-900 leading-none">{displayName}</p>
             <ChevronDown
               className={`w-4 h-4 text-gray-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
             />
@@ -506,6 +546,7 @@ export default function AppHeader() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
 

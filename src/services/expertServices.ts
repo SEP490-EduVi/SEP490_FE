@@ -1,6 +1,18 @@
 import api from '@/config/axios';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
-import type { ApiResponse, VerificationDto } from '@/types/api';
+import type {
+  ApiResponse,
+  ExpertProfileDto,
+  UpdateExpertProfileInput,
+  VerificationDto,
+} from '@/types/api';
+
+function unwrapApiResponse<T>(response: ApiResponse<T>, fallbackMessage: string): T {
+  if (response.code !== 200) {
+    throw new Error(response.message || fallbackMessage);
+  }
+  return response.result;
+}
 
 export async function submitVerification(file: File, fileType: string, description?: string): Promise<VerificationDto> {
   const formData = new FormData();
@@ -41,4 +53,19 @@ export async function getVerificationFile(verificationCode: string, fileUrl?: st
 
 export async function deleteVerification(verificationCode: string): Promise<void> {
   await api.delete(API_ENDPOINTS.EXPERT_VERIFICATION.DELETE(verificationCode));
+}
+
+export async function getExpertProfile(): Promise<ExpertProfileDto> {
+  const { data } = await api.get<ApiResponse<ExpertProfileDto>>(
+    API_ENDPOINTS.EXPERT_PROFILE.GET,
+  );
+  return unwrapApiResponse(data, 'Không thể tải thông tin Expert.');
+}
+
+export async function updateExpertProfile(input: UpdateExpertProfileInput): Promise<unknown> {
+  const { data } = await api.put<ApiResponse<unknown>>(
+    API_ENDPOINTS.EXPERT_PROFILE.UPDATE,
+    input,
+  );
+  return unwrapApiResponse(data, 'Cập nhật hồ sơ Expert thất bại.');
 }

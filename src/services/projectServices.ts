@@ -26,8 +26,16 @@ function flattenGroupedProjects(groups: ProjectGroupedSubjectDto[]): ProjectDto[
 
 // ─── GET all projects ──────────────────────────────────────────────────────
 export async function getAllProjects(): Promise<ProjectDto[]> {
-  const { data } = await api.get<ApiResponse<ProjectGroupedSubjectDto[]>>(
+  const { data } = await api.get<ApiResponse<ProjectDto[]>>(
     API_ENDPOINTS.PROJECT.GET_ALL,
+  );
+  return data.result ?? [];
+}
+
+// ─── GET grouped projects (legacy grouped endpoint) ───────────────────────
+export async function getAllProjectsGrouped(): Promise<ProjectDto[]> {
+  const { data } = await api.get<ApiResponse<ProjectGroupedSubjectDto[]>>(
+    API_ENDPOINTS.PROJECT.GET_GROUPED,
   );
   return flattenGroupedProjects(data.result ?? []);
 }

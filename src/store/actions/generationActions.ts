@@ -15,6 +15,7 @@ import type { StoreGet, StoreSet } from '../types';
 
 const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
+const PRODUCT_NAME_KEY = 'eduvi_product_name';
 const PROJECT_CODE_KEY = 'eduvi_project_code';
 const IS_GENERATING_KEY = 'eduvi_is_generating';
 const GENERATING_PRODUCT_CODE_KEY = 'eduvi_generating_product_code';
@@ -40,6 +41,7 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
         // cannot be picked up by loadDocument on reload.
         sessionStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(PRODUCT_CODE_KEY);
+        sessionStorage.removeItem(PRODUCT_NAME_KEY);
       } catch { /* ignore */ }
       set({
         isGenerating: true,
@@ -51,6 +53,7 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
         revealedCardCount: 0,
         currentProductCode: productCode,
         currentProjectCode: projectCode ?? null,
+        currentProductName: null,
         isDirty: false,
         isSlideEdited: false,
         isNewlyGenerated: true,
@@ -95,6 +98,7 @@ export function createGenerationActions(set: StoreSet, get: StoreGet) {
         revealedCardCount: 0,
         currentProductCode: productCode,
         currentProjectCode: projectCode,
+        currentProductName: null,
         isDirty: false,
         isSlideEdited: false,
         history: [deepClone(doc)],
