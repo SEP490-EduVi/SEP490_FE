@@ -164,14 +164,16 @@ function ProfilePageInner() {
 
   // Fallback only: role-specific profile is the source of truth for profile data.
   const { data: meData, isLoading: isMeLoading } = useGetMeService({ enabled: !user });
+  const meResponse = meData as { result?: AuthUserInfo } | undefined;
+  const meResult = meResponse?.result;
 
   useEffect(() => {
-    if (meData?.result && !user) setUser(meData.result);
-  }, [meData, setUser, user]);
+    if (meResult && !user) setUser(meResult);
+  }, [meResult, setUser, user]);
 
   const effectiveRole = storeRole !== 'guest'
     ? storeRole
-    : resolveProfileRole(meData?.result?.role?.roleName ?? user?.role?.roleName ?? null);
+    : resolveProfileRole(meResult?.role?.roleName ?? user?.role?.roleName ?? null);
 
   const isStaff = effectiveRole === 'staff';
   const isExpert = effectiveRole === 'expert';
@@ -216,9 +218,9 @@ function ProfilePageInner() {
     || (isExpert && !expertProfile && isExpertProfileLoading)
     || (isTeacher && !teacherProfile && isTeacherProfileLoading);
 
-  const isProfileLoading = isRoleProfileLoading || (isMeLoading && !user && !meData?.result);
+  const isProfileLoading = isRoleProfileLoading || (isMeLoading && !user && !meResult);
 
-  const baseInfo = (user ?? meData?.result ?? null) as ({
+  const baseInfo = (user ?? meResult ?? null) as ({
     userId?: number;
     userCode?: string | null;
     fullName?: string | null;
