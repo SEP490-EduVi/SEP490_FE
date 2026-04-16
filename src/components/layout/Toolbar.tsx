@@ -334,10 +334,13 @@ export function Toolbar() {
                         gradeCode?: string;
                         gradeName?: string;
                       } | undefined;
+                      let projectName = '';
 
                       if (currentProjectCode) {
                         try {
                           const project = await getProjectByCode(currentProjectCode);
+                          projectName =
+                            typeof project.projectName === 'string' ? project.projectName.trim() : '';
                           academicContext = {
                             projectCode: project.projectCode,
                             projectName: project.projectName,
@@ -354,6 +357,7 @@ export function Toolbar() {
                       const result = await exportToEduvi(document, {
                         requireOfflineReady: false,
                         academicContext,
+                        projectName: projectName || undefined,
                       });
                       const integrity = result.schema.integrity;
 

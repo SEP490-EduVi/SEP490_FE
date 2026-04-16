@@ -3,11 +3,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as expertService from '@/services/expertServices';
 import * as materialService from '@/services/materialServices';
-import type { UpdateMaterialInput } from '@/types/api';
+import type { UpdateExpertProfileInput, UpdateMaterialInput } from '@/types/api';
 
 // ─── Verifications ─────────────────────────────────────────────────────────
 
 const VERIFICATION_KEY = 'verifications';
+const EXPERT_PROFILE_KEY = 'expert-profile';
+
+interface ProfileQueryOptions {
+  enabled?: boolean;
+}
+
+export function useExpertProfile(options?: ProfileQueryOptions) {
+  return useQuery({
+    queryKey: [EXPERT_PROFILE_KEY],
+    queryFn: expertService.getExpertProfile,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useUpdateExpertProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateExpertProfileInput) => expertService.updateExpertProfile(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [EXPERT_PROFILE_KEY] }),
+  });
+}
 
 export function useVerifications() {
   return useQuery({

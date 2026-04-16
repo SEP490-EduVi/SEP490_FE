@@ -21,7 +21,7 @@ export type AppRole = 'guest' | 'admin' | 'teacher' | 'staff' | 'expert';
 /** Map backend roleName (case-insensitive) → AppRole */
 function resolveRole(roleName?: string | null): AppRole {
   if (!roleName) return 'guest';
-  const lower = roleName.toLowerCase();
+  const lower = roleName.trim().toLowerCase();
   if (lower === 'admin') return 'admin';
   if (lower === 'teacher') return 'teacher';
   if (lower === 'staff') return 'staff';

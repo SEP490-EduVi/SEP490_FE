@@ -37,6 +37,7 @@ export interface DocumentState {
   error: string | null;
   currentProductCode: string | null;
   currentProjectCode: string | null;
+  currentProductName: string | null;
   isSaving: boolean;
   isDirty: boolean;
   isSlideEdited: boolean;
@@ -65,7 +66,13 @@ export interface DocumentState {
 
   // Document Actions
   loadDocument: () => Promise<void>;
-  setDocument: (doc: IDocument, productCode?: string, projectCode?: string, isSlideEdited?: boolean) => void;
+  setDocument: (
+    doc: IDocument,
+    productCode?: string,
+    projectCode?: string,
+    isSlideEdited?: boolean,
+    productName?: string,
+  ) => void;
   saveSlide: () => Promise<void>;
   
   // Undo/Redo Actions

@@ -5,7 +5,9 @@ import type {
   MaterialDto,
   ReviewMaterialInput,
   ReviewVerificationInput,
+  StaffProfileDto,
   StaffVerificationDto,
+  UpdateStaffProfileInput,
 } from '@/types/api';
 
 type DownloadVerificationFileResult = {
@@ -80,4 +82,14 @@ export async function getMaterialReviewDetail(materialCode: string): Promise<Mat
 
 export async function reviewMaterial(materialCode: string, input: ReviewMaterialInput): Promise<void> {
   await api.post(API_ENDPOINTS.MATERIAL.REVIEW(materialCode), input);
+}
+
+export async function getStaffProfile(): Promise<StaffProfileDto> {
+  const { data } = await api.get<ApiResponse<StaffProfileDto>>(API_ENDPOINTS.STAFF.PROFILE);
+  return data.result;
+}
+
+export async function updateStaffProfile(input: UpdateStaffProfileInput): Promise<unknown> {
+  const { data } = await api.put<ApiResponse<unknown>>(API_ENDPOINTS.STAFF.PROFILE, input);
+  return data.result;
 }

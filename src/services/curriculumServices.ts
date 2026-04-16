@@ -33,3 +33,10 @@ export async function getCurriculumByCode(documentCode: string): Promise<Curricu
   );
   return data.result;
 }
+
+export async function deleteCurriculumNeo4j(documentCode: string): Promise<unknown> {
+  const { data } = await api.delete<ApiResponse<unknown>>(
+    API_ENDPOINTS.CURRICULUM.DELETE_NEO4J(documentCode),
+  );
+  return data.result;
+}

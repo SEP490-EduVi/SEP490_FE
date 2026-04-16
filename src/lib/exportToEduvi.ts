@@ -121,6 +121,8 @@ export interface EduViExportOptions {
   requireOfflineReady?: boolean;
   /** Optional academic classification metadata to include in export */
   academicContext?: Partial<EduViAcademicContext>;
+  /** Optional project name used as preferred export title */
+  projectName?: string;
   /** Timeout per asset fetch in milliseconds */
   mediaFetchTimeoutMs?: number;
 }
@@ -422,8 +424,23 @@ function sanitizeFileTitle(title: unknown): string {
     .replace(/^-|-$/g, '') || 'eduvi-presentation';
 }
 
-function createExportFileName(document: IDocument): string {
-  const safeTitle = sanitizeFileTitle(document?.title);
+function resolveExportTitle(document: IDocument, fallbackProjectName?: string): string {
+  const normalizedProjectName = typeof fallbackProjectName === 'string' ? fallbackProjectName.trim() : '';
+  if (normalizedProjectName) return normalizedProjectName;
+
+  const normalizedFirstSlideTitle =
+    Array.isArray(document?.cards)
+      ? document.cards
+          .map((card) => (typeof card?.title === 'string' ? card.title.trim() : ''))
+          .find((title) => title.length > 0) || ''
+      : '';
+
+  if (normalizedFirstSlideTitle) return normalizedFirstSlideTitle;
+  return 'Untitled';
+}
+
+function createExportFileName(document: IDocument, fallbackProjectName?: string): string {
+  const safeTitle = sanitizeFileTitle(resolveExportTitle(document, fallbackProjectName));
   const now = new Date();
   const pad2 = (value: number): string => String(value).padStart(2, '0');
   const datePart = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
@@ -885,7 +902,7 @@ async function buildEduViData(document: IDocument, options: EduViExportOptions =
     mediaFetchTimeoutMs: options.mediaFetchTimeoutMs ?? DEFAULT_MEDIA_FETCH_TIMEOUT_MS,
   };
 
-  const schema = transformDocument(document, options.academicContext);
+  const schema = transformDocument(document, options.academicContext, options.projectName);
   const embedResult = await embedAssets(schema, resolvedOptions);
   const stats = computeStats(schema, embedResult.failedUrls.length);
   schema.integrity = {
@@ -897,10 +914,13 @@ async function buildEduViData(document: IDocument, options: EduViExportOptions =
   return schema;
 }
 
-function transformDocument(document: IDocument, academicContext?: Partial<EduViAcademicContext>): EduViFileSchema {
+function transformDocument(
+  document: IDocument,
+  academicContext?: Partial<EduViAcademicContext>,
+  fallbackProjectName?: string,
+): EduViFileSchema {
   const fallbackTimestamp = new Date().toISOString();
-  const normalizedTitle =
-    typeof document?.title === 'string' && document.title.trim() ? document.title.trim() : 'Untitled';
+  const normalizedTitle = resolveExportTitle(document, fallbackProjectName);
 
   return {
     version: EDUVI_SCHEMA_VERSION,
@@ -961,9 +981,10 @@ export async function exportToEduvi(
   // Create download link
   const url = URL.createObjectURL(blob);
   const link = window.document.createElement('a');
+  const fileName = createExportFileName(document, options.projectName);
   
-  // Generate filename from document title
-  link.download = createExportFileName(document);
+  // Generate filename from resolved export title
+  link.download = fileName;
   link.href = url;
   
   // Trigger download
@@ -981,7 +1002,7 @@ export async function exportToEduvi(
   console.log('[EduVi] Exported document:', link.download, eduViData.integrity?.stats);
 
   return {
-    fileName: link.download,
+    fileName,
     schema: eduViData,
     validation,
   };
@@ -1017,7 +1038,7 @@ export async function serializeToEduviAdvanced(
   }
 
   return {
-    fileName: createExportFileName(document),
+    fileName: createExportFileName(document, options.projectName),
     schema,
     validation,
   };

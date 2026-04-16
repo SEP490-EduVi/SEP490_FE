@@ -3,8 +3,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as pipelineService from '@/services/pipelineServices';
 import * as videoService from '@/services/videoServices';
-import type { LessonAnalysisInput, GenerateSlidesInput, GenerateVideoInput, CurriculumDto, UploadCurriculumInput } from '@/types/api';
-import { getCurricula, getCurriculumByCode, uploadCurriculum } from '@/services/curriculumServices';
+import type {
+  LessonAnalysisInput,
+  GenerateSlidesInput,
+  GenerateVideoInput,
+  CurriculumDto,
+  TextbookDto,
+  UploadCurriculumInput,
+  UploadTextbookInput,
+} from '@/types/api';
+import {
+  deleteCurriculumNeo4j,
+  getCurricula,
+  getCurriculumByCode,
+  uploadCurriculum,
+} from '@/services/curriculumServices';
+import {
+  deleteTextbookNeo4j,
+  getTextbookByCode,
+  getTextbooks,
+  uploadTextbook,
+} from '@/services/textbookServices';
 
 // ─── GET curricula ─────────────────────────────────────────────
 export function useCurricula() {
@@ -31,6 +50,55 @@ export function useUploadCurriculum() {
     mutationFn: (input: UploadCurriculumInput) => uploadCurriculum(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['curricula'] });
+    },
+  });
+}
+
+export function useDeleteCurriculumNeo4j() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (documentCode: string) => deleteCurriculumNeo4j(documentCode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['curricula'] });
+    },
+  });
+}
+
+// ─── GET textbooks ─────────────────────────────────────────────
+export function useTextbooks() {
+  return useQuery<TextbookDto[]>({
+    queryKey: ['textbooks'],
+    queryFn: getTextbooks,
+    staleTime: 5 * 60_000,
+  });
+}
+
+// ─── GET textbook detail by documentCode ───────────────────────
+export function useTextbook(documentCode?: string) {
+  return useQuery({
+    queryKey: ['textbooks', documentCode],
+    queryFn: () => getTextbookByCode(documentCode!),
+    enabled: !!documentCode,
+  });
+}
+
+// ─── POST textbook upload ──────────────────────────────────────
+export function useUploadTextbook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UploadTextbookInput) => uploadTextbook(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['textbooks'] });
+    },
+  });
+}
+
+export function useDeleteTextbookNeo4j() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (documentCode: string) => deleteTextbookNeo4j(documentCode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['textbooks'] });
     },
   });
 }

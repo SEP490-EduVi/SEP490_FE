@@ -55,7 +55,7 @@ export default function TeacherSlidesPage() {
 
   useEffect(() => { setPage(1); }, [searchQuery]);
 
-  const handleViewSlide = async (productCode: string, hasEditedSlide: boolean) => {
+  const handleViewSlide = async (productCode: string, hasEditedSlide: boolean, productName?: string) => {
     setViewLoading(productCode);
     try {
       let slideDoc;
@@ -66,7 +66,7 @@ export default function TeacherSlidesPage() {
         const r = await productService.getProductSlide(productCode);
         slideDoc = r.slideDocument;
       }
-      setDocument(slideDoc, productCode, '', hasEditedSlide);
+      setDocument(slideDoc, productCode, '', hasEditedSlide, productName);
       router.push('/teacher/editor');
     } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
     finally {
@@ -210,7 +210,7 @@ export default function TeacherSlidesPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-400">{formatDate(slide.slideGeneratedAt)}</span>
                         <button
-                          onClick={() => handleViewSlide(slide.productCode, slide.hasEditedSlide)}
+                          onClick={() => handleViewSlide(slide.productCode, slide.hasEditedSlide, slide.productName)}
                           disabled={viewLoading === slide.productCode}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50"
                         >

@@ -98,6 +98,7 @@ export const useDocumentStore = create<DocumentState>()(
         error: null,
         currentProductCode: null,
         currentProjectCode: null,
+        currentProductName: null,
         isSaving: false,
         isDirty: false,
         isSlideEdited: false,

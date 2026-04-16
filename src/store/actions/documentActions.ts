@@ -14,6 +14,7 @@ import { uploadSlideToGcs } from '@/services/gcsServices';
 const SESSION_KEY = 'eduvi_slide_document';
 const PRODUCT_CODE_KEY = 'eduvi_product_code';
 const PROJECT_CODE_KEY = 'eduvi_project_code';
+const PRODUCT_NAME_KEY = 'eduvi_product_name';
 const IS_EDITED_KEY = 'eduvi_is_edited';
 const IS_GENERATING_KEY = 'eduvi_is_generating';
 const GENERATING_PRODUCT_CODE_KEY = 'eduvi_generating_product_code';
@@ -57,6 +58,7 @@ export function createDocumentActions(
             generationProductCode: productCode,
             currentProductCode: productCode,
             currentProjectCode: projectCode,
+            currentProductName: null,
             document: null,
             activeCardId: null,
             revealedCardCount: 0,
@@ -75,6 +77,7 @@ export function createDocumentActions(
           const doc: IDocument = JSON.parse(cached);
           const productCode = sessionStorage.getItem(PRODUCT_CODE_KEY) || null;
           const projectCode = sessionStorage.getItem(PROJECT_CODE_KEY) || null;
+          const productName = sessionStorage.getItem(PRODUCT_NAME_KEY) || null;
           const isSlideEdited = sessionStorage.getItem(IS_EDITED_KEY) === 'true';
           const isNewlyGenerated = sessionStorage.getItem('eduvi_is_newly_generated') === 'true';
           set({
@@ -87,6 +90,7 @@ export function createDocumentActions(
             isDirty: false,
             currentProductCode: productCode,
             currentProjectCode: projectCode,
+            currentProductName: productName,
             isSlideEdited,
             isNewlyGenerated,
           });
@@ -124,8 +128,16 @@ export function createDocumentActions(
       }
     },
 
-    setDocument: (doc: IDocument, productCode?: string, projectCode?: string, isSlideEdited?: boolean) => {
+    setDocument: (
+      doc: IDocument,
+      productCode?: string,
+      projectCode?: string,
+      isSlideEdited?: boolean,
+      productName?: string,
+    ) => {
       const newHistory = [deepClone(doc)];
+      const normalizedProductName =
+        typeof productName === 'string' ? productName.trim() : null;
 
       // Persist so the editor survives a page reload
       try {
@@ -135,6 +147,13 @@ export function createDocumentActions(
         }
         if (projectCode !== undefined) {
           sessionStorage.setItem(PROJECT_CODE_KEY, projectCode);
+        }
+        if (productName !== undefined) {
+          if (normalizedProductName) {
+            sessionStorage.setItem(PRODUCT_NAME_KEY, normalizedProductName);
+          } else {
+            sessionStorage.removeItem(PRODUCT_NAME_KEY);
+          }
         }
         if (isSlideEdited !== undefined) {
           sessionStorage.setItem(IS_EDITED_KEY, String(isSlideEdited));
@@ -152,6 +171,7 @@ export function createDocumentActions(
         error: null,
         ...(productCode !== undefined ? { currentProductCode: productCode } : {}),
         ...(projectCode !== undefined ? { currentProjectCode: projectCode } : {}),
+        ...(productName !== undefined ? { currentProductName: normalizedProductName } : {}),
         isDirty: false,
         isSlideEdited: isSlideEdited ?? false,
         isNewlyGenerated: false,
@@ -234,8 +254,7 @@ export function createDocumentActions(
           return { ...card, renderedHtml: fullHtml };
         }));
 
-        const { title: _title, ...docWithoutTitle } = document;
-        const docWithHtml = { ...docWithoutTitle, cards: cardsWithHtml };
+        const docWithHtml = { ...document, cards: cardsWithHtml };
 
         // 1. Upload slide JSON to GCS via Next.js server (no CORS, key stays server-side)
         const gcsObjectUrl = await uploadSlideToGcs(currentProductCode, docWithHtml);

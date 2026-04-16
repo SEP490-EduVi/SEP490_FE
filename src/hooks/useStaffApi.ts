@@ -1,9 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as staffService from '@/services/staffServices';
-import type { ReviewMaterialInput, ReviewVerificationInput } from '@/types/api';
+import type {
+  ReviewMaterialInput,
+  ReviewVerificationInput,
+  UpdateStaffProfileInput,
+} from '@/types/api';
 
 const STAFF_VERIFICATION_KEY = 'staff-verifications';
 const STAFF_MATERIAL_KEY = 'staff-materials';
+const STAFF_PROFILE_KEY = 'staff-profile';
+
+interface ProfileQueryOptions {
+  enabled?: boolean;
+}
+
+export function useStaffProfile(options?: ProfileQueryOptions) {
+  return useQuery({
+    queryKey: [STAFF_PROFILE_KEY],
+    queryFn: staffService.getStaffProfile,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useUpdateStaffProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateStaffProfileInput) => staffService.updateStaffProfile(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [STAFF_PROFILE_KEY] });
+    },
+  });
+}
 
 export function usePendingVerifications() {
   return useQuery({
