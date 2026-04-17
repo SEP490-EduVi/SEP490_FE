@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Pencil, Power, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Pagination from '@/components/admin/Pagination';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import { adminServices } from '@/services/adminServices';
 import { CreatePlanRequest, PagedResponse, PlanResponse, UpdatePlanRequest } from '@/types/admin';
 
@@ -175,7 +175,7 @@ export default function AdminPlansPage() {
           videoQuotaAmount,
         };
         await adminServices.updatePlan(editingPlan.planId, payload);
-        notify.success('Cập nhật gói cước thành công.');
+        notify.success(MSGS.plan.updateSuccess);
       } else {
         const payload: CreatePlanRequest = {
           planName: form.planName.trim(),
@@ -187,13 +187,15 @@ export default function AdminPlansPage() {
           videoQuotaAmount,
         };
         await adminServices.createPlan(payload);
-        notify.success('Tạo gói cước thành công.');
+        notify.success(MSGS.plan.createSuccess);
       }
 
       setIsFormOpen(false);
       await loadPlans(page);
     } catch (err) {
-      setFormError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể lưu gói cước.');
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? MSGS.plan.saveError;
+      setFormError(msg);
+      notify.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -205,13 +207,13 @@ export default function AdminPlansPage() {
     setSubmitting(true);
     try {
       await adminServices.softDeletePlan(deletingPlan.planId);
-      notify.success(`Đã ngưng kích hoạt gói ${deletingPlan.planName}.`);
+      notify.success(MSGS.plan.deleteSuccess(deletingPlan.planName));
       setDeletingPlan(null);
       await loadPlans(page);
     } catch (err) {
       notify.error(
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          'Không thể xóa gói cước.',
+          MSGS.plan.deleteError,
       );
     } finally {
       setSubmitting(false);
@@ -226,8 +228,8 @@ export default function AdminPlansPage() {
       await adminServices.updatePlan(togglingPlan.planId, { isActive: !togglingPlan.isActive });
       notify.success(
         togglingPlan.isActive
-          ? `Đã ngưng hoạt động gói ${togglingPlan.planName}.`
-          : `Đã kích hoạt gói ${togglingPlan.planName}.`,
+          ? MSGS.plan.toggleInactive(togglingPlan.planName)
+          : MSGS.plan.toggleActive(togglingPlan.planName),
       );
       setTogglingPlan(null);
       await loadPlans(page);

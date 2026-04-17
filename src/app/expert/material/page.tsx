@@ -9,7 +9,7 @@ import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import type { MaterialDto, UpdateMaterialInput } from '@/types/api';
 import { MaterialCard, MaterialListItem, EditMaterialModal, UploadMaterialForm } from '@/components/expert';
 import { AppHeader } from '@/components';
-import { notify, GcsImage } from '@/components/common';
+import { notify, MSGS, GcsImage } from '@/components/common';
 import { resolveGcsUrl } from '@/components/common/GcsImage';
 import { motion } from 'framer-motion';
 
@@ -193,16 +193,16 @@ export default function MaterialPage() {
     updateMaterial.mutate(
       { materialCode: code, input },
       {
-        onSuccess: () => { setEditTarget(null); notify.success('Cập nhật tài liệu thành công!'); },
-        onError: () => notify.error('Không thể cập nhật tài liệu. Vui lòng thử lại.'),
+        onSuccess: () => { setEditTarget(null); notify.success(MSGS.material.expert.updateSuccess); },
+        onError: () => notify.error(MSGS.material.expert.updateError),
       },
     );
   };
 
   const handleDelete = (code: string) => {
     deleteMaterial.mutate(code, {
-      onSuccess: () => { setConfirmDelete(null); notify.success('Đã xóa tài liệu thành công'); },
-      onError: () => notify.error('Không thể xóa tài liệu. Vui lòng thử lại.'),
+      onSuccess: () => { setConfirmDelete(null); notify.success(MSGS.material.expert.deleteSuccess); },
+      onError: () => notify.error(MSGS.material.expert.deleteError),
     });
   };
 
@@ -246,8 +246,8 @@ export default function MaterialPage() {
             gradesLoading={gradesLoading}
             isUploading={uploadMaterial.isPending}
             onUpload={(data) => uploadMaterial.mutate(data, {
-              onSuccess: () => { setShowForm(false); notify.success('Tải lên tài liệu thành công!'); },
-              onError: () => notify.error('Tải lên thất bại. Vui lòng thử lại.'),
+              onSuccess: () => { setShowForm(false); notify.success(MSGS.material.expert.uploadSuccess); },
+              onError: () => notify.error(MSGS.material.expert.uploadError),
             })}
             onCancel={() => setShowForm(false)}
           />

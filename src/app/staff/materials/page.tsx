@@ -5,7 +5,7 @@ import { Loader2, AlertCircle, Eye, EyeOff, CheckCircle2, XCircle, FileText } fr
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingMaterials, useReviewMaterial } from '@/hooks/useStaffApi';
 import { getMaterialReviewDetail } from '@/services/staffServices';
-import { notify, resolveGcsUrl } from '@/components/common';
+import { notify, resolveGcsUrl, MSGS } from '@/components/common';
 
 function InlinePreview({ url, type }: { url: string; type: string }) {
   const [failed, setFailed] = useState(false);
@@ -143,10 +143,10 @@ export default function StaffMaterialsPage() {
         setPreviewUrls((p) => ({ ...p, [materialCode]: resolved as string }));
         setPreviewOpen((p) => ({ ...p, [materialCode]: true }));
       } else {
-        notify.error('Không có nội dung để xem trước.');
+        notify.error(MSGS.material.staff.previewError);
       }
     } catch {
-      notify.error('Không thể tải nội dung xem trước. Vui lòng thử lại.');
+      notify.error(MSGS.material.staff.previewLoadError);
     } finally {
       setPreviewLoading(null);
     }
@@ -171,8 +171,8 @@ export default function StaffMaterialsPage() {
         },
       },
       {
-        onSuccess: () => notify.success(approved ? 'Đã duyệt học liệu thành công' : 'Đã từ chối học liệu'),
-        onError: () => notify.error('Thao tác thất bại. Vui lòng thử lại.'),
+        onSuccess: () => notify.success(approved ? MSGS.material.staff.approveSuccess : MSGS.material.staff.rejectSuccess),
+        onError: () => notify.error(MSGS.material.staff.reviewError),
       },
     );
   };

@@ -30,7 +30,7 @@ import Link from 'next/link';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePurchasedMaterials, useMaterialDetail } from '@/hooks/useMaterialShopApi';
-import { GcsImage, resolveGcsUrl } from '@/components/common';
+import { GcsImage, resolveGcsUrl, notify, MSGS } from '@/components/common';
 import type { PurchasedMaterialDto } from '@/types/api';
 
 const TYPE_BADGE: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -72,6 +72,7 @@ function MaterialDetailModal({
       const url = await resolveGcsUrl(material.resourceUrl);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch {
+      notify.error(MSGS.material.lib.downloadError);
       window.open(material.resourceUrl, '_blank', 'noopener,noreferrer');
     }
   };

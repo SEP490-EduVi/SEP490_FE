@@ -16,7 +16,7 @@ import {
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from '@/hooks/useProjectApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import AppHeader from '@/components/sidebar/AppHeader';
-import { Breadcrumb, notify } from '@/components/common';
+import { Breadcrumb, notify, MSGS } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import { usePipelineTaskStore } from '@/store/usePipelineTaskStore';
@@ -191,14 +191,15 @@ export default function TeacherProjectsPage() {
       subjectCode: data.subjectCode,
       gradeCode: data.gradeCode,
     }, {
-      onSuccess: () => { setShowCreateModal(false); notify.success(`Dự án "${data.projectName}" đã được tạo thành công!`); },
-      onError: () => notify.error('Tạo dự án thất bại. Vui lòng thử lại.'),
+      onSuccess: () => { setShowCreateModal(false); notify.success(MSGS.project.createSuccess(data.projectName)); },
+      onError: () => notify.error(MSGS.project.createError),
     });
   };
 
   const handleDelete = (projectCode: string) => {
     deleteProject.mutate(projectCode, {
-      onSuccess: () => notify.success('Đã xóa dự án thành công'),
+      onSuccess: () => notify.success(MSGS.project.deleteSuccess),
+      onError:   () => notify.error(MSGS.project.deleteError),
     });
     setMenuOpen(null);
   };
@@ -211,7 +212,7 @@ export default function TeacherProjectsPage() {
   const handleUpdateProject = (projectCode: string, input: UpdateProjectInput) => {
     updateProject.mutate(
       { projectCode, input },
-      { onSuccess: () => { setEditTarget(null); notify.success('Cập nhật dự án thành công!'); } },
+      { onSuccess: () => { setEditTarget(null); notify.success(MSGS.project.updateSuccess); }, onError: () => notify.error(MSGS.project.updateError) },
     );
   };
 

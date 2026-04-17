@@ -30,7 +30,7 @@ import { useBrowseMaterials, usePurchaseMaterial, usePurchasedMaterials } from '
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
 import { useWalletInfo } from '@/hooks/usePaymentApi';
 import type { MaterialDto } from '@/types/api';
-import { notify, GcsImage } from '@/components/common';
+import { notify, GcsImage, MSGS } from '@/components/common';
 import { resolveGcsUrl } from '@/components/common/GcsImage';
 
 function formatEduCoin(value: number | null | undefined): string {
@@ -490,11 +490,11 @@ export default function MaterialShopPage() {
     purchaseMutation.mutate(purchaseTarget.materialCode, {
       onSuccess: () => {
         setPurchaseTarget(null);
-        notify.success(`Đã thêm "${purchaseTarget.title}" vào thư viện!`);
+        notify.success(MSGS.material.shop.buySuccess(purchaseTarget.title));
       },
       onError: () => {
         setPurchaseTarget(null);
-        notify.error('Mua tài liệu thất bại. Vui lòng thử lại.');
+        notify.error(MSGS.material.shop.buyError);
       },
     });
   };

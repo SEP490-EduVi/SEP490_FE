@@ -1,8 +1,10 @@
 ﻿'use client';
 
 import React from 'react';
-import { X, Upload, Dices, RotateCcw, ChevronLeft } from 'lucide-react';
+import { X, Upload, Dices, RotateCcw, ChevronLeft, Users, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useClassrooms } from '@/hooks/useClassroomApi';
+import type { ClassroomDto } from '@/services/classroomServices';
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -140,7 +142,10 @@ export function ClassRollPanel({ onClose }: Props) {
   const [fileName,   setFileName]   = React.useState<string | null>(null);
   const [parseError, setParseError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-
+  // ── API source state
+  const [sourceTab, setSourceTab] = React.useState<'excel' | 'api'>('excel');
+  const [selectedClassroomCode, setSelectedClassroomCode] = React.useState<string | null>(null);
+  const { data: classrooms = [], isLoading: classroomsLoading } = useClassrooms();
   // â”€â”€ Spin view state
   const [view,        setView]        = React.useState<View>('setup');
   const [sequence,    setSequence]    = React.useState<Student[]>([]);
@@ -170,7 +175,14 @@ export function ClassRollPanel({ onClose }: Props) {
       setFileName(null);
     }
   };
-
+  // ── Apply classroom students from API
+  const applyClassroom = (cls: ClassroomDto) => {
+    const mapped: Student[] = cls.students.map((name, i) => ({ stt: i + 1, name }));
+    setStudents(mapped);
+    setSelectedClassroomCode(cls.classroomCode);
+    setFileName(null);
+    setParseError(null);
+  };
   // â”€â”€ Start spinning
   const startRoll = () => {
     if (students.length === 0) return;
@@ -261,51 +273,121 @@ export function ClassRollPanel({ onClose }: Props) {
           <>
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
-              {/* Upload zone */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Danh sách lớp (Excel)</p>
-                <div
-                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="cursor-pointer rounded-2xl border-2 border-dashed flex flex-col items-center gap-2.5 px-5 transition-colors hover:border-purple-400 hover:bg-purple-50"
-                  style={{
-                    paddingTop: students.length > 0 ? 16 : 32,
-                    paddingBottom: students.length > 0 ? 16 : 32,
-                    borderColor: students.length > 0 ? '#a78bfa' : '#d1d5db',
-                    background:  students.length > 0 ? '#faf5ff' : '#fafafa',
-                  }}
+              {/* Source tab switcher */}
+              <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f3f4f6' }}>
+                <button
+                  type="button"
+                  onClick={() => setSourceTab('excel')}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    sourceTab === 'excel' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 >
+                  Import Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSourceTab('api')}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    sourceTab === 'api' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Chọn từ lớp học
+                </button>
+              </div>
+
+              {/* Upload zone (Excel tab) */}
+              {sourceTab === 'excel' && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Danh sách lớp (Excel)</p>
                   <div
-                    className="rounded-2xl flex items-center justify-center"
+                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="cursor-pointer rounded-2xl border-2 border-dashed flex flex-col items-center gap-2.5 px-5 transition-colors hover:border-purple-400 hover:bg-purple-50"
                     style={{
-                      width: students.length > 0 ? 36 : 48,
-                      height: students.length > 0 ? 36 : 48,
-                      background: students.length > 0 ? '#ede9fe' : '#f3f4f6',
+                      paddingTop: fileName ? 16 : 32,
+                      paddingBottom: fileName ? 16 : 32,
+                      borderColor: fileName ? '#a78bfa' : '#d1d5db',
+                      background:  fileName ? '#faf5ff' : '#fafafa',
                     }}
                   >
-                    <Upload size={students.length > 0 ? 16 : 20} className={students.length > 0 ? 'text-purple-500' : 'text-gray-400'} />
+                    <div
+                      className="rounded-2xl flex items-center justify-center"
+                      style={{
+                        width: fileName ? 36 : 48,
+                        height: fileName ? 36 : 48,
+                        background: fileName ? '#ede9fe' : '#f3f4f6',
+                      }}
+                    >
+                      <Upload size={fileName ? 16 : 20} className={fileName ? 'text-purple-500' : 'text-gray-400'} />
+                    </div>
+                    {fileName ? (
+                      <div className="text-center">
+                        <p className="font-semibold text-purple-700 text-sm">{fileName}</p>
+                        <p className="text-purple-400 text-xs">{students.length} học sinh · Nhấn để đổi file</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="font-semibold text-gray-600 text-sm">Kéo file vào đây hoặc nhấn để chọn</p>
+                        <p className="text-gray-400 text-xs mt-1">Hỗ trợ .xlsx, .xls · Cột số thứ tự + họ tên</p>
+                      </div>
+                    )}
                   </div>
-                  {students.length > 0 ? (
-                    <div className="text-center">
-                      <p className="font-semibold text-purple-700 text-sm">{fileName}</p>
-                      <p className="text-purple-400 text-xs">{students.length} học sinh · Nhấn để đổi file</p>
+                  <input
+                    ref={fileInputRef} type="file" accept=".xlsx,.xls" className="sr-only"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+                  />
+                  {parseError && <p className="mt-2 text-xs text-red-500 leading-relaxed">{parseError}</p>}
+                </div>
+              )}
+
+              {/* Classroom picker (API tab) */}
+              {sourceTab === 'api' && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Chọn lớp học</p>
+                  {classroomsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-5 h-5 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin" />
+                    </div>
+                  ) : classrooms.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-gray-400">
+                      <Users size={28} className="mx-auto mb-2 opacity-30" />
+                      Chưa có lớp học nào.
                     </div>
                   ) : (
-                    <div className="text-center">
-                      <p className="font-semibold text-gray-600 text-sm">Kéo file vào đây hoặc nhấn để chọn</p>
-                      <p className="text-gray-400 text-xs mt-1">Hỗ trợ .xlsx, .xls · Cột số thứ tự + họ tên</p>
+                    <div className="space-y-2">
+                      {classrooms.map((cls) => (
+                        <button
+                          key={cls.classroomCode}
+                          type="button"
+                          onClick={() => applyClassroom(cls)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                            selectedClassroomCode === cls.classroomCode
+                              ? 'border-purple-400 bg-purple-50'
+                              : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ background: selectedClassroomCode === cls.classroomCode ? '#ede9fe' : '#f3f4f6' }}
+                          >
+                            <Users size={14} className={selectedClassroomCode === cls.classroomCode ? 'text-purple-600' : 'text-gray-400'} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{cls.name}</p>
+                            <p className="text-xs text-gray-400">{cls.gradeLabel} · {cls.schoolYear} · {cls.studentCount} học sinh</p>
+                          </div>
+                          {selectedClassroomCode === cls.classroomCode && (
+                            <Check size={14} className="text-purple-600 shrink-0" />
+                          )}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
-                <input
-                  ref={fileInputRef} type="file" accept=".xlsx,.xls" className="sr-only"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
-                />
-                {parseError && <p className="mt-2 text-xs text-red-500 leading-relaxed">{parseError}</p>}
-              </div>
+              )}
 
-              {/* Student list */}
+              {/* Student list (shared) */}
               {students.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">

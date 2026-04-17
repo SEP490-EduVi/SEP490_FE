@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Pagination from '@/components/admin/Pagination';
 import { adminServices } from '@/services/adminServices';
+import { notify, MSGS } from '@/components/common';
 import type { AdminWithdrawalResponse } from '@/types/admin';
 
 const PAGE_SIZE = 10;
@@ -85,7 +86,8 @@ export default function AdminWithdrawalsPage() {
     if (!selected) return;
 
     if (decision === 'reject' && !adminNote.trim()) {
-      setError('Vui lòng nhập ghi chú khi từ chối yêu cầu rút tiền.');
+      setError(MSGS.withdrawal.noteRequired);
+      notify.error(MSGS.withdrawal.noteRequired);
       return;
     }
 
@@ -102,9 +104,12 @@ export default function AdminWithdrawalsPage() {
       setSelected(null);
       setAdminNote('');
       setDecision('approve');
+      notify.success(decision === 'approve' ? MSGS.withdrawal.approveSuccess : MSGS.withdrawal.rejectSuccess);
       await loadWithdrawals(page);
     } catch (err) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Xử lý yêu cầu thất bại.');
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? MSGS.withdrawal.processError;
+      setError(msg);
+      notify.error(msg);
     } finally {
       setProcessingId(null);
     }

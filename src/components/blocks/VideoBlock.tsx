@@ -15,7 +15,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { IVideoContent, BlockType } from '@/types';
 import { useDocumentStore } from '@/store';
-import { VideoIcon as VideoPlus, Link2, Loader2 } from 'lucide-react';
+import { VideoIcon as VideoPlus, Loader2 } from 'lucide-react';
 
 interface VideoBlockProps {
   id: string;
@@ -56,12 +56,7 @@ function getEmbedUrl(content: IVideoContent, autoplay = false): string | null {
   return content.src; // direct / object URL
 }
 
-/** Detect provider from URL string */
-function detectProvider(url: string): 'youtube' | 'vimeo' | 'direct' {
-  if (/youtube\.com|youtu\.be/.test(url)) return 'youtube';
-  if (/vimeo\.com/.test(url)) return 'vimeo';
-  return 'direct';
-}
+
 
 export function VideoBlock({
   id,
@@ -76,8 +71,7 @@ export function VideoBlock({
   const isPresenting = appMode === 'PRESENT';
   // Only autoplay when this block's slide is the currently active presentation slide
   const shouldAutoplay = isPresenting && isActiveSlide;
-  const [urlMode, setUrlMode] = useState(false);
-  const [urlValue, setUrlValue] = useState('');
+
 
   // Resolve gs:// URLs to signed download URLs (only for direct provider)
   const needsResolve = !!content.src && content.src.startsWith('gs://');
@@ -119,15 +113,7 @@ export function VideoBlock({
   };
 
   // ── Handle URL submit ─────────────────────────────────────────────────────
-  const handleUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = urlValue.trim();
-    if (!trimmed) return;
-    const provider = detectProvider(trimmed);
-    updateBlockContent(id, { type: BlockType.VIDEO, src: trimmed, provider });
-    setUrlMode(false);
-    setUrlValue('');
-  };
+  // (URL input removed — only local file upload is supported)
 
   // ── Placeholder (no video yet) ────────────────────────────────────────────
   if (!content.src) {
@@ -147,68 +133,22 @@ export function VideoBlock({
           onChange={handleFileChange}
         />
 
-        <div className="w-full h-96 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-6">
+        <div className="w-full h-96 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm flex-shrink-0">
             <VideoPlus className="w-5 h-5 text-gray-400" />
           </div>
 
-          {!urlMode ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Upload local file */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors shadow-sm"
-              >
-                <VideoPlus className="w-4 h-4" />
-                Tải video lên
-              </button>
-
-              <span className="text-xs text-gray-400 font-medium">hoặc</span>
-
-              {/* Enter URL */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setUrlMode(true); }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:border-primary-400 hover:bg-primary-50 text-gray-700 hover:text-primary-700 font-semibold text-sm transition-colors"
-              >
-                <Link2 className="w-4 h-4" />
-                Dán link YouTube / Vimeo
-              </button>
-
-              <p className="w-full text-xs text-gray-400 mt-0.5">Hỗ trợ: MP4, WebM · YouTube · Vimeo</p>
-            </div>
-          ) : (
-            <form
-              onSubmit={handleUrlSubmit}
-              onClick={(e) => e.stopPropagation()}
-              className="flex flex-1 gap-2"
+          <div className="flex flex-col items-start gap-1">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors shadow-sm"
             >
-              <input
-                autoFocus
-                type="url"
-                placeholder="https://youtube.com/watch?v=..."
-                value={urlValue}
-                onChange={(e) => setUrlValue(e.target.value)}
-                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              <button
-                type="submit"
-                className="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                Xác nhận
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUrlMode(false); setUrlValue(''); }}
-                className="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Huỷ
-              </button>
-            </form>
-          )}
-
-          {/* remove old "Hỗ trợ" line — moved inside the !urlMode block above */}
+              <VideoPlus className="w-4 h-4" />
+              Tải video lên
+            </button>
+            <p className="text-xs text-gray-400">Hỗ trợ: MP4, WebM, OGV</p>
+          </div>
         </div>
       </div>
     );
