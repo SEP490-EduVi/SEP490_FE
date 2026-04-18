@@ -227,6 +227,7 @@ export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP' | 'RUNNER_QUIZ' | 'SNA
 
 export interface CreatePlayableGameTaskInput {
   gameName: string;
+  productCode: string;
   templateId: GameTemplateId;
   slideEditedDocumentUrl: string;
   roundCount?: number;
@@ -240,8 +241,9 @@ export interface GameTaskResponseDto {
 
 export interface GameDto {
   gameCode: string;
-  gameName: string;
+  productGameCode: string;
   productCode: string;
+  productGameName: string;
   templateCode: string;
   roundCount: number;
   status: string;
@@ -591,4 +593,27 @@ export interface UpdateTemplateInput {
   category: 'layout' | 'freeform' | 'admin' | string;
   description?: string;
   skeleton: ITemplateSkeleton;
+}
+
+// ─── Product Material ─────────────────────────────────────────────────────────
+export interface ProductMaterialDto {
+  productMaterialCode: string;
+  productCode: string;
+  sourceType: 'Marketplace' | 'Upload';
+  materialCode: string | null;
+  title: string;
+  type: string;
+  resourceUrl: string;
+  previewUrl: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface AddProductMaterialInput {
+  sourceType: 'Marketplace' | 'Upload';
+  materialCode?: string;
+  title?: string;
+  type?: string;
+  resourceUrl?: string;
+  previewUrl?: string;
 }

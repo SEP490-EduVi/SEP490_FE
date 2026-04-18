@@ -173,10 +173,11 @@ export function Toolbar() {
 
     try {
       const task = await createPlayableGameTask({
+        gameName: gameName.trim() || 'Game chưa đặt tên',
+        productCode: currentProductCode ?? '',
         templateId: gameTemplateId,
         slideEditedDocumentUrl: slideEditedDocumentUrl.trim(),
         roundCount: gameRoundCount,
-        gameName: gameName.trim() || 'Game chưa đặt tên',
       });
 
       setShowGameConfigModal(false);

@@ -38,6 +38,7 @@ export default function GameConfigModal({ productCode, productName, onClose }: G
       setStatus('Đang gửi yêu cầu tạo game...');
       const task = await createPlayableGameTask({
         gameName: gameName.trim() || productName,
+        productCode,
         templateId,
         slideEditedDocumentUrl: url,
         roundCount,

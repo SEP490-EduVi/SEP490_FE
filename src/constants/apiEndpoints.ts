@@ -274,6 +274,20 @@ export const API_ENDPOINTS = {
     DELETE: (templateCode: string) => buildTemplateEndpoint(`/${templateCode}`),
   },
 
+  // Product Material (Teacher — per product)
+  PRODUCT_MATERIAL: {
+    // GET    /api/products/{productCode}/materials
+    GET_ALL:     (productCode: string) => `/api/products/${productCode}/materials`,
+    // POST   /api/products/{productCode}/materials
+    ADD:         (productCode: string) => `/api/products/${productCode}/materials`,
+    // GET    /api/products/{productCode}/materials/{productMaterialCode}
+    GET_BY_CODE: (productCode: string, pmc: string) => `/api/products/${productCode}/materials/${pmc}`,
+    // PUT    /api/products/{productCode}/materials/{productMaterialCode}
+    UPDATE:      (productCode: string, pmc: string) => `/api/products/${productCode}/materials/${pmc}`,
+    // DELETE /api/products/{productCode}/materials/{productMaterialCode}
+    DELETE:      (productCode: string, pmc: string) => `/api/products/${productCode}/materials/${pmc}`,
+  },
+
 } as const;
 
 

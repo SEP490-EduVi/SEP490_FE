@@ -11,8 +11,8 @@ import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
 import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useVideosByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import SourcesPanel from '@/components/projects/SourcesPanel';
-import ProductResultsCenter from '@/components/projects/ProductResultsCenter';
-import StudioPanel from '@/components/projects/StudioPanel';
+import StudioCenter from '@/components/projects/StudioCenter';
+import ProductResultPanel from '@/components/projects/ProductResultPanel';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
@@ -74,6 +74,7 @@ export default function ProjectDetailPage() {
   const [pendingGameProductCode, setPendingGameProductCode] = useState<string | null>(null);
   const [pendingGameProductName, setPendingGameProductName] = useState<string>('');
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
+  const [detailProductCode, setDetailProductCode] = useState<string | null>(null);
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
@@ -410,43 +411,56 @@ export default function ProjectDetailPage() {
               gradeName={project.gradeName}
               activeDocCode={activeDocCode}
               onDocumentClick={setActiveDocCode}
+              products={products}
             />
           </div>
         </aside>
 
-        {/* ── Center: Results ────────────────────────── */}
+        {/* ── Center: Studio ─────────────────────────── */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <ProductResultsCenter
+          <StudioCenter
+            projectCode={projectCode}
             projectName={project.projectName}
             products={products}
             videos={projectVideos}
             games={games}
-            viewSlideLoading={viewSlideLoading}
             activeDocCode={activeDocCode}
-            onViewSlide={handleViewSlide}
+            detailProductCode={detailProductCode}
+            onCloseDetail={() => setDetailProductCode(null)}
+            onDocChange={setActiveDocCode}
             onWatchVideo={setViewingVideo}
-            onDeleteSlide={handleDeleteSlide}
-            onDeleteVideo={handleDeleteVideo}
-            deletingSlide={deletingSlide}
-            deletingVideo={deletingVideo}
+            isPipelineRunning={isPipelineRunning}
+            onOpenPipelineModal={() => setShowPipelineModal(true)}
+            onAnalyze={handleStartAnalysis}
+            onGenerateSlides={handleGenerateSlides}
+            onGenerateVideo={handleGenerateVideo}
+            onGenerateGame={handleGenerateGame}
+            videoLoadingCode={videoLoadingCode}
+            activePipelineType={isPipelineRunning ? pipelineType : null}
           />
         </main>
 
-        {/* ── Right: Studio ──────────────────────────── */}
-        <aside className="w-96 flex-shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4">
-            <StudioPanel
-              projectCode={projectCode}
+        {/* ── Right: Product Results ─────────────────── */}
+        <aside className="w-80 flex-shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            <ProductResultPanel
+              projectName={project.projectName}
               products={products}
-              isPipelineRunning={isPipelineRunning}
-              onOpenPipelineModal={() => setShowPipelineModal(true)}
-              onAnalyze={handleStartAnalysis}
-              onGenerateSlides={handleGenerateSlides}
-              onGenerateVideo={handleGenerateVideo}
-              onGenerateGame={handleGenerateGame}
-              videoLoadingCode={videoLoadingCode}
-              activePipelineType={isPipelineRunning ? pipelineType : null}
+              videos={projectVideos}
+              games={games}
               activeDocCode={activeDocCode}
+              isPipelineRunning={isPipelineRunning}
+              activePipelineType={isPipelineRunning ? pipelineType : null}
+              onOpenPipelineModal={() => setShowPipelineModal(true)}
+              selectedDetailCode={detailProductCode}
+              onSelectDetail={setDetailProductCode}
+              onViewSlide={handleViewSlide}
+              viewSlideLoading={viewSlideLoading}
+              deletingSlide={deletingSlide}
+              onDeleteSlide={handleDeleteSlide}
+              onWatchVideo={setViewingVideo}
+              deletingVideo={deletingVideo}
+              onDeleteVideo={handleDeleteVideo}
             />
           </div>
         </aside>
