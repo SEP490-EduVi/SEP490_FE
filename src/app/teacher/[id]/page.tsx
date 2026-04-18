@@ -18,6 +18,7 @@ import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
 import CreateVideoModal from '@/components/projects/CreateVideoModal';
 import { useGames } from '@/hooks/useGamesApi';
+import { useGameHub } from '@/hooks/useGameHub';
 import GameConfigModal from '@/components/teacher/project/GameConfigModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
@@ -55,6 +56,16 @@ export default function ProjectDetailPage() {
   const clearGlobalProgress = usePipelineProgressStore((s) => s.clear);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  // Invalidate games cache when a game finishes via SignalR
+  useGameHub({
+    accessToken,
+    onProgress: (progress) => {
+      if (progress.status === 'completed' || progress.status === 'failed') {
+        queryClient.invalidateQueries({ queryKey: ['games'] });
+      }
+    },
+  });
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides' | 'video'>('evaluation');
   const [showPipelineModal, setShowPipelineModal] = useState(false);

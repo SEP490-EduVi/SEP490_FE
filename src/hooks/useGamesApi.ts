@@ -7,6 +7,14 @@ export function useGames() {
   return useQuery({
     queryKey: [KEY],
     queryFn: () => gamesService.getAllGames(),
+    // Poll every 4s while any game is still processing
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const hasPending = Array.isArray(data) && data.some(
+        (g) => g.status === 'processing' || g.status === 'pending',
+      );
+      return hasPending ? 4000 : false;
+    },
   });
 }
 
