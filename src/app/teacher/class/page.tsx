@@ -196,7 +196,7 @@ function ClassroomFormModal({
                   <GraduationCap className="w-5 h-5 text-blue-600" />
                 </div>
                 <h2 className="text-base font-semibold text-gray-900">
-                  {isEdit ? 'Chỉnh sửa lớp học' : 'Tạo lớp học mới'}
+                  {isEdit ? 'Chỉnh sửa danh sách học sinh' : 'Tạo danh sách học sinh mới'}
                 </h2>
               </div>
               <button onClick={onClose} disabled={isLoading} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
@@ -237,7 +237,7 @@ function ClassroomFormModal({
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
               >
                 {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {isEdit ? 'Lưu thay đổi' : 'Tạo lớp'}
+                {isEdit ? 'Lưu thay đổi' : 'Tạo danh sách học sinh mới'}
               </button>
             </div>
           </motion.div>
@@ -249,7 +249,6 @@ function ClassroomFormModal({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function TeacherClassPage() {
-  // view: 'list' = danh sách lớp, 'detail' = chi tiết lớp
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [activeCode, setActiveCode] = useState<string | null>(null);
   // studentListCode used as the active code
@@ -304,10 +303,10 @@ export default function TeacherClassPage() {
   const handleCreate = (data: { description: string }) => {
     createClassroom.mutate(data, {
       onSuccess: () => {
-        notify.success('Đã tạo lớp học');
+        notify.success('Đã tạo danh sách học sinh mới');
         setShowCreateModal(false);
       },
-      onError: () => notify.error('Tạo lớp thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error('Tạo danh sách học sinh thất bại. Vui lòng thử lại.'),
     });
   };
 
@@ -315,11 +314,11 @@ export default function TeacherClassPage() {
     if (!editTarget) return;
     updateClassroom.mutate({ studentListCode: editTarget.studentListCode, input: data }, {
       onSuccess: () => {
-        notify.success('Đã cập nhật danh sách');
+        notify.success('Đã cập nhật danh sách học sinh');
         setEditTarget(null);
         if (activeCode === editTarget.studentListCode) refetchDetail();
       },
-      onError: () => notify.error('Cập nhật thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error('Cập nhật danh sách học sinh thất bại. Vui lòng thử lại.'),
     });
   };
 
@@ -334,7 +333,7 @@ export default function TeacherClassPage() {
           setActiveCode(null);
         }
       },
-      onError: () => notify.error('Xóa lớp thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error('Xóa danh sách học sinh thất bại. Vui lòng thử lại.'),
     });
   };
 
@@ -417,9 +416,9 @@ export default function TeacherClassPage() {
           {/* Page header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Lớp học của tôi</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Danh sách học sinh của tôi</h1>
               <p className="text-sm text-gray-500 mt-0.5">
-                {listLoading ? '...' : `${classrooms.length} lớp học`}
+                {listLoading ? '...' : `${classrooms.length} Danh sách học sinh`}
               </p>
             </div>
             <button
@@ -428,7 +427,7 @@ export default function TeacherClassPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Tạo lớp mới
+              Tạo danh sách học sinh mới
             </button>
           </div>
 
@@ -457,14 +456,14 @@ export default function TeacherClassPage() {
               <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
                 <GraduationCap className="w-8 h-8 text-blue-400" />
               </div>
-              <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có lớp học nào</h3>
-              <p className="text-sm text-gray-400 mb-5">Tạo lớp học đầu tiên để bắt đầu quản lý học sinh.</p>
+              <h3 className="text-base font-semibold text-gray-700 mb-1">Chưa có danh sách học sinh nào</h3>
+              <p className="text-sm text-gray-400 mb-5">Tạo danh sách học sinh đầu tiên để bắt đầu quản lý học sinh.</p>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
               >
-                <Plus className="w-4 h-4" /> Tạo lớp mới
+                <Plus className="w-4 h-4" /> Tạo danh sách học sinh mới
               </button>
             </div>
           )}
@@ -487,7 +486,7 @@ export default function TeacherClassPage() {
                 </div>
                 <div className="px-4 py-3 border-t border-gray-100">
                   <p className="text-sm font-medium text-gray-400 group-hover:text-blue-600 transition-colors">
-                    Tạo lớp mới
+                    Tạo danh sách học sinh mới
                   </p>
                 </div>
               </motion.button>
@@ -550,7 +549,7 @@ export default function TeacherClassPage() {
                 <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
                   <Trash2 className="w-5 h-5 text-red-500" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 text-center mb-1">Xóa lớp học?</h3>
+                <h3 className="text-base font-bold text-gray-900 text-center mb-1">Xóa danh sách học sinh?</h3>
                 <p className="text-sm text-gray-500 text-center mb-5">
                   Danh sách <strong>{deleteTarget.description}</strong> sẽ bị xóa vĩnh viễn. Không thể hoàn tác.
                 </p>
@@ -604,7 +603,7 @@ export default function TeacherClassPage() {
             className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Danh sách lớp
+              Danh sách học sinh
           </button>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-gray-700 font-medium">{activeClassroom?.description ?? '...'}</span>

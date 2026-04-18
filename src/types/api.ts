@@ -553,8 +553,8 @@ export interface ICardTemplate {
   templateCode: string;
   name: string;
   description?: string;
-  /** 'layout' = layout-based (columns); 'freeform' = special-purpose (quiz, flashcard, etc.) */
-  category: 'layout' | 'freeform';
+  /** 'layout' = layout-based (columns); 'freeform' = special-purpose; 'admin' = admin-created custom templates */
+  category: 'layout' | 'freeform' | 'admin' | string;
   skeleton: ITemplateSkeleton;
   createdAt: string;
   updatedAt: string;
@@ -562,14 +562,14 @@ export interface ICardTemplate {
 
 export interface CreateTemplateInput {
   name: string;
-  category: 'layout' | 'freeform';
+  category: 'layout' | 'freeform' | 'admin' | string;
   description?: string;
   skeleton: ITemplateSkeleton;
 }
 
 export interface UpdateTemplateInput {
   name: string;
-  category: 'layout' | 'freeform';
+  category: 'layout' | 'freeform' | 'admin' | string;
   description?: string;
   skeleton: ITemplateSkeleton;
 }

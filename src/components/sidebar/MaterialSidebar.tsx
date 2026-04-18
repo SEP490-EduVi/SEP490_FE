@@ -759,11 +759,6 @@ function QuickLayoutSection() {
               )}
             >
               Mẫu
-              {customTemplates.length > 0 && (
-                <span className="ml-1.5 text-xs bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5">
-                  {customTemplates.length}
-                </span>
-              )}
             </button>
           </div>
 
