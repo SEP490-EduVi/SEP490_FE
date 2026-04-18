@@ -1,20 +1,12 @@
 ﻿'use client';
 
 import React from 'react';
-import { X, Upload, Dices, RotateCcw, ChevronLeft, Users, Check } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { X, Dices, RotateCcw, ChevronLeft, Users, Check } from 'lucide-react';
 import { useClassrooms } from '@/hooks/useClassroomApi';
 import type { ClassroomDto } from '@/services/classroomServices';
-
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 type Student = { stt: number; name: string };
 type View = 'setup' | 'spin';
-
 type Props = { onClose: () => void };
-
-// â”€â”€ Slot machine constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 const ITEM_H    = 84;   // px â€” height of each slot row
 const VISIBLE   = 5;    // number of visible rows (must be odd)
 const PAD       = Math.floor(VISIBLE / 2); // rows of padding above/below winner
@@ -35,35 +27,6 @@ function buildSequence(students: Student[], winner: Student): Student[] {
     ...Array.from({ length: PAD }, r),
   ];
 }
-
-// â”€â”€ Excel parser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function parseExcel(file: File): Promise<Student[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Không đọc được file'));
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer);
-        const wb   = XLSX.read(data, { type: 'array' });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
-        const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-        const students: Student[] = [];
-        for (const row of rows) {
-          const stt  = row.find((v) => typeof v === 'number' && Number.isInteger(v) && (v as number) > 0);
-          const name = row.find((v) => typeof v === 'string' && (v as string).trim().length > 1);
-          if (stt !== undefined && name !== undefined)
-            students.push({ stt: stt as number, name: (name as string).trim() });
-        }
-        resolve(students);
-      } catch (err) { reject(err); }
-    };
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-// â”€â”€ Slot drum component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 function SlotDrum({ sequence, translateY, spinning }: { sequence: Student[]; translateY: number; spinning: boolean }) {
   const windowH = ITEM_H * VISIBLE;
   const centerTop = ITEM_H * PAD;
@@ -134,16 +97,10 @@ function SlotDrum({ sequence, translateY, spinning }: { sequence: Student[]; tra
   );
 }
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 export function ClassRollPanel({ onClose }: Props) {
   // â”€â”€ Setup view state
   const [students,   setStudents]   = React.useState<Student[]>([]);
-  const [fileName,   setFileName]   = React.useState<string | null>(null);
-  const [parseError, setParseError] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-  // ── API source state
-  const [sourceTab, setSourceTab] = React.useState<'excel' | 'api'>('excel');
+
   const [selectedClassroomCode, setSelectedClassroomCode] = React.useState<string | null>(null);
   const { data: classrooms = [], isLoading: classroomsLoading } = useClassrooms();
   // â”€â”€ Spin view state
@@ -157,31 +114,12 @@ export function ClassRollPanel({ onClose }: Props) {
 
   React.useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  // â”€â”€ File handling
-  const handleFile = async (file: File) => {
-    setParseError(null);
-    setStudents([]);
-    setFileName(file.name);
-    try {
-      const parsed = await parseExcel(file);
-      if (parsed.length === 0) {
-        setParseError('Không tìm thấy học sinh nào. File cần có cột số thứ tự (số nguyên) và cột tên.');
-        setFileName(null);
-        return;
-      }
-      setStudents(parsed);
-    } catch {
-      setParseError('Lỗi đọc file. Hãy dùng file Excel (.xlsx / .xls).');
-      setFileName(null);
-    }
-  };
+
   // ── Apply classroom students from API
   const applyClassroom = (cls: ClassroomDto) => {
     const mapped: Student[] = cls.students.map((name, i) => ({ stt: i + 1, name }));
     setStudents(mapped);
     setSelectedClassroomCode(cls.studentListCode);
-    setFileName(null);
-    setParseError(null);
   };
   // â”€â”€ Start spinning
   const startRoll = () => {
@@ -218,8 +156,6 @@ export function ClassRollPanel({ onClose }: Props) {
     // Small delay so the old winner card fades before re-spin
     setTimeout(startRoll, 80);
   };
-
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div
@@ -268,82 +204,12 @@ export function ClassRollPanel({ onClose }: Props) {
           </button>
         </div>
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ VIEW: SETUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {view === 'setup' && (
           <>
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
-              {/* Source tab switcher */}
-              <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f3f4f6' }}>
-                <button
-                  type="button"
-                  onClick={() => setSourceTab('excel')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-                    sourceTab === 'excel' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Import Excel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSourceTab('api')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-                    sourceTab === 'api' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Chọn từ lớp học
-                </button>
-              </div>
-
-              {/* Upload zone (Excel tab) */}
-              {sourceTab === 'excel' && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Danh sách lớp (Excel)</p>
-                  <div
-                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer rounded-2xl border-2 border-dashed flex flex-col items-center gap-2.5 px-5 transition-colors hover:border-purple-400 hover:bg-purple-50"
-                    style={{
-                      paddingTop: fileName ? 16 : 32,
-                      paddingBottom: fileName ? 16 : 32,
-                      borderColor: fileName ? '#a78bfa' : '#d1d5db',
-                      background:  fileName ? '#faf5ff' : '#fafafa',
-                    }}
-                  >
-                    <div
-                      className="rounded-2xl flex items-center justify-center"
-                      style={{
-                        width: fileName ? 36 : 48,
-                        height: fileName ? 36 : 48,
-                        background: fileName ? '#ede9fe' : '#f3f4f6',
-                      }}
-                    >
-                      <Upload size={fileName ? 16 : 20} className={fileName ? 'text-purple-500' : 'text-gray-400'} />
-                    </div>
-                    {fileName ? (
-                      <div className="text-center">
-                        <p className="font-semibold text-purple-700 text-sm">{fileName}</p>
-                        <p className="text-purple-400 text-xs">{students.length} học sinh · Nhấn để đổi file</p>
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-600 text-sm">Kéo file vào đây hoặc nhấn để chọn</p>
-                        <p className="text-gray-400 text-xs mt-1">Hỗ trợ .xlsx, .xls · Cột số thứ tự + họ tên</p>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    ref={fileInputRef} type="file" accept=".xlsx,.xls" className="sr-only"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
-                  />
-                  {parseError && <p className="mt-2 text-xs text-red-500 leading-relaxed">{parseError}</p>}
-                </div>
-              )}
-
-              {/* Classroom picker (API tab) */}
-              {sourceTab === 'api' && (
-                <div>
+              {/* Classroom picker */}
+              <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Chọn lớp học</p>
                   {classroomsLoading ? (
                     <div className="flex items-center justify-center py-8">
@@ -385,9 +251,8 @@ export function ClassRollPanel({ onClose }: Props) {
                     </div>
                   )}
                 </div>
-              )}
 
-              {/* Student list (shared) */}
+              {/* Student list */}
               {students.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -439,7 +304,6 @@ export function ClassRollPanel({ onClose }: Props) {
           </>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ VIEW: SPIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {view === 'spin' && (
           <>
             <div className="flex-1 flex flex-col justify-center gap-6 px-6 py-6 overflow-hidden">
@@ -455,8 +319,6 @@ export function ClassRollPanel({ onClose }: Props) {
               {sequence.length > 0 && (
                 <SlotDrum sequence={sequence} translateY={translateY} spinning={spinning} />
               )}
-
-              {/* Winner card â€” appears after spinning stops */}
               <div
                 style={{
                   opacity: showWinner ? 1 : 0,
