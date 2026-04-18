@@ -17,14 +17,17 @@ import {
   AlertCircle,
   Lightbulb,
   Trash2,
+  Gamepad2,
 } from 'lucide-react';
 import { useProductEvaluation } from '@/hooks/useProductApi';
-import type { ProductDto, VideoProductDto } from '@/types/api';
+import { useDeleteGame } from '@/hooks/useGamesApi';
+import type { ProductDto, VideoProductDto, GameDto } from '@/types/api';
 
 interface ProductResultsCenterProps {
   projectName: string;
   products: ProductDto[];
   videos: VideoProductDto[];
+  games: GameDto[];
   viewSlideLoading: string | null;
   activeDocCode?: string | null;
   onViewSlide: (productCode: string) => void;
@@ -185,6 +188,7 @@ export default function ProductResultsCenter({
   projectName,
   products,
   videos,
+  games,
   viewSlideLoading,
   activeDocCode,
   onViewSlide,
@@ -197,6 +201,8 @@ export default function ProductResultsCenter({
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [confirmDeleteSlide, setConfirmDeleteSlide] = useState<string | null>(null);
   const [confirmDeleteVideo, setConfirmDeleteVideo] = useState<string | null>(null);
+  const [confirmDeleteGame, setConfirmDeleteGame] = useState<string | null>(null);
+  const deleteGame = useDeleteGame();
 
   // Filter to active document when one is selected
   const visibleProducts = activeDocCode
@@ -227,6 +233,7 @@ export default function ProductResultsCenter({
       <AnimatePresence initial={false}>
         {visibleProducts.map((product, i) => {
           const productVideos = videos.filter((v) => v.productCode === product.productCode);
+          const productGames = games.filter((g) => g.productCode === product.productCode);
           const date = product.evaluatedAt ?? product.slideGeneratedAt ?? product.slideEditedAt;
           const isExpanded = expandedProduct === product.productCode;
 
@@ -378,6 +385,68 @@ export default function ProductResultsCenter({
                                 onClick={() => setConfirmDeleteVideo(video.productVideoCode)}
                                 className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Xóa video"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Games */}
+                {productGames.length > 0 && (
+                  <div className="px-4 py-3 space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Gamepad2 className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Trò chơi</span>
+                    </div>
+                    <div className="space-y-2 pl-6">
+                      {productGames.map((game) => (
+                        <div key={game.gameCode} className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {game.status === 'processing' || game.status === 'pending' ? (
+                              <Clock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 animate-pulse" />
+                            ) : game.status === 'failed' ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                            )}
+                            <span className="text-xs text-gray-500 truncate">{game.gameName}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-xs text-gray-400">{game.templateCode}</span>
+                            <span className="text-gray-200">·</span>
+                            <span className="text-xs text-gray-400">{game.roundCount} vòng</span>
+                            {game.status === 'completed' ? (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-medium">Hoàn thành</span>
+                            ) : game.status === 'processing' || game.status === 'pending' ? (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 font-medium flex items-center gap-1">
+                                <Loader2 className="w-3 h-3 animate-spin" /> Đang tạo
+                              </span>
+                            ) : game.status === 'failed' ? (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 font-medium">Lỗi</span>
+                            ) : null}
+                            {confirmDeleteGame === game.gameCode ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500">Xóa?</span>
+                                <button
+                                  type="button"
+                                  disabled={deleteGame.isPending}
+                                  onClick={() => { deleteGame.mutate(game.gameCode); setConfirmDeleteGame(null); }}
+                                  className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded-md disabled:opacity-50"
+                                >
+                                  {deleteGame.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Có'}
+                                </button>
+                                <button type="button" onClick={() => setConfirmDeleteGame(null)} className="text-xs text-gray-500 hover:bg-gray-100 px-2 py-0.5 rounded-md">Không</button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteGame(game.gameCode)}
+                                className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Xóa trò chơi"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>

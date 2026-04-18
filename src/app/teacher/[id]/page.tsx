@@ -13,12 +13,12 @@ import { usePipelineHub } from '@/hooks/usePipelineHub';
 import SourcesPanel from '@/components/projects/SourcesPanel';
 import ProductResultsCenter from '@/components/projects/ProductResultsCenter';
 import StudioPanel from '@/components/projects/StudioPanel';
-import EvaluationModal from '@/components/projects/EvaluationModal';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
 import CreateVideoModal from '@/components/projects/CreateVideoModal';
 import { createPlayableGameTask } from '@/services/gamesServices';
+import { useGames } from '@/hooks/useGamesApi';
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
 import type { GameTemplateId } from '@/types/api';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -43,6 +43,7 @@ export default function ProjectDetailPage() {
   const { data: projectVideos = [] } = useVideosByProject(projectCode);
   const deleteVideo = useDeleteVideo(projectCode);
   const { data: curricula = [] } = useCurricula();
+  const { data: games = [] } = useGames();
   const setDocument = useDocumentStore((state) => state.setDocument);
   const startGeneration = useDocumentStore((state) => state.startGeneration);
   const queryClient = useQueryClient();
@@ -77,6 +78,7 @@ export default function ProjectDetailPage() {
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
   const [gameTemplateId, setGameTemplateId] = useState<GameTemplateId>(GAME_BLUEPRINTS.HOVER_SELECT as GameTemplateId);
   const [gameRoundCount, setGameRoundCount] = useState(1);
+  const [gameName, setGameName] = useState('');
   const [gameCreating, setGameCreating] = useState(false);
   const [gameStatus, setGameStatus] = useState('');
 
@@ -185,6 +187,7 @@ export default function ProjectDetailPage() {
     const product = products.find((p) => p.productCode === productCode);
     setPendingGameProductCode(productCode);
     setPendingGameProductName(product?.productName ?? '');
+    setGameName('');
     setShowGameConfigModal(true);
   };
 
@@ -197,6 +200,7 @@ export default function ProjectDetailPage() {
       if (!url) { setGameStatus(MSGS.game.noSlideError); setGameCreating(false); return; }
       setGameStatus('Đang gửi yêu cầu tạo game...');
       const task = await createPlayableGameTask({
+        gameName: gameName.trim() || pendingGameProductName,
         templateId: gameTemplateId,
         slideEditedDocumentUrl: url,
         roundCount: gameRoundCount,
@@ -214,6 +218,7 @@ export default function ProjectDetailPage() {
       setGameCreating(false);
     }
   };
+
 
   const handleStartAnalysis = (doc: InputDocumentDto) => {
     setAnalysisDocCode(doc.documentCode);
@@ -451,6 +456,7 @@ export default function ProjectDetailPage() {
             projectName={project.projectName}
             products={products}
             videos={projectVideos}
+            games={games}
             viewSlideLoading={viewSlideLoading}
             activeDocCode={activeDocCode}
             onViewSlide={handleViewSlide}
@@ -576,6 +582,16 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên trò chơi</label>
+                <input
+                  type="text"
+                  value={gameName}
+                  onChange={(e) => setGameName(e.target.value)}
+                  placeholder={pendingGameProductName || 'Nhập tên trò chơi...'}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
                 <input
                   type="number"
@@ -592,7 +608,7 @@ export default function ProjectDetailPage() {
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
-                onClick={() => { setShowGameConfigModal(false); setPendingGameProductCode(null); setGameStatus(''); }}
+                onClick={() => { setShowGameConfigModal(false); setPendingGameProductCode(null); setGameStatus(''); setGameName(''); }}
                 disabled={gameCreating}
                 className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50"
               >

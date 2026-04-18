@@ -226,6 +226,7 @@ export interface GenerateSlidesInput {
 export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP' | 'RUNNER_QUIZ' | 'SNAKE_QUIZ' | 'RUNNER_RACE' | 'SNAKE_DUEL';
 
 export interface CreatePlayableGameTaskInput {
+  gameName: string;
   templateId: GameTemplateId;
   slideEditedDocumentUrl: string;
   roundCount?: number;
@@ -235,6 +236,24 @@ export interface GameTaskResponseDto {
   taskId: string;
   templateId: string;
   status: string;
+}
+
+export interface GameDto {
+  gameCode: string;
+  gameName: string;
+  productCode: string;
+  templateCode: string;
+  roundCount: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface GameDetailDto extends GameDto {
+  taskId: string;
+  result: string | null;
+  errorMessage: string | null;
 }
 
 export interface GameProgressDto {
