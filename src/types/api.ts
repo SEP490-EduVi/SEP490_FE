@@ -226,7 +226,7 @@ export interface GenerateSlidesInput {
 export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP' | 'RUNNER_QUIZ' | 'SNAKE_QUIZ' | 'RUNNER_RACE' | 'SNAKE_DUEL';
 
 export interface CreatePlayableGameTaskInput {
-  gameName: string;
+  productGameName: string;
   productCode: string;
   templateId: GameTemplateId;
   slideEditedDocumentUrl: string;

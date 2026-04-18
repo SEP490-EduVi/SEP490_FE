@@ -37,7 +37,7 @@ export default function GameConfigModal({ productCode, productName, onClose }: G
       if (!url) { setStatus(MSGS.game.noSlideError); setCreating(false); return; }
       setStatus('Đang gửi yêu cầu tạo game...');
       const task = await createPlayableGameTask({
-        gameName: gameName.trim() || productName,
+        productGameName: gameName.trim() || productName,
         productCode,
         templateId,
         slideEditedDocumentUrl: url,

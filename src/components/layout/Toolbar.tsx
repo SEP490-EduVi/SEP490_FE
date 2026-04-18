@@ -173,7 +173,7 @@ export function Toolbar() {
 
     try {
       const task = await createPlayableGameTask({
-        gameName: gameName.trim() || 'Game chưa đặt tên',
+        productGameName: gameName.trim() || 'Game chưa đặt tên',
         productCode: currentProductCode ?? '',
         templateId: gameTemplateId,
         slideEditedDocumentUrl: slideEditedDocumentUrl.trim(),
