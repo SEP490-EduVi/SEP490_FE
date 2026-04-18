@@ -44,7 +44,7 @@ export default function CreateVideoModal({ open, onClose, onConfirm }: CreateVid
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Tên video
+              Tên video <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
             </label>
             <input
               type="text"

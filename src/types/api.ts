@@ -138,6 +138,7 @@ export interface InputDocumentDto {
 export interface GenerateVideoInput {
   productCode: string;
   slideEditedDocumentUrl: string;
+  videoName?: string;
 }
 
 // ─── Video ─────────────────────────────────────────────────────────────────

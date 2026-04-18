@@ -7,5 +7,5 @@ export { default as EvaluationModal } from './EvaluationModal';
 export { default as PipelineProgressModal } from './PipelineProgressModal';
 export { default as ProjectListTable } from './ProjectListTable';
 export { default as AnalysisFormModal } from './AnalysisFormModal';
-export { default as VideoConfirmModal } from './VideoConfirmModal';
+export { default as CreateVideoModal } from './CreateVideoModal';
 export { formatDate, getSubjectColor } from './ProjectCard';

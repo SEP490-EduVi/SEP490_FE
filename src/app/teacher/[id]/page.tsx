@@ -17,7 +17,7 @@ import EvaluationModal from '@/components/projects/EvaluationModal';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
-import VideoConfirmModal from '@/components/projects/VideoConfirmModal';
+import CreateVideoModal from '@/components/projects/CreateVideoModal';
 import { createPlayableGameTask } from '@/services/gamesServices';
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
 import type { GameTemplateId } from '@/types/api';
@@ -270,7 +270,7 @@ export default function ProjectDetailPage() {
 
   const handleGenerateVideo = (productCode: string) => { setPendingVideoProductCode(productCode); setShowVideoConfirm(true); };
 
-  const handleConfirmGenerateVideo = async () => {
+  const handleConfirmGenerateVideo = async (videoName: string) => {
     if (!pendingVideoProductCode) return;
     const productCode = pendingVideoProductCode;
     setShowVideoConfirm(false); setPendingVideoProductCode(null);
@@ -287,7 +287,7 @@ export default function ProjectDetailPage() {
       if (!url) { setVideoLoadingCode(null); notify.error(MSGS.slide.noSlideError); return; }
       pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
-        { productCode, slideEditedDocumentUrl: url },
+        { productCode, slideEditedDocumentUrl: url, videoName: videoName || undefined },
         { onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
       );
     } catch { setVideoLoadingCode(null); notify.error(MSGS.video.generateError); }
@@ -524,7 +524,7 @@ export default function ProjectDetailPage() {
         onConfirm={handleConfirmAnalysis}
       />
 
-      <VideoConfirmModal
+      <CreateVideoModal
         open={showVideoConfirm}
         onClose={() => { setShowVideoConfirm(false); setPendingVideoProductCode(null); }}
         onConfirm={handleConfirmGenerateVideo}

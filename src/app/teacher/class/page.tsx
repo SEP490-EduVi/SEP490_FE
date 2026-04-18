@@ -37,13 +37,7 @@ const PAGE_SIZE = 5;
 const formatDate = (iso: string) =>
   iso ? new Date(iso).toLocaleDateString('vi-VN') : '—';
 
-const YEAR_OPTIONS = (() => {
-  const now = new Date().getFullYear();
-  return Array.from({ length: 5 }, (_, i) => {
-    const y = now - 2 + i;
-    return `${y}-${y + 1}`;
-  });
-})();
+
 
 // ─── ClassroomCard ─────────────────────────────────────────────────────────────
 function ClassroomCard({
@@ -89,8 +83,7 @@ function ClassroomCard({
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{classroom.name}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{classroom.gradeLabel} · {classroom.schoolYear}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{classroom.description}</p>
             </div>
           </div>
 
@@ -165,23 +158,18 @@ function ClassroomFormModal({
   initial?: ClassroomDto | null;
   isLoading: boolean;
   onClose: () => void;
-  onConfirm: (data: { name: string; gradeLabel: string; schoolYear: string }) => void;
+  onConfirm: (data: { description: string }) => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? '');
-  const [gradeLabel, setGradeLabel] = useState(initial?.gradeLabel ?? '');
-  const [schoolYear, setSchoolYear] = useState(initial?.schoolYear ?? '');
-  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [description, setDescription] = useState(initial?.description ?? '');
   const isEdit = !!initial;
 
   React.useEffect(() => {
     if (open) {
-      setName(initial?.name ?? '');
-      setGradeLabel(initial?.gradeLabel ?? '');
-      setSchoolYear(initial?.schoolYear ?? '');
+      setDescription(initial?.description ?? '');
     }
   }, [open, initial]);
 
-  const canSubmit = name.trim() && gradeLabel.trim() && schoolYear;
+  const canSubmit = description.trim();
 
   return (
     <AnimatePresence>
@@ -217,77 +205,20 @@ function ClassroomFormModal({
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Tên lớp <span className="text-red-400">*</span>
+                  Tên danh sách <span className="text-red-400">*</span>
                 </label>
                 <input
                   autoFocus
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="VD: 10A1"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="VD: Lớp 10A1 — 2025–2026"
                   disabled={isLoading}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Khối <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={gradeLabel}
-                  onChange={(e) => setGradeLabel(e.target.value)}
-                  placeholder="VD: Lớp 10"
-                  disabled={isLoading}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Năm học <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowYearPicker((v) => !v)}
-                    disabled={isLoading}
-                    className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border ${showYearPicker ? 'border-blue-400' : 'border-gray-200'} bg-white hover:border-blue-300 transition-colors text-left disabled:opacity-50`}
-                  >
-                    <span className={`flex-1 text-sm ${schoolYear ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                      {schoolYear || '-- Chọn năm học --'}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showYearPicker ? 'rotate-180' : ''}`} />
-                  </button>
-                  <AnimatePresence>
-                    {showYearPicker && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 right-0 z-20 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden"
-                      >
-                        {YEAR_OPTIONS.map((y) => (
-                          <button
-                            key={y}
-                            type="button"
-                            onClick={() => { setSchoolYear(y); setShowYearPicker(false); }}
-                            className={`w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 ${
-                              schoolYear === y ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                            }`}
-                          >
-                            {y}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
               </div>
             </div>
 
@@ -301,7 +232,7 @@ function ClassroomFormModal({
                 Hủy
               </button>
               <button
-                onClick={() => onConfirm({ name: name.trim(), gradeLabel: gradeLabel.trim(), schoolYear })}
+                onClick={() => onConfirm({ description: description.trim() })}
                 disabled={isLoading || !canSubmit}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
               >
@@ -321,6 +252,7 @@ export default function TeacherClassPage() {
   // view: 'list' = danh sách lớp, 'detail' = chi tiết lớp
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [activeCode, setActiveCode] = useState<string | null>(null);
+  // studentListCode used as the active code
 
   // list state
   const [search, setSearch] = useState('');
@@ -344,9 +276,7 @@ export default function TeacherClassPage() {
 
   // ── filtered classrooms ────────────────────────────────────────────────────
   const filteredClassrooms = classrooms.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.gradeLabel.toLowerCase().includes(search.toLowerCase()) ||
-    c.schoolYear.includes(search)
+    c.description.toLowerCase().includes(search.toLowerCase())
   );
 
   // ── student list in detail view ────────────────────────────────────────────
@@ -371,7 +301,7 @@ export default function TeacherClassPage() {
     setView('detail');
   };
 
-  const handleCreate = (data: { name: string; gradeLabel: string; schoolYear: string }) => {
+  const handleCreate = (data: { description: string }) => {
     createClassroom.mutate(data, {
       onSuccess: () => {
         notify.success('Đã tạo lớp học');
@@ -381,13 +311,13 @@ export default function TeacherClassPage() {
     });
   };
 
-  const handleUpdate = (data: { name: string; gradeLabel: string; schoolYear: string }) => {
+  const handleUpdate = (data: { description: string }) => {
     if (!editTarget) return;
-    updateClassroom.mutate({ classroomCode: editTarget.classroomCode, input: data }, {
+    updateClassroom.mutate({ studentListCode: editTarget.studentListCode, input: data }, {
       onSuccess: () => {
-        notify.success('Đã cập nhật lớp học');
+        notify.success('Đã cập nhật danh sách');
         setEditTarget(null);
-        if (activeCode === editTarget.classroomCode) refetchDetail();
+        if (activeCode === editTarget.studentListCode) refetchDetail();
       },
       onError: () => notify.error('Cập nhật thất bại. Vui lòng thử lại.'),
     });
@@ -395,11 +325,11 @@ export default function TeacherClassPage() {
 
   const handleDelete = () => {
     if (!deleteTarget) return;
-    deleteClassroom.mutate(deleteTarget.classroomCode, {
+    deleteClassroom.mutate(deleteTarget.studentListCode, {
       onSuccess: () => {
-        notify.success(`Đã xóa lớp "${deleteTarget.name}"`);
+        notify.success(`Đã xóa "${deleteTarget.description}"`);
         setDeleteTarget(null);
-        if (view === 'detail' && activeCode === deleteTarget.classroomCode) {
+        if (view === 'detail' && activeCode === deleteTarget.studentListCode) {
           setView('list');
           setActiveCode(null);
         }
@@ -465,7 +395,7 @@ export default function TeacherClassPage() {
 
   const handleConfirmImport = () => {
     if (!activeCode || !importPreview) return;
-    importStudents.mutate({ classroomCode: activeCode, input: { students: importPreview } }, {
+    importStudents.mutate({ studentListCode: activeCode, input: { students: importPreview } }, {
       onSuccess: () => {
         notify.success(`Đã nhập ${importPreview.length} học sinh`);
         setImportPreview(null);
@@ -509,7 +439,7 @@ export default function TeacherClassPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm lớp theo tên, khối, năm học..."
+              placeholder="Tìm theo tên danh sách..."
               className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
             />
           </div>
@@ -565,10 +495,10 @@ export default function TeacherClassPage() {
               <AnimatePresence mode="popLayout">
                 {filteredClassrooms.map((c, idx) => (
                   <ClassroomCard
-                    key={c.classroomCode}
+                    key={c.studentListCode}
                     classroom={c}
                     index={idx}
-                    onOpen={() => handleOpenDetail(c.classroomCode)}
+                    onOpen={() => handleOpenDetail(c.studentListCode)}
                     onEdit={() => setEditTarget(c)}
                     onDelete={() => setDeleteTarget(c)}
                   />
@@ -622,7 +552,7 @@ export default function TeacherClassPage() {
                 </div>
                 <h3 className="text-base font-bold text-gray-900 text-center mb-1">Xóa lớp học?</h3>
                 <p className="text-sm text-gray-500 text-center mb-5">
-                  Lớp <strong>{deleteTarget.name}</strong> sẽ bị xóa vĩnh viễn. Không thể hoàn tác.
+                  Danh sách <strong>{deleteTarget.description}</strong> sẽ bị xóa vĩnh viễn. Không thể hoàn tác.
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -677,7 +607,7 @@ export default function TeacherClassPage() {
             Danh sách lớp
           </button>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-gray-700 font-medium">{activeClassroom?.name ?? '...'}</span>
+          <span className="text-gray-700 font-medium">{activeClassroom?.description ?? '...'}</span>
         </div>
 
         {/* Class info bar */}
@@ -690,8 +620,7 @@ export default function TeacherClassPage() {
                 <GraduationCap className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">{activeClassroom.name}</h1>
-                <p className="text-sm text-gray-500">{activeClassroom.gradeLabel} · Năm học {activeClassroom.schoolYear}</p>
+                <h1 className="text-lg font-bold text-gray-900">{activeClassroom.description}</h1>
               </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">

@@ -179,7 +179,7 @@ export function ClassRollPanel({ onClose }: Props) {
   const applyClassroom = (cls: ClassroomDto) => {
     const mapped: Student[] = cls.students.map((name, i) => ({ stt: i + 1, name }));
     setStudents(mapped);
-    setSelectedClassroomCode(cls.classroomCode);
+    setSelectedClassroomCode(cls.studentListCode);
     setFileName(null);
     setParseError(null);
   };
@@ -358,26 +358,26 @@ export function ClassRollPanel({ onClose }: Props) {
                     <div className="space-y-2">
                       {classrooms.map((cls) => (
                         <button
-                          key={cls.classroomCode}
+                          key={cls.studentListCode}
                           type="button"
                           onClick={() => applyClassroom(cls)}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${
-                            selectedClassroomCode === cls.classroomCode
+                            selectedClassroomCode === cls.studentListCode
                               ? 'border-purple-400 bg-purple-50'
                               : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'
                           }`}
                         >
                           <div
                             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                            style={{ background: selectedClassroomCode === cls.classroomCode ? '#ede9fe' : '#f3f4f6' }}
+                            style={{ background: selectedClassroomCode === cls.studentListCode ? '#ede9fe' : '#f3f4f6' }}
                           >
-                            <Users size={14} className={selectedClassroomCode === cls.classroomCode ? 'text-purple-600' : 'text-gray-400'} />
+                            <Users size={14} className={selectedClassroomCode === cls.studentListCode ? 'text-purple-600' : 'text-gray-400'} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-800 truncate">{cls.name}</p>
-                            <p className="text-xs text-gray-400">{cls.gradeLabel} · {cls.schoolYear} · {cls.studentCount} học sinh</p>
+                            <p className="text-sm font-semibold text-gray-800 truncate">{cls.description}</p>
+                            <p className="text-xs text-gray-400">{cls.studentCount} học sinh</p>
                           </div>
-                          {selectedClassroomCode === cls.classroomCode && (
+                          {selectedClassroomCode === cls.studentListCode && (
                             <Check size={14} className="text-purple-600 shrink-0" />
                           )}
                         </button>
