@@ -60,6 +60,7 @@ export function Toolbar() {
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
   const [gameTemplateId, setGameTemplateId] = useState<TemplateId>(GAME_BLUEPRINTS.HOVER_SELECT);
   const [gameRoundCount, setGameRoundCount] = useState<number>(1);
+  const [gameName, setGameName] = useState<string>('');
   const [gameStatus, setGameStatus] = useState<string>('');
   const [isGameCreating, setIsGameCreating] = useState(false);
 
@@ -175,6 +176,7 @@ export function Toolbar() {
         templateId: gameTemplateId,
         slideEditedDocumentUrl: slideEditedDocumentUrl.trim(),
         roundCount: gameRoundCount,
+        gameName: gameName.trim() || 'Game chưa đặt tên',
       });
 
       setShowGameConfigModal(false);
@@ -445,6 +447,16 @@ export function Toolbar() {
             </div>
 
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên game</label>
+                <input
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                  type="text"
+                  placeholder="Nhập tên cho game..."
+                  value={gameName}
+                  onChange={(e) => setGameName(e.target.value)}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Dạng trò chơi</label>
                 <div className="grid grid-cols-2 gap-2">
