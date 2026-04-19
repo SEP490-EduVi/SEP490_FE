@@ -25,6 +25,7 @@ import { getPurchasedMaterials } from '@/services/materialServices';
 import { useProductMaterials } from '@/hooks/useProductMaterialApi';
 import { Modal } from '@/components/common/Modal';
 import SkeletonPreview from '@/components/common/SkeletonPreview';
+import { GcsImage } from '@/components/common/GcsImage';
 import { basicCardTemplates, freeformCardTemplates } from './cardTemplates';
 import { useTemplates } from '@/hooks/useTemplateApi';
 import * as LucideIcons from 'lucide-react';
@@ -373,7 +374,7 @@ function DraggablePurchasedItem({ item }: { item: PurchasedMaterialDto }) {
       {/* Thumbnail or icon */}
       {item.previewUrl ? (
         <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-          <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover" />
+          <GcsImage src={item.previewUrl} alt={item.title} className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className={cn('flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center', color.bg)}>
@@ -424,7 +425,7 @@ function toDroppable(m: ProductMaterialDto): PurchasedMaterialDto {
     gradeCode: '',
     gradeName: '',
     expertCode: '',
-    expertName: m.sourceType === 'Marketplace' ? 'Marketplace' : 'Tải lên',
+    expertName: m.sourceType === 'Marketplace' ? 'Thư viện' : 'Tải lên',
     purchasedDate: m.createdAt,
   };
 }
@@ -463,9 +464,9 @@ function DraggableProductMaterialItem({ item }: { item: ProductMaterialDto }) {
         <GripVertical className="w-3.5 h-3.5" />
       </div>
 
-      {item.previewUrl ? (
+      {(item.previewUrl || item.type?.toLowerCase() === 'image') ? (
         <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-          <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover" />
+          <GcsImage src={item.previewUrl || item.resourceUrl} alt={item.title} className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className={cn('flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center', color.bg)}>
@@ -479,7 +480,7 @@ function DraggableProductMaterialItem({ item }: { item: ProductMaterialDto }) {
           'text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-0.5 inline-block',
           item.sourceType === 'Marketplace' ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-600',
         )}>
-          {item.sourceType === 'Marketplace' ? 'Marketplace' : 'Tải lên'}
+          {item.sourceType === 'Marketplace' ? 'Thư viện' : 'Tải lên'}
         </span>
       </div>
     </div>

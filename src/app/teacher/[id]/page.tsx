@@ -27,6 +27,7 @@ import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { notify, MSGS } from '@/components/common';
 import type { PipelineProgress, VideoProductDto, InputDocumentDto } from '@/types/api';
+import type { IDocument } from '@/types';
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -86,6 +87,8 @@ export default function ProjectDetailPage() {
   const [pendingGameProductName, setPendingGameProductName] = useState<string>('');
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
   const [detailProductCode, setDetailProductCode] = useState<string | null>(null);
+  const [slidePreviewDoc, setSlidePreviewDoc] = useState<IDocument | null>(null);
+  const [previewSlideLoading, setPreviewSlideLoading] = useState<string | null>(null);
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
@@ -303,6 +306,27 @@ export default function ProjectDetailPage() {
     finally { setViewSlideLoading(null); }
   };
 
+  const handlePreviewSlide = async (productCode: string) => {
+    try {
+      setPreviewSlideLoading(productCode);
+      setDetailProductCode(productCode);
+      const product = products.find((p) => p.productCode === productCode);
+      let slideDoc: IDocument;
+      if (product?.hasEditedSlide) {
+        const result = await productService.getProductEditedSlide(productCode);
+        slideDoc = result.slideEditedDocument;
+      } else {
+        const result = await productService.getProductSlide(productCode);
+        slideDoc = result.slideDocument;
+      }
+      setSlidePreviewDoc(slideDoc);
+    } catch {
+      notify.error('Không thể tải slide. Vui lòng thử lại.');
+    } finally {
+      setPreviewSlideLoading(null);
+    }
+  };
+
   const handleDeleteSlide = (productCode: string) => {
     setDeletingSlide(productCode);
     deleteProduct.mutate(productCode, {
@@ -437,8 +461,10 @@ export default function ProjectDetailPage() {
             games={games}
             activeDocCode={activeDocCode}
             detailProductCode={detailProductCode}
-            onCloseDetail={() => setDetailProductCode(null)}
+            onCloseDetail={() => { setDetailProductCode(null); setSlidePreviewDoc(null); }}
             onDocChange={setActiveDocCode}
+            slidePreviewDoc={slidePreviewDoc}
+            slidePreviewLoading={previewSlideLoading}
             onWatchVideo={setViewingVideo}
             isPipelineRunning={isPipelineRunning}
             onOpenPipelineModal={() => setShowPipelineModal(true)}
@@ -467,6 +493,8 @@ export default function ProjectDetailPage() {
               onSelectDetail={setDetailProductCode}
               onViewSlide={handleViewSlide}
               viewSlideLoading={viewSlideLoading}
+              onPreviewSlide={handlePreviewSlide}
+              previewSlideLoading={previewSlideLoading}
               deletingSlide={deletingSlide}
               onDeleteSlide={handleDeleteSlide}
               onWatchVideo={setViewingVideo}

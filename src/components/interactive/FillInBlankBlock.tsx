@@ -87,7 +87,7 @@ interface FillInBlankPlayerProps {
   data: FillBlankData;
 }
 
-function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
+export function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
   const sentence = data.sentence || '';
   const blanks = data.blanks || [];
   

@@ -12,6 +12,7 @@ import { usePurchasedMaterials } from '@/hooks/useMaterialShopApi';
 import { uploadMaterialFilesToGcs } from '@/services/gcsServices';
 import { useAuthStore } from '@/store/useAuthStore';
 import { notify } from '@/components/common';
+import { GcsImage } from '@/components/common/GcsImage';
 import type { ProductDto } from '@/types/api';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -186,6 +187,8 @@ export default function ProductMaterialsSection({
                       code={m.productMaterialCode}
                       title={m.title}
                       type={m.type}
+                      previewUrl={m.previewUrl}
+                      resourceUrl={m.resourceUrl}
                       iconColor="text-blue-500"
                       deleteConfirm={deleteConfirm}
                       onDeleteConfirm={setDeleteConfirm}
@@ -221,6 +224,8 @@ export default function ProductMaterialsSection({
                       code={m.productMaterialCode}
                       title={m.title}
                       type={m.type}
+                      previewUrl={m.previewUrl}
+                      resourceUrl={m.resourceUrl}
                       iconColor="text-purple-500"
                       deleteConfirm={deleteConfirm}
                       onDeleteConfirm={setDeleteConfirm}
@@ -430,28 +435,39 @@ export default function ProductMaterialsSection({
 
 // ─── Shared list item ─────────────────────────────────────────────────────────
 function MaterialItem({
-  code, title, type, iconColor, deleteConfirm, onDeleteConfirm, onDelete,
+  code, title, type, previewUrl, resourceUrl, iconColor, deleteConfirm, onDeleteConfirm, onDelete,
 }: {
   code: string;
   title: string;
   type: string;
+  previewUrl?: string | null;
+  resourceUrl?: string | null;
   iconColor: string;
   deleteConfirm: string | null;
   onDeleteConfirm: (code: string | null) => void;
   onDelete: (code: string) => void;
 }) {
+  // Use previewUrl if available, otherwise fall back to resourceUrl for images
+  const thumbnailUrl = previewUrl || (type === 'image' ? resourceUrl : null);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -16 }}
       transition={{ duration: 0.18 }}
-      className="group relative flex items-start gap-3 p-3 rounded-2xl border border-transparent bg-gray-50 hover:bg-blue-50/50 hover:border-blue-100 transition-all"
+      className="group relative flex items-center gap-3 p-2 rounded-2xl border border-transparent bg-gray-50 hover:bg-blue-50/50 hover:border-blue-100 transition-all"
     >
-      {/* Icon */}
-      <div className="w-8 h-8 flex-shrink-0 rounded-xl border border-gray-100 bg-white flex items-center justify-center">
-        <MaterialIcon type={type} className={`w-4 h-4 ${iconColor}`} />
-      </div>
+      {/* Thumbnail or icon */}
+      {thumbnailUrl ? (
+        <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
+          <GcsImage src={thumbnailUrl} alt={title} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="w-10 h-10 flex-shrink-0 rounded-xl border border-gray-100 bg-white flex items-center justify-center">
+          <MaterialIcon type={type} className={`w-4 h-4 ${iconColor}`} />
+        </div>
+      )}
 
       {/* Info */}
       <div className="flex-1 min-w-0">

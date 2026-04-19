@@ -104,18 +104,18 @@ export default function SourcesPanel({
 
   return (
     <aside className="flex flex-col h-full min-h-0 overflow-hidden">
-      {/* ─── Giáo án section ────────────────────────────── */}
+      {/* ─── Tài nguyên đầu vào section ────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0">
       {/* ─── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-700">Giáo án</h2>
+        <h2 className="text-sm font-semibold text-gray-700">Tài nguyên đầu vào</h2>
         <button
           type="button"
           onClick={() => setShowForm(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
-          Thêm giáo án
+          Thêm tài nguyên
         </button>
       </div>
 
@@ -156,7 +156,7 @@ export default function SourcesPanel({
 
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-semibold text-gray-900">Thêm giáo án</h3>
+                <h3 className="text-base font-semibold text-gray-900">Thêm tài nguyên</h3>
                 <button
                   type="button"
                   onClick={resetForm}
@@ -213,7 +213,7 @@ export default function SourcesPanel({
                       type="text"
                       value={uploadTitle}
                       onChange={(e) => setUploadTitle(e.target.value)}
-                      placeholder="VD: Giáo án Địa Lí Bài 1"
+                      placeholder="VD: Tài nguyên Địa Lí Bài 1"
                       className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
                     />
                   </div>
@@ -410,7 +410,7 @@ export default function SourcesPanel({
         </AnimatePresence>
       </div>
 
-      </div>{/* end Giáo án section */}
+      </div>
 
       {/* ─── Product Materials Section ───────────────────── */}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">

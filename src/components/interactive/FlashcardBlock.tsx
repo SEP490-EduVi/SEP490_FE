@@ -50,7 +50,7 @@ interface FlashcardPlayerProps {
   data: FlashcardData;
 }
 
-function FlashcardPlayer({ data }: FlashcardPlayerProps) {
+export function FlashcardPlayer({ data }: FlashcardPlayerProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
   const front = data.front || 'No front content';

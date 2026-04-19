@@ -61,7 +61,7 @@ interface QuizPlayerProps {
   data: QuizData;
 }
 
-function QuizPlayer({ data }: QuizPlayerProps) {
+export function QuizPlayer({ data }: QuizPlayerProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);

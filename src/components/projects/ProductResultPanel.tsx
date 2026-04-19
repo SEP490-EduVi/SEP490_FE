@@ -19,6 +19,7 @@ import {
   Trash2,
   Swords,
   ExternalLink,
+  Eye,
 } from 'lucide-react';
 import { useDeleteGame } from '@/hooks/useGamesApi';
 import { getGameByCode } from '@/services/gamesServices';
@@ -41,6 +42,8 @@ interface ProductResultPanelProps {
   // slide actions
   onViewSlide: (productCode: string) => void;
   viewSlideLoading: string | null;
+  onPreviewSlide: (productCode: string) => void;
+  previewSlideLoading?: string | null;
   deletingSlide: string | null;
   onDeleteSlide: (productCode: string) => void;
   // video actions
@@ -76,6 +79,8 @@ export default function ProductResultPanel({
   onSelectDetail,
   onViewSlide,
   viewSlideLoading,
+  onPreviewSlide,
+  previewSlideLoading,
   deletingSlide,
   onDeleteSlide,
   onWatchVideo,
@@ -206,6 +211,18 @@ export default function ProductResultPanel({
                           ) : (
                             <ExternalLink className="w-3 h-3 text-indigo-400 ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100" />
                           )}
+                        </button>
+                        {/* Preview inline button */}
+                        <button
+                          type="button"
+                          onClick={() => onPreviewSlide(product.productCode)}
+                          disabled={previewSlideLoading === product.productCode}
+                          title="Xem demo slide"
+                          className="flex-shrink-0 p-1 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        >
+                          {previewSlideLoading === product.productCode
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Eye className="w-3 h-3" />}
                         </button>
                         {confirmDeleteSlide === product.productCode ? (
                           <div className="flex items-center gap-1 flex-shrink-0">
