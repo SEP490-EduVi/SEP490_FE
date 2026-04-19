@@ -13,6 +13,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useDocumentStore, AppMode } from '@/store';
+import { Fireworks } from '@/components/common/Fireworks';
 import {
   PenLine,
   Eye,
@@ -86,12 +87,13 @@ interface FillInBlankPlayerProps {
   data: FillBlankData;
 }
 
-function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
+export function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
   const sentence = data.sentence || '';
   const blanks = data.blanks || [];
   
   const [userAnswers, setUserAnswers] = useState<string[]>(blanks.map(() => ''));
   const [showResults, setShowResults] = useState(false);
+  const [showFireworks, setShowFireworks] = useState(false);
 
   // Parse sentence into parts
   const parts = useMemo(() => {
@@ -136,6 +138,13 @@ function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
 
   const handleSubmit = () => {
     setShowResults(true);
+    const correct = userAnswers.filter(
+      (answer, idx) => answer.toLowerCase().trim() === blanks[idx]?.toLowerCase().trim()
+    ).length;
+    if (correct === blanks.length && blanks.length > 0) {
+      setShowFireworks(true);
+      setTimeout(() => setShowFireworks(false), 2500);
+    }
   };
 
   const handleReset = () => {
@@ -157,7 +166,9 @@ function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <Fireworks show={showFireworks} />
+      <div className="space-y-6">
       {/* Sentence with Inputs */}
       <div className="text-lg leading-loose text-gray-800 p-4 bg-gray-50 rounded-lg">
         {parts.map((part, idx) => {
@@ -252,7 +263,8 @@ function FillInBlankPlayer({ data }: FillInBlankPlayerProps) {
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

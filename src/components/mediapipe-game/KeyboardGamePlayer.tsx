@@ -10,6 +10,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { GameEngine } from '@/mediapipe-game/mediapipe-engine.js';
+import { Fireworks } from '@/components/common/Fireworks';
 
 type Props = {
   playable: any;
@@ -108,8 +109,11 @@ export function KeyboardGamePlayer({ playable, onEnd, onReplay }: Props) {
   // ── Result Screen ─────────────────────────────────────────────────────────
   if (gameResult) {
     const pct = gameResult.total > 0 ? Math.round((gameResult.correct / gameResult.total) * 100) : 0;
+    const isPerfect = gameResult.total > 0 && gameResult.correct === gameResult.total;
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black">
+      <>
+        <Fireworks show={isPerfect} />
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black">
         <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 w-full max-w-sm text-center">
           <div className="text-5xl mb-3">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '😅'}</div>
           <h2 className="text-white text-2xl font-bold mb-1">Kết thúc!</h2>
@@ -136,6 +140,7 @@ export function KeyboardGamePlayer({ playable, onEnd, onReplay }: Props) {
           </div>
         </div>
       </div>
+      </>
     );
   }
 

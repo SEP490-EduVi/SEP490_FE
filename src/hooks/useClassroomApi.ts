@@ -12,11 +12,11 @@ export function useClassrooms() {
   });
 }
 
-export function useClassroom(classroomCode?: string) {
+export function useClassroom(studentListCode?: string) {
   return useQuery({
-    queryKey: [KEY, classroomCode],
-    queryFn: () => classroomServices.get(classroomCode!),
-    enabled: !!classroomCode,
+    queryKey: [KEY, studentListCode],
+    queryFn: () => classroomServices.get(studentListCode!),
+    enabled: !!studentListCode,
   });
 }
 
@@ -31,11 +31,11 @@ export function useCreateClassroom() {
 export function useUpdateClassroom() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ classroomCode, input }: { classroomCode: string; input: UpdateClassroomInput }) =>
-      classroomServices.update(classroomCode, input),
-    onSuccess: (_data, { classroomCode }) => {
+    mutationFn: ({ studentListCode, input }: { studentListCode: string; input: UpdateClassroomInput }) =>
+      classroomServices.update(studentListCode, input),
+    onSuccess: (_data, { studentListCode }) => {
       qc.invalidateQueries({ queryKey: [KEY] });
-      qc.invalidateQueries({ queryKey: [KEY, classroomCode] });
+      qc.invalidateQueries({ queryKey: [KEY, studentListCode] });
     },
   });
 }
@@ -43,7 +43,7 @@ export function useUpdateClassroom() {
 export function useDeleteClassroom() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (classroomCode: string) => classroomServices.delete(classroomCode),
+    mutationFn: (studentListCode: string) => classroomServices.delete(studentListCode),
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
 }
@@ -51,10 +51,10 @@ export function useDeleteClassroom() {
 export function useImportStudents() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ classroomCode, input }: { classroomCode: string; input: ImportStudentsInput }) =>
-      classroomServices.importStudents(classroomCode, input),
-    onSuccess: (_data, { classroomCode }) => {
-      qc.invalidateQueries({ queryKey: [KEY, classroomCode] });
+    mutationFn: ({ studentListCode, input }: { studentListCode: string; input: ImportStudentsInput }) =>
+      classroomServices.importStudents(studentListCode, input),
+    onSuccess: (_data, { studentListCode }) => {
+      qc.invalidateQueries({ queryKey: [KEY, studentListCode] });
       qc.invalidateQueries({ queryKey: [KEY] });
     },
   });

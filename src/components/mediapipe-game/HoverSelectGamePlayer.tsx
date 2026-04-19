@@ -4,6 +4,7 @@ import React from 'react';
 import { X, Camera, RefreshCw, Pause, Play, Dices } from 'lucide-react';
 import { GameEngine, MediaPipeTracker } from '@/mediapipe-game/mediapipe-engine.js';
 import { ClassRollPanel } from './ClassRollPanel';
+import { Fireworks } from '@/components/common/Fireworks';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -724,9 +725,12 @@ function HoverResultScreen({
 }) {
   const pct  = result.total > 0 ? result.correct / result.total : 0;
   const tier = getTier(pct);
+  const isPerfect = result.total > 0 && result.correct === result.total;
 
   return (
-    <div
+    <>
+      <Fireworks show={isPerfect} />
+      <div
       className="absolute inset-0 z-50 flex items-center justify-center"
       style={{
         background: `radial-gradient(ellipse 80% 60% at 50% 50%, ${tier.glowColor} 0%, rgba(0,0,0,0.93) 70%)`,
@@ -809,6 +813,7 @@ function HoverResultScreen({
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

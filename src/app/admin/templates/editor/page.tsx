@@ -104,7 +104,6 @@ export default function AdminTemplateEditorPage() {
   // Save modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<'layout' | 'freeform'>('layout');
   const [description, setDescription] = useState('');
 
   // Mutations
@@ -125,7 +124,6 @@ export default function AdminTemplateEditorPage() {
       // Wait for the template to load
       if (!existingTemplate) return;
       setName(existingTemplate.name);
-      setCategory(existingTemplate.category);
       setDescription(existingTemplate.description ?? '');
       // Hydrate the skeleton into a document so the editor can render it
       const card = hydrateSkeleton(existingTemplate.skeleton, existingTemplate.name);
@@ -186,13 +184,13 @@ export default function AdminTemplateEditorPage() {
       if (isEditMode && templateCode) {
         await updateTemplate.mutateAsync({
           templateCode,
-          input: { name: trimmedName, category, description: description.trim() || undefined, skeleton },
+          input: { name: trimmedName, category: 'layout', description: description.trim() || undefined, skeleton },
         });
         notify.success('Đã cập nhật template');
       } else {
         await createTemplate.mutateAsync({
           name: trimmedName,
-          category,
+          category: 'layout',
           description: description.trim() || undefined,
           skeleton,
         });
@@ -334,7 +332,7 @@ export default function AdminTemplateEditorPage() {
         {/* ── Floating text toolbar (portal-based, must be inside DndContext tree) ── */}
         <ContextualTextToolbar />
 
-        <DragOverlay>
+        <DragOverlay zIndex={10001}>
           {activeDragItem && (
             <div className="bg-white border-2 border-indigo-400 rounded-lg p-3 shadow-xl opacity-90">
               <div className="flex items-center gap-2">
@@ -399,33 +397,11 @@ export default function AdminTemplateEditorPage() {
             />
           </div>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dạng template</label>
-            <div className="flex gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="category"
-                  value="layout"
-                  checked={category === 'layout'}
-                  onChange={() => setCategory('layout')}
-                  className="text-blue-600"
-                />
-                <span className="text-sm text-gray-700">Bố cục cột</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="category"
-                  value="freeform"
-                  checked={category === 'freeform'}
-                  onChange={() => setCategory('freeform')}
-                  className="text-blue-600"
-                />
-                <span className="text-sm text-gray-700">Đặc biệt (Freeform)</span>
-              </label>
-            </div>
+          {/* Category badge (fixed, display only) */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
+              Template do quản trị viên tạo
+            </span>
           </div>
 
           {/* Description */}

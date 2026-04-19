@@ -138,6 +138,7 @@ export interface InputDocumentDto {
 export interface GenerateVideoInput {
   productCode: string;
   slideEditedDocumentUrl: string;
+  videoName?: string;
 }
 
 // ─── Video ─────────────────────────────────────────────────────────────────
@@ -225,6 +226,8 @@ export interface GenerateSlidesInput {
 export type GameTemplateId = 'HOVER_SELECT' | 'DRAG_DROP' | 'RUNNER_QUIZ' | 'SNAKE_QUIZ' | 'RUNNER_RACE' | 'SNAKE_DUEL';
 
 export interface CreatePlayableGameTaskInput {
+  productGameName: string;
+  productCode: string;
   templateId: GameTemplateId;
   slideEditedDocumentUrl: string;
   roundCount?: number;
@@ -234,6 +237,25 @@ export interface GameTaskResponseDto {
   taskId: string;
   templateId: string;
   status: string;
+}
+
+export interface GameDto {
+  gameCode: string;
+  productGameCode: string;
+  productCode: string;
+  productGameName: string;
+  templateCode: string;
+  roundCount: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface GameDetailDto extends GameDto {
+  taskId: string;
+  result: string | null;
+  errorMessage: string | null;
 }
 
 export interface GameProgressDto {
@@ -552,8 +574,8 @@ export interface ICardTemplate {
   templateCode: string;
   name: string;
   description?: string;
-  /** 'layout' = layout-based (columns); 'freeform' = special-purpose (quiz, flashcard, etc.) */
-  category: 'layout' | 'freeform';
+  /** 'layout' = layout-based (columns); 'freeform' = special-purpose; 'admin' = admin-created custom templates */
+  category: 'layout' | 'freeform' | 'admin' | string;
   skeleton: ITemplateSkeleton;
   createdAt: string;
   updatedAt: string;
@@ -561,14 +583,37 @@ export interface ICardTemplate {
 
 export interface CreateTemplateInput {
   name: string;
-  category: 'layout' | 'freeform';
+  category: 'layout' | 'freeform' | 'admin' | string;
   description?: string;
   skeleton: ITemplateSkeleton;
 }
 
 export interface UpdateTemplateInput {
   name: string;
-  category: 'layout' | 'freeform';
+  category: 'layout' | 'freeform' | 'admin' | string;
   description?: string;
   skeleton: ITemplateSkeleton;
+}
+
+// ─── Product Material ─────────────────────────────────────────────────────────
+export interface ProductMaterialDto {
+  productMaterialCode: string;
+  productCode: string;
+  sourceType: 'Marketplace' | 'Upload';
+  materialCode: string | null;
+  title: string;
+  type: string;
+  resourceUrl: string;
+  previewUrl: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface AddProductMaterialInput {
+  sourceType: 'Marketplace' | 'Upload';
+  materialCode?: string;
+  title?: string;
+  type?: string;
+  resourceUrl?: string;
+  previewUrl?: string;
 }

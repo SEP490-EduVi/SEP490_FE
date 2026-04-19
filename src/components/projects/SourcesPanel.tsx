@@ -7,6 +7,8 @@ import { Plus, FileText, Loader2, Trash2, X, Upload, ChevronDown, BookOpen } fro
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { useLessons } from '@/hooks/useMetadataApi';
 import { notify } from '@/components/common';
+import ProductMaterialsSection from './ProductMaterialsSection';
+import type { ProductDto } from '@/types/api';
 
 interface SourcesPanelProps {
   projectCode: string;
@@ -16,6 +18,7 @@ interface SourcesPanelProps {
   gradeName?: string;
   activeDocCode?: string | null;
   onDocumentClick?: (docCode: string) => void;
+  products?: ProductDto[];
 }
 
 // Supported file extensions
@@ -28,11 +31,19 @@ export default function SourcesPanel({
   gradeCode,
   activeDocCode,
   onDocumentClick,
+  products,
 }: SourcesPanelProps) {
   const { data: docs = [], isLoading } = useInputDocumentsByProject(projectCode);
   const uploadDoc = useUploadInputDocument();
   const deleteDoc = useDeleteInputDocument();
   const { data: lessons = [] } = useLessons(subjectCode);
+
+  // Determine which product's materials to show.
+  // Prefer the product linked to the selected document; otherwise default to first product.
+  const linkedProductCode = products?.find((p) => p.documentCode === activeDocCode)?.productCode ?? null;
+  const firstProductCode = products?.[0]?.productCode ?? null;
+  const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
+  const activeProductCode = selectedProductCode ?? linkedProductCode ?? firstProductCode;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
@@ -92,17 +103,19 @@ export default function SourcesPanel({
   };
 
   return (
-    <aside className="flex flex-col h-full">
+    <aside className="flex flex-col h-full min-h-0 overflow-hidden">
+      {/* ─── Tài nguyên đầu vào section ────────────────────────────── */}
+      <div className="flex flex-col flex-1 min-h-0">
       {/* ─── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-700">Giáo án</h2>
+        <h2 className="text-sm font-semibold text-gray-700">Tài nguyên đầu vào</h2>
         <button
           type="button"
           onClick={() => setShowForm(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
-          Thêm giáo án
+          Thêm tài nguyên
         </button>
       </div>
 
@@ -143,7 +156,7 @@ export default function SourcesPanel({
 
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-semibold text-gray-900">Thêm giáo án</h3>
+                <h3 className="text-base font-semibold text-gray-900">Thêm tài nguyên</h3>
                 <button
                   type="button"
                   onClick={resetForm}
@@ -200,7 +213,7 @@ export default function SourcesPanel({
                       type="text"
                       value={uploadTitle}
                       onChange={(e) => setUploadTitle(e.target.value)}
-                      placeholder="VD: Giáo án Địa Lí Bài 1"
+                      placeholder="VD: Tài nguyên Địa Lí Bài 1"
                       className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
                     />
                   </div>
@@ -301,7 +314,7 @@ export default function SourcesPanel({
       </AnimatePresence>
 
       {/* ─── Document list ───────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-0 pr-0.5">
         {isLoading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
@@ -395,6 +408,18 @@ export default function SourcesPanel({
             );
           })}
         </AnimatePresence>
+      </div>
+
+      </div>
+
+      {/* ─── Product Materials Section ───────────────────── */}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <ProductMaterialsSection
+          productCode={activeProductCode ?? undefined}
+          products={products}
+          selectedProductCode={activeProductCode ?? undefined}
+          onSelectProduct={setSelectedProductCode}
+        />
       </div>
     </aside>
   );

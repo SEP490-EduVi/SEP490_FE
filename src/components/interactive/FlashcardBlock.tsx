@@ -15,6 +15,7 @@ import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useDocumentStore, AppMode } from '@/store';
+import { Fireworks } from '@/components/common/Fireworks';
 import {
   Layers,
   Eye,
@@ -49,15 +50,25 @@ interface FlashcardPlayerProps {
   data: FlashcardData;
 }
 
-function FlashcardPlayer({ data }: FlashcardPlayerProps) {
+export function FlashcardPlayer({ data }: FlashcardPlayerProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showFireworks, setShowFireworks] = useState(false);
   const front = data.front || 'No front content';
   const back = data.back || 'No back content';
 
-  const handleFlip = () => setIsFlipped(!isFlipped);
+  const handleFlip = () => {
+    const flippingToBack = !isFlipped;
+    setIsFlipped(flippingToBack);
+    if (flippingToBack) {
+      setShowFireworks(true);
+      setTimeout(() => setShowFireworks(false), 2500);
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <>
+      <Fireworks show={showFireworks} />
+      <div className="flex flex-col items-center gap-4">
       {/* Card Container with perspective */}
       <div
         className="relative w-full cursor-pointer"
@@ -130,6 +141,7 @@ function FlashcardPlayer({ data }: FlashcardPlayerProps) {
         Reset Card
       </button>
     </div>
+    </>
   );
 }
 

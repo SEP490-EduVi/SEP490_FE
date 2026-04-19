@@ -290,7 +290,7 @@ export default function EditorPage() {
         </div>
 
         {/* Drag Overlay - shows dragged item preview */}
-        <DragOverlay>
+        <DragOverlay zIndex={10001}>
           {activeDragItem && (
             <div className="bg-white border-2 border-indigo-400 rounded-lg p-3 shadow-xl opacity-90">
               <div className="flex items-center gap-2">

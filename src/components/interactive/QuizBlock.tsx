@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
+import { Fireworks } from '@/components/common/Fireworks';
 import {
   HelpCircle,
   Check,
@@ -60,12 +61,13 @@ interface QuizPlayerProps {
   data: QuizData;
 }
 
-function QuizPlayer({ data }: QuizPlayerProps) {
+export function QuizPlayer({ data }: QuizPlayerProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [showFireworks, setShowFireworks] = useState(false);
 
   const questions = data.questions || [];
   const title = data.title || 'Quiz';
@@ -82,6 +84,8 @@ function QuizPlayer({ data }: QuizPlayerProps) {
     setShowResult(true);
     if (selectedAnswer === question.correctIndex) {
       setScore((s) => s + 1);
+      setShowFireworks(true);
+      setTimeout(() => setShowFireworks(false), 2500);
     }
   };
 
@@ -115,7 +119,9 @@ function QuizPlayer({ data }: QuizPlayerProps) {
   if (isComplete) {
     const percentage = Math.round((score / questions.length) * 100);
     return (
-      <motion.div
+      <>
+        <Fireworks show={score === questions.length} />
+        <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="text-center py-8"
@@ -154,11 +160,14 @@ function QuizPlayer({ data }: QuizPlayerProps) {
           Try Again
         </button>
       </motion.div>
+      </>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <>
+      <Fireworks show={showFireworks} />
+      <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-800">{title}</h3>
@@ -270,8 +279,7 @@ function QuizPlayer({ data }: QuizPlayerProps) {
           </button>
         )}
       </div>
-    </div>
-  );
+    </div>    </>  );
 }
 
 // ============================================================================

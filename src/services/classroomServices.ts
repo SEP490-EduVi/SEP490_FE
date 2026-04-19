@@ -3,10 +3,10 @@
 import api from '@/config/axios';
 
 export interface ClassroomDto {
-  classroomCode: string;
-  name: string;
-  gradeLabel: string;
-  schoolYear: string;
+  studentListId: number;
+  studentListCode: string;
+  teacherId: number;
+  description: string;
   students: string[];
   studentCount: number;
   createdAt: string;
@@ -14,15 +14,11 @@ export interface ClassroomDto {
 }
 
 export interface CreateClassroomInput {
-  name: string;
-  gradeLabel: string;
-  schoolYear: string;
+  description: string;
 }
 
 export interface UpdateClassroomInput {
-  name: string;
-  gradeLabel: string;
-  schoolYear: string;
+  description: string;
 }
 
 export interface ImportStudentsInput {
@@ -33,20 +29,20 @@ const unwrap = <T>(res: { data: { result: T } }) => res.data.result;
 
 export const classroomServices = {
   list: () =>
-    api.get<{ result: ClassroomDto[] }>('/api/teacher/classrooms').then(unwrap<ClassroomDto[]>),
+    api.get<{ result: ClassroomDto[] }>('/api/teacher/student-lists').then(unwrap<ClassroomDto[]>),
 
-  get: (classroomCode: string) =>
-    api.get<{ result: ClassroomDto }>(`/api/teacher/classrooms/${classroomCode}`).then(unwrap<ClassroomDto>),
+  get: (studentListCode: string) =>
+    api.get<{ result: ClassroomDto }>(`/api/teacher/student-lists/${studentListCode}`).then(unwrap<ClassroomDto>),
 
   create: (input: CreateClassroomInput) =>
-    api.post<{ result: ClassroomDto }>('/api/teacher/classrooms', input).then(unwrap<ClassroomDto>),
+    api.post<{ result: ClassroomDto }>('/api/teacher/student-lists', input).then(unwrap<ClassroomDto>),
 
-  update: (classroomCode: string, input: UpdateClassroomInput) =>
-    api.put<{ result: ClassroomDto }>(`/api/teacher/classrooms/${classroomCode}`, input).then(unwrap<ClassroomDto>),
+  update: (studentListCode: string, input: UpdateClassroomInput) =>
+    api.put<{ result: ClassroomDto }>(`/api/teacher/student-lists/${studentListCode}`, input).then(unwrap<ClassroomDto>),
 
-  delete: (classroomCode: string) =>
-    api.delete(`/api/teacher/classrooms/${classroomCode}`),
+  delete: (studentListCode: string) =>
+    api.delete(`/api/teacher/student-lists/${studentListCode}`),
 
-  importStudents: (classroomCode: string, input: ImportStudentsInput) =>
-    api.post(`/api/teacher/classrooms/${classroomCode}/students`, input),
+  importStudents: (studentListCode: string, input: ImportStudentsInput) =>
+    api.post(`/api/teacher/student-lists/${studentListCode}/students`, input),
 };

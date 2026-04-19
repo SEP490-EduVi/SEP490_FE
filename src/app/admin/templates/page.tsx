@@ -9,10 +9,6 @@ import SkeletonPreview from '@/components/common/SkeletonPreview';
 import { useTemplates, useDeleteTemplate } from '@/hooks/useTemplateApi';
 import type { ICardTemplate } from '@/types/api';
 
-const CATEGORY_LABEL: Record<string, string> = {
-  layout: 'Bố cục cột',
-  freeform: 'Đặc biệt',
-};
 
 export default function AdminTemplatesPage() {
   const router = useRouter();
@@ -88,16 +84,11 @@ export default function AdminTemplatesPage() {
               {/* Info */}
               <div>
                 <p className="text-sm font-medium text-gray-800 truncate">{template.name}</p>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-xs text-gray-400">
-                    {CATEGORY_LABEL[template.category] ?? template.category}
-                  </span>
-                  {template.description && (
-                    <span className="text-xs text-gray-400 truncate max-w-[100px]" title={template.description}>
-                      {template.description}
-                    </span>
-                  )}
-                </div>
+                {template.description && (
+                  <p className="text-xs text-gray-400 mt-0.5 truncate" title={template.description}>
+                    {template.description}
+                  </p>
+                )}
               </div>
 
               {/* Actions (hover) */}

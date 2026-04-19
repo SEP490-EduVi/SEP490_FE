@@ -20,10 +20,12 @@ import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
 import { IMaterial, MaterialCategory, BlockType } from '@/types';
-import type { PurchasedMaterialDto } from '@/types/api';
+import type { PurchasedMaterialDto, ProductMaterialDto } from '@/types/api';
 import { getPurchasedMaterials } from '@/services/materialServices';
+import { useProductMaterials } from '@/hooks/useProductMaterialApi';
 import { Modal } from '@/components/common/Modal';
 import SkeletonPreview from '@/components/common/SkeletonPreview';
+import { GcsImage } from '@/components/common/GcsImage';
 import { basicCardTemplates, freeformCardTemplates } from './cardTemplates';
 import { useTemplates } from '@/hooks/useTemplateApi';
 import * as LucideIcons from 'lucide-react';
@@ -41,6 +43,8 @@ import {
   ShoppingBag,
   Film,
   FileText,
+  ImageIcon,
+  Music,
 } from 'lucide-react';
 
 // ============================================================================
@@ -370,7 +374,7 @@ function DraggablePurchasedItem({ item }: { item: PurchasedMaterialDto }) {
       {/* Thumbnail or icon */}
       {item.previewUrl ? (
         <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-          <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover" />
+          <GcsImage src={item.previewUrl} alt={item.title} className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className={cn('flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center', color.bg)}>
@@ -381,6 +385,103 @@ function DraggablePurchasedItem({ item }: { item: PurchasedMaterialDto }) {
       <div className="flex-1 min-w-0">
         <h4 className="text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</h4>
         <span className="text-[10px] text-gray-400 truncate block mt-0.5">Được tạo bởi: {item.expertName}</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DRAGGABLE PRODUCT MATERIAL ITEM
+// ============================================================================
+
+function getProductMaterialIcon(type: string) {
+  const t = type.toLowerCase();
+  if (t.includes('video')) return <Film className="w-4 h-4" />;
+  if (t.includes('image') || t.includes('photo')) return <ImageIcon className="w-4 h-4" />;
+  if (t.includes('audio')) return <Music className="w-4 h-4" />;
+  return <FileText className="w-4 h-4" />;
+}
+
+function getProductMaterialColor(type: string) {
+  const t = type.toLowerCase();
+  if (t.includes('video')) return { icon: 'text-amber-500', bg: 'bg-amber-50' };
+  if (t.includes('image') || t.includes('photo')) return { icon: 'text-blue-500', bg: 'bg-blue-50' };
+  if (t.includes('audio')) return { icon: 'text-purple-500', bg: 'bg-purple-50' };
+  return { icon: 'text-gray-500', bg: 'bg-gray-50' };
+}
+
+/** Converts a ProductMaterialDto to a PurchasedMaterialDto shape for the drop handler */
+function toDroppable(m: ProductMaterialDto): PurchasedMaterialDto {
+  return {
+    materialCode: m.materialCode ?? m.productMaterialCode,
+    title: m.title,
+    description: '',
+    type: m.type,
+    price: 0,
+    resourceUrl: m.resourceUrl,
+    previewUrl: m.previewUrl ?? null,
+    subjectCode: '',
+    subjectName: '',
+    gradeCode: '',
+    gradeName: '',
+    expertCode: '',
+    expertName: m.sourceType === 'Marketplace' ? 'Thư viện' : 'Tải lên',
+    purchasedDate: m.createdAt,
+  };
+}
+
+function DraggableProductMaterialItem({ item }: { item: ProductMaterialDto }) {
+  const droppable = toDroppable(item);
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `product-material-${item.productMaterialCode}`,
+    data: {
+      type: 'PURCHASED_MATERIAL',
+      purchasedMaterial: droppable,
+    },
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: isDragging ? 1000 : undefined }
+    : undefined;
+
+  const color = getProductMaterialColor(item.type);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group flex items-center gap-2.5 p-2 rounded-lg cursor-grab',
+        'bg-white border border-gray-100',
+        'hover:border-blue-300 hover:bg-blue-50/40',
+        'transition-all duration-150',
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-blue-400'
+      )}
+      {...listeners}
+      {...attributes}
+    >
+      <div className="flex-shrink-0 text-gray-300 group-hover:text-blue-400">
+        <GripVertical className="w-3.5 h-3.5" />
+      </div>
+
+      {(item.previewUrl || item.type?.toLowerCase() === 'image') ? (
+        <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+          <GcsImage src={item.previewUrl || item.resourceUrl} alt={item.title} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className={cn('flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center', color.bg)}>
+          <span className={color.icon}>{getProductMaterialIcon(item.type)}</span>
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</h4>
+        <span className={cn(
+          'text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-0.5 inline-block',
+          item.sourceType === 'Marketplace' ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-600',
+        )}>
+          {item.sourceType === 'Marketplace' ? 'Thư viện' : 'Tải lên'}
+        </span>
       </div>
     </div>
   );
@@ -400,10 +501,16 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
     new Set(Object.values(MaterialCategory))
   );
 
-  // Purchased materials state
+  // Current product code from the document store (set when entering the editor)
+  const currentProductCode = useDocumentStore((s) => s.currentProductCode);
+
+  // Product materials for the "Tài liệu" tab
+  const { data: productMaterials = [], isLoading: productMaterialsLoading } =
+    useProductMaterials(currentProductCode ?? undefined);
+
+  // Purchased materials no longer displayed in sidebar but kept for potential drop-handler compatibility
   const [purchasedItems, setPurchasedItems] = useState<PurchasedMaterialDto[]>([]);
-  const [purchasedLoading, setPurchasedLoading] = useState(false);
-  const [purchasedError, setPurchasedError] = useState<string | null>(null);
+  void purchasedItems; // consumed by fetch only; product materials are shown in the Tài liệu tab
 
   // --------------------------------------------------------------------------
   // Fetch materials on mount
@@ -432,37 +539,28 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
   }, []);
 
   // --------------------------------------------------------------------------
-  // Fetch purchased materials
+  // Fetch purchased materials (for marketplace draggable items)
   // --------------------------------------------------------------------------
   useEffect(() => {
     async function fetchPurchased() {
       try {
-        setPurchasedLoading(true);
         const data = await getPurchasedMaterials();
         setPurchasedItems(data);
-      } catch (err) {
-        setPurchasedError('Không thể tải tài nguyên đã mua');
-        console.error('Failed to fetch purchased materials:', err);
-      } finally {
-        setPurchasedLoading(false);
+      } catch {
+        // non-critical, ignore
       }
     }
     fetchPurchased();
   }, []);
 
   // --------------------------------------------------------------------------
-  // Filter purchased materials by search query
+  // Filter product materials by search query
   // --------------------------------------------------------------------------
-  const filteredPurchased = useMemo(() => {
-    if (!searchQuery.trim()) return purchasedItems;
+  const filteredProductMaterials = useMemo(() => {
+    if (!searchQuery.trim()) return productMaterials;
     const query = searchQuery.toLowerCase();
-    return purchasedItems.filter(
-      (m) =>
-        m.title.toLowerCase().includes(query) ||
-        m.description?.toLowerCase().includes(query) ||
-        m.type.toLowerCase().includes(query)
-    );
-  }, [purchasedItems, searchQuery]);
+    return productMaterials.filter((m) => m.title.toLowerCase().includes(query));
+  }, [productMaterials, searchQuery]);
 
   // --------------------------------------------------------------------------
   // Filter materials by search query
@@ -572,9 +670,9 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             Tài liệu
-            {purchasedItems.length > 0 && (
+            {productMaterials.length > 0 && (
               <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 rounded-full font-semibold">
-                {purchasedItems.length}
+                {productMaterials.length}
               </span>
             )}
           </button>
@@ -625,40 +723,36 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
           </>
         )}
 
-        {/* ── Purchased Tab ──────────────────────────────────────── */}
+        {/* ── Tài liệu (Product Materials) Tab ─────────────────────── */}
         {activeTab === 'purchased' && (
           <>
-            {purchasedLoading && (
+            {productMaterialsLoading && (
               <div className="flex items-center justify-center h-40">
                 <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
               </div>
             )}
 
-            {purchasedError && !purchasedLoading && (
-              <div className="p-4 text-center">
-                <p className="text-sm text-red-500">{purchasedError}</p>
-              </div>
-            )}
-
-            {!purchasedLoading && !purchasedError && filteredPurchased.length === 0 && (
+            {!productMaterialsLoading && filteredProductMaterials.length === 0 && (
               <div className="p-6 text-center">
                 <ShoppingBag className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">
-                  {searchQuery ? 'Không tìm thấy' : 'Chưa mua tài nguyên nào'}
+                  {searchQuery ? 'Không tìm thấy' : !currentProductCode ? 'Chưa có sản phẩm' : 'Chưa có học liệu nào'}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Mua tài nguyên từ Shop để sử dụng trong slide
+                  {currentProductCode
+                    ? 'Thêm học liệu từ trang Dự án'
+                    : 'Mở từ trang Dự án để gắn học liệu'}
                 </p>
               </div>
             )}
 
-            {!purchasedLoading && !purchasedError && filteredPurchased.length > 0 && (
+            {!productMaterialsLoading && filteredProductMaterials.length > 0 && (
               <div className="p-3 space-y-2">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1">
-                  Kéo vào slide để sử dụng — Hình ảnh vào slide hiện tại, Video thành slide riêng
+                  Kéo vào slide — Hình ảnh vào slide hiện tại, Video thành slide riêng
                 </p>
-                {filteredPurchased.map((item) => (
-                  <DraggablePurchasedItem key={item.materialCode} item={item} />
+                {filteredProductMaterials.map((item) => (
+                  <DraggableProductMaterialItem key={item.productMaterialCode} item={item} />
                 ))}
               </div>
             )}
@@ -675,7 +769,7 @@ export function MaterialSidebar({ className }: MaterialSidebarProps) {
           <span className="font-semibold">Mẹo:</span>{' '}
           {activeTab === 'widgets'
             ? 'Kéo tài nguyên vào các cột bố cục'
-            : 'Kéo hình ảnh/video đã mua vào slide'}
+            : 'Kéo học liệu vào slide để sử dụng'}
         </p>
       </div>
     </aside>
@@ -759,11 +853,6 @@ function QuickLayoutSection() {
               )}
             >
               Mẫu
-              {customTemplates.length > 0 && (
-                <span className="ml-1.5 text-xs bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5">
-                  {customTemplates.length}
-                </span>
-              )}
             </button>
           </div>
 

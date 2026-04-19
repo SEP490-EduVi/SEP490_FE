@@ -55,6 +55,12 @@ export const API_ENDPOINTS = {
     CREATE_PLAYABLE_TASK: buildGamesEndpoint('/playable'),
     // GET /api/Games/status/{taskId} — read latest task status
     GET_TASK_STATUS: (taskId: string) => buildGamesEndpoint(`/status/${taskId}`),
+    // GET /api/Games — list all games for current user
+    GET_ALL: buildGamesEndpoint(''),
+    // GET /api/Games/{gameCode} — get game detail
+    GET_BY_CODE: (gameCode: string) => buildGamesEndpoint(`/${gameCode}`),
+    // DELETE /api/Games/{gameCode} — delete a game
+    DELETE: (gameCode: string) => buildGamesEndpoint(`/${gameCode}`),
   },
 
   // Project
@@ -266,6 +272,20 @@ export const API_ENDPOINTS = {
     UPDATE: (templateCode: string) => buildTemplateEndpoint(`/${templateCode}`),
     // DELETE /api/Template/{templateCode}
     DELETE: (templateCode: string) => buildTemplateEndpoint(`/${templateCode}`),
+  },
+
+  // Product Material (Teacher — per product)
+  PRODUCT_MATERIAL: {
+    // GET    /api/products/{productCode}/materials
+    GET_ALL:     (productCode: string) => `/api/products/${productCode}/materials`,
+    // POST   /api/products/{productCode}/materials
+    ADD:         (productCode: string) => `/api/products/${productCode}/materials`,
+    // GET    /api/products/{productCode}/materials/{productMaterialCode}
+    GET_BY_CODE: (productCode: string, pmc: string) => `/api/products/${productCode}/materials/${pmc}`,
+    // PUT    /api/products/{productCode}/materials/{productMaterialCode}
+    UPDATE:      (productCode: string, pmc: string) => `/api/products/${productCode}/materials/${pmc}`,
+    // DELETE /api/products/{productCode}/materials/{productMaterialCode}
+    DELETE:      (productCode: string, pmc: string) => `/api/products/${productCode}/materials/${pmc}`,
   },
 
 } as const;

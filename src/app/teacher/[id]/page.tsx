@@ -4,30 +4,30 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, AlertCircle, Loader2, ChevronRight, Sparkles, BookOpen, Gamepad2,
+  ArrowLeft, AlertCircle, Loader2, ChevronRight, Sparkles, BookOpen,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
 import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useVideosByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import SourcesPanel from '@/components/projects/SourcesPanel';
-import ProductResultsCenter from '@/components/projects/ProductResultsCenter';
-import StudioPanel from '@/components/projects/StudioPanel';
-import EvaluationModal from '@/components/projects/EvaluationModal';
+import StudioCenter from '@/components/projects/StudioCenter';
+import ProductResultPanel from '@/components/projects/ProductResultPanel';
 import PipelineProgressModal from '@/components/projects/PipelineProgressModal';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
-import VideoConfirmModal from '@/components/projects/VideoConfirmModal';
-import { createPlayableGameTask } from '@/services/gamesServices';
-import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
-import type { GameTemplateId } from '@/types/api';
+import CreateVideoModal from '@/components/projects/CreateVideoModal';
+import { useGames } from '@/hooks/useGamesApi';
+import { useGameHub } from '@/hooks/useGameHub';
+import GameConfigModal from '@/components/teacher/project/GameConfigModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
 import { usePipelineProgressStore } from '@/store/usePipelineProgressStore';
 import * as productService from '@/services/productServices';
-import { getEditedSlideGcsUrl } from '@/services/productServices'; // used for game creation
+import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { notify, MSGS } from '@/components/common';
 import type { PipelineProgress, VideoProductDto, InputDocumentDto } from '@/types/api';
+import type { IDocument } from '@/types';
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -43,6 +43,7 @@ export default function ProjectDetailPage() {
   const { data: projectVideos = [] } = useVideosByProject(projectCode);
   const deleteVideo = useDeleteVideo(projectCode);
   const { data: curricula = [] } = useCurricula();
+  const { data: games = [] } = useGames();
   const setDocument = useDocumentStore((state) => state.setDocument);
   const startGeneration = useDocumentStore((state) => state.startGeneration);
   const queryClient = useQueryClient();
@@ -56,6 +57,16 @@ export default function ProjectDetailPage() {
   const clearGlobalProgress = usePipelineProgressStore((s) => s.clear);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  // Invalidate games cache when a game finishes via SignalR
+  useGameHub({
+    accessToken,
+    onProgress: (progress) => {
+      if (progress.status === 'completed' || progress.status === 'failed') {
+        queryClient.invalidateQueries({ queryKey: ['games'] });
+      }
+    },
+  });
   const [pipelineProgress, setPipelineProgress] = useState<PipelineProgress | null>(null);
   const [pipelineType, setPipelineType] = useState<'evaluation' | 'slides' | 'video'>('evaluation');
   const [showPipelineModal, setShowPipelineModal] = useState(false);
@@ -75,10 +86,9 @@ export default function ProjectDetailPage() {
   const [pendingGameProductCode, setPendingGameProductCode] = useState<string | null>(null);
   const [pendingGameProductName, setPendingGameProductName] = useState<string>('');
   const [showGameConfigModal, setShowGameConfigModal] = useState(false);
-  const [gameTemplateId, setGameTemplateId] = useState<GameTemplateId>(GAME_BLUEPRINTS.HOVER_SELECT as GameTemplateId);
-  const [gameRoundCount, setGameRoundCount] = useState(1);
-  const [gameCreating, setGameCreating] = useState(false);
-  const [gameStatus, setGameStatus] = useState('');
+  const [detailProductCode, setDetailProductCode] = useState<string | null>(null);
+  const [slidePreviewDoc, setSlidePreviewDoc] = useState<IDocument | null>(null);
+  const [previewSlideLoading, setPreviewSlideLoading] = useState<string | null>(null);
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
@@ -188,32 +198,6 @@ export default function ProjectDetailPage() {
     setShowGameConfigModal(true);
   };
 
-  const handleConfirmGenerateGame = async () => {
-    if (!pendingGameProductCode) return;
-    setGameStatus('Đang lấy dữ liệu slide...');
-    setGameCreating(true);
-    try {
-      const url = await getEditedSlideGcsUrl(pendingGameProductCode);
-      if (!url) { setGameStatus(MSGS.game.noSlideError); setGameCreating(false); return; }
-      setGameStatus('Đang gửi yêu cầu tạo game...');
-      const task = await createPlayableGameTask({
-        templateId: gameTemplateId,
-        slideEditedDocumentUrl: url,
-        roundCount: gameRoundCount,
-      });
-      setShowGameConfigModal(false);
-      setGameStatus('');
-      setPendingGameProductCode(null);
-      notify.success(MSGS.game.createSuccess);
-      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}&productName=${encodeURIComponent(pendingGameProductName)}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : MSGS.game.createError;
-      setGameStatus(msg);
-      notify.error(msg);
-    } finally {
-      setGameCreating(false);
-    }
-  };
 
   const handleStartAnalysis = (doc: InputDocumentDto) => {
     setAnalysisDocCode(doc.documentCode);
@@ -270,7 +254,7 @@ export default function ProjectDetailPage() {
 
   const handleGenerateVideo = (productCode: string) => { setPendingVideoProductCode(productCode); setShowVideoConfirm(true); };
 
-  const handleConfirmGenerateVideo = async () => {
+  const handleConfirmGenerateVideo = async (videoName: string) => {
     if (!pendingVideoProductCode) return;
     const productCode = pendingVideoProductCode;
     setShowVideoConfirm(false); setPendingVideoProductCode(null);
@@ -287,7 +271,7 @@ export default function ProjectDetailPage() {
       if (!url) { setVideoLoadingCode(null); notify.error(MSGS.slide.noSlideError); return; }
       pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
-        { productCode, slideEditedDocumentUrl: url },
+        { productCode, slideEditedDocumentUrl: url, videoName: videoName || undefined },
         { onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
       );
     } catch { setVideoLoadingCode(null); notify.error(MSGS.video.generateError); }
@@ -320,6 +304,27 @@ export default function ProjectDetailPage() {
       router.push('/teacher/editor');
     } catch { notify.error(MSGS.slide.openError); }
     finally { setViewSlideLoading(null); }
+  };
+
+  const handlePreviewSlide = async (productCode: string) => {
+    try {
+      setPreviewSlideLoading(productCode);
+      setDetailProductCode(productCode);
+      const product = products.find((p) => p.productCode === productCode);
+      let slideDoc: IDocument;
+      if (product?.hasEditedSlide) {
+        const result = await productService.getProductEditedSlide(productCode);
+        slideDoc = result.slideEditedDocument;
+      } else {
+        const result = await productService.getProductSlide(productCode);
+        slideDoc = result.slideDocument;
+      }
+      setSlidePreviewDoc(slideDoc);
+    } catch {
+      notify.error('Không thể tải slide. Vui lòng thử lại.');
+    } finally {
+      setPreviewSlideLoading(null);
+    }
   };
 
   const handleDeleteSlide = (productCode: string) => {
@@ -441,42 +446,60 @@ export default function ProjectDetailPage() {
               gradeName={project.gradeName}
               activeDocCode={activeDocCode}
               onDocumentClick={setActiveDocCode}
+              products={products}
             />
           </div>
         </aside>
 
-        {/* ── Center: Results ────────────────────────── */}
+        {/* ── Center: Studio ─────────────────────────── */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <ProductResultsCenter
+          <StudioCenter
+            projectCode={projectCode}
             projectName={project.projectName}
             products={products}
             videos={projectVideos}
-            viewSlideLoading={viewSlideLoading}
+            games={games}
             activeDocCode={activeDocCode}
-            onViewSlide={handleViewSlide}
+            detailProductCode={detailProductCode}
+            onCloseDetail={() => { setDetailProductCode(null); setSlidePreviewDoc(null); }}
+            onDocChange={setActiveDocCode}
+            slidePreviewDoc={slidePreviewDoc}
+            slidePreviewLoading={previewSlideLoading}
             onWatchVideo={setViewingVideo}
-            onDeleteSlide={handleDeleteSlide}
-            onDeleteVideo={handleDeleteVideo}
-            deletingSlide={deletingSlide}
-            deletingVideo={deletingVideo}
+            isPipelineRunning={isPipelineRunning}
+            onOpenPipelineModal={() => setShowPipelineModal(true)}
+            onAnalyze={handleStartAnalysis}
+            onGenerateSlides={handleGenerateSlides}
+            onGenerateVideo={handleGenerateVideo}
+            onGenerateGame={handleGenerateGame}
+            videoLoadingCode={videoLoadingCode}
+            activePipelineType={isPipelineRunning ? pipelineType : null}
           />
         </main>
 
-        {/* ── Right: Studio ──────────────────────────── */}
-        <aside className="w-96 flex-shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4">
-            <StudioPanel
-              projectCode={projectCode}
+        {/* ── Right: Product Results ─────────────────── */}
+        <aside className="w-80 flex-shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            <ProductResultPanel
+              projectName={project.projectName}
               products={products}
-              isPipelineRunning={isPipelineRunning}
-              onOpenPipelineModal={() => setShowPipelineModal(true)}
-              onAnalyze={handleStartAnalysis}
-              onGenerateSlides={handleGenerateSlides}
-              onGenerateVideo={handleGenerateVideo}
-              onGenerateGame={handleGenerateGame}
-              videoLoadingCode={videoLoadingCode}
-              activePipelineType={isPipelineRunning ? pipelineType : null}
+              videos={projectVideos}
+              games={games}
               activeDocCode={activeDocCode}
+              isPipelineRunning={isPipelineRunning}
+              activePipelineType={isPipelineRunning ? pipelineType : null}
+              onOpenPipelineModal={() => setShowPipelineModal(true)}
+              selectedDetailCode={detailProductCode}
+              onSelectDetail={setDetailProductCode}
+              onViewSlide={handleViewSlide}
+              viewSlideLoading={viewSlideLoading}
+              onPreviewSlide={handlePreviewSlide}
+              previewSlideLoading={previewSlideLoading}
+              deletingSlide={deletingSlide}
+              onDeleteSlide={handleDeleteSlide}
+              onWatchVideo={setViewingVideo}
+              deletingVideo={deletingVideo}
+              onDeleteVideo={handleDeleteVideo}
             />
           </div>
         </aside>
@@ -524,91 +547,18 @@ export default function ProjectDetailPage() {
         onConfirm={handleConfirmAnalysis}
       />
 
-      <VideoConfirmModal
+      <CreateVideoModal
         open={showVideoConfirm}
         onClose={() => { setShowVideoConfirm(false); setPendingVideoProductCode(null); }}
         onConfirm={handleConfirmGenerateVideo}
       />
 
-      {showGameConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
-            <div className="flex items-start gap-4 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-                <Gamepad2 className="w-5 h-5 text-violet-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Tạo trò chơi học tập</h3>
-                <p className="text-sm text-gray-500">Chọn kiểu game và số round cho bài học.</p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dạng trò chơi</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      { id: 'HOVER_SELECT', label: 'Giơ tay & Chọn',  desc: 'Giơ tay chọn đáp án',   icon: '🖐️' },
-                      { id: 'DRAG_DROP',    label: 'Kéo & Thả',     desc: 'Kéo thả đáp án',        icon: '✋' },
-                      { id: 'RUNNER_QUIZ',  label: 'Chạy trắc nghiệm', desc: 'Mario chạy (1 người)', icon: '🏃' },
-                      { id: 'SNAKE_QUIZ',   label: 'Rắn trắc nghiệm',  desc: 'Rắn quiz (1 người)',   icon: '🐍' },
-                      { id: 'RUNNER_RACE',  label: 'Đua tốc độ',    desc: 'Mario đua (2 người)',   icon: '🏁' },
-                      { id: 'SNAKE_DUEL',   label: 'Rắn đấu',       desc: 'Rắn đấu (2 người)',    icon: '⚔️' },
-                    ] as { id: GameTemplateId; label: string; desc: string; icon: string }[]
-                  ).map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setGameTemplateId(opt.id)}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                        gameTemplateId === opt.id
-                          ? 'border-violet-400 bg-violet-50 text-violet-700'
-                          : 'border-gray-200 bg-gray-50 hover:border-violet-300 hover:bg-violet-50/40 text-gray-700'
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{opt.icon}</span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold truncate">{opt.label}</p>
-                        <p className="text-[11px] text-gray-400 truncate">{opt.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={gameRoundCount}
-                  onChange={(e) => setGameRoundCount(Math.max(1, Number(e.target.value) || 1))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
-                />
-              </div>
-              {gameStatus && (
-                <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2">{gameStatus}</p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => { setShowGameConfigModal(false); setPendingGameProductCode(null); setGameStatus(''); }}
-                disabled={gameCreating}
-                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleConfirmGenerateGame}
-                disabled={gameCreating}
-                className="px-4 py-2 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl disabled:opacity-60 flex items-center gap-2"
-              >
-                {gameCreating && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-                {gameCreating ? 'Đang tạo...' : 'Bắt đầu'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showGameConfigModal && pendingGameProductCode && (
+        <GameConfigModal
+          productCode={pendingGameProductCode}
+          productName={pendingGameProductName}
+          onClose={() => { setShowGameConfigModal(false); setPendingGameProductCode(null); }}
+        />
       )}
     </div>
   );
