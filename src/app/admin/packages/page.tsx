@@ -11,21 +11,21 @@ import { CreatePlanRequest, PagedResponse, PlanResponse, UpdatePlanRequest } fro
 interface PlanFormState {
   planName: string;
   description: string;
-  durationDays: string;
   price: string;
   analysisQuotaAmount: string;
   slideQuotaAmount: string;
   videoQuotaAmount: string;
+  gameQuotaAmount: string;
 }
 
 const DEFAULT_FORM: PlanFormState = {
   planName: '',
   description: '',
-  durationDays: '30',
   price: '0',
   analysisQuotaAmount: '0',
   slideQuotaAmount: '0',
   videoQuotaAmount: '0',
+  gameQuotaAmount: '0',
 };
 
 const PAGE_SIZE = 10;
@@ -111,11 +111,11 @@ export default function AdminPlansPage() {
     setForm({
       planName: plan.planName,
       description: plan.description ?? '',
-      durationDays: String(plan.durationDays),
       price: String(plan.price),
       analysisQuotaAmount: String(plan.analysisQuotaAmount),
       slideQuotaAmount: String(plan.slideQuotaAmount),
       videoQuotaAmount: String(plan.videoQuotaAmount),
+      gameQuotaAmount: String(plan.gameQuotaAmount),
     });
     setFormError('');
     setIsFormOpen(true);
@@ -128,19 +128,24 @@ export default function AdminPlansPage() {
 
     if (!form.description.trim()) return 'Mô tả là bắt buộc.';
 
-    const durationDays = Number(form.durationDays);
     const price = Number(form.price);
     const analysisQuotaAmount = Number(form.analysisQuotaAmount);
     const slideQuotaAmount = Number(form.slideQuotaAmount);
     const videoQuotaAmount = Number(form.videoQuotaAmount);
+    const gameQuotaAmount = Number(form.gameQuotaAmount);
 
-    if (!Number.isFinite(durationDays) || durationDays <= 0) return 'Số ngày sử dụng phải lớn hơn 0.';
-    if (!Number.isFinite(price) || price <= 0) return 'Giá EduCoin phải lớn hơn 0.';
-    if (!Number.isFinite(analysisQuotaAmount) || analysisQuotaAmount <= 0) return 'Quota AI phải lớn hơn 0.';
-    if (!Number.isFinite(slideQuotaAmount) || slideQuotaAmount <= 0) return 'Quota Slide phải lớn hơn 0.';
-    if (!Number.isFinite(videoQuotaAmount) || videoQuotaAmount <= 0) return 'Quota Video phải lớn hơn 0.';
+    if (!Number.isFinite(price) || price < 0) return 'Giá EduCoin không được âm.';
+    if (!Number.isFinite(analysisQuotaAmount) || analysisQuotaAmount < 0) return 'Quota AI không được âm.';
+    if (!Number.isFinite(slideQuotaAmount) || slideQuotaAmount < 0) return 'Quota Slide không được âm.';
+    if (!Number.isFinite(videoQuotaAmount) || videoQuotaAmount < 0) return 'Quota Video không được âm.';
+    if (!Number.isFinite(gameQuotaAmount) || gameQuotaAmount < 0) return 'Quota Game không được âm.';
 
-    if (analysisQuotaAmount > MAX_INT_QUOTA || slideQuotaAmount > MAX_INT_QUOTA || videoQuotaAmount > MAX_INT_QUOTA) {
+    if (
+      analysisQuotaAmount > MAX_INT_QUOTA ||
+      slideQuotaAmount > MAX_INT_QUOTA ||
+      videoQuotaAmount > MAX_INT_QUOTA ||
+      gameQuotaAmount > MAX_INT_QUOTA
+    ) {
       return `Quota không được vượt quá ${MAX_INT_QUOTA.toLocaleString('vi-VN')}.`;
     }
 
@@ -158,21 +163,21 @@ export default function AdminPlansPage() {
     setFormError('');
 
     try {
-      const durationDays = Number(form.durationDays);
       const price = Number(form.price);
       const analysisQuotaAmount = Number(form.analysisQuotaAmount);
       const slideQuotaAmount = Number(form.slideQuotaAmount);
       const videoQuotaAmount = Number(form.videoQuotaAmount);
+      const gameQuotaAmount = Number(form.gameQuotaAmount);
 
       if (editingPlan) {
         const payload: UpdatePlanRequest = {
           planName: form.planName.trim(),
           description: form.description.trim() || undefined,
-          durationDays,
           price,
           analysisQuotaAmount,
           slideQuotaAmount,
           videoQuotaAmount,
+          gameQuotaAmount,
         };
         await adminServices.updatePlan(editingPlan.planId, payload);
         notify.success(MSGS.plan.updateSuccess);
@@ -180,11 +185,11 @@ export default function AdminPlansPage() {
         const payload: CreatePlanRequest = {
           planName: form.planName.trim(),
           description: form.description.trim() || undefined,
-          durationDays,
           price,
           analysisQuotaAmount,
           slideQuotaAmount,
           videoQuotaAmount,
+          gameQuotaAmount,
         };
         await adminServices.createPlan(payload);
         notify.success(MSGS.plan.createSuccess);
@@ -277,8 +282,7 @@ export default function AdminPlansPage() {
               <tr className="border-b border-gray-100 bg-gray-50/70">
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Tên gói</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Giá (EduCoin)</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Hạn sử dụng</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Quota (AI / Slide / Video)</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Quota (AI / Slide / Video / Game)</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
                 <th className="px-5 py-3 text-right font-medium text-gray-500">Hành động</th>
               </tr>
@@ -286,13 +290,13 @@ export default function AdminPlansPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-gray-500">
+                  <td colSpan={5} className="px-5 py-16 text-center text-gray-500">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-gray-400">
+                  <td colSpan={5} className="px-5 py-16 text-center text-gray-400">
                     Chưa có gói cước nào.
                   </td>
                 </tr>
@@ -304,11 +308,11 @@ export default function AdminPlansPage() {
                       <p className="text-xs text-gray-400">{plan.description || 'Không có mô tả'}</p>
                     </td>
                     <td className="px-5 py-3 font-medium text-gray-900">{formatEduCoin(plan.price)}</td>
-                    <td className="px-5 py-3 text-gray-600">{plan.durationDays} ngày</td>
                     <td className="px-5 py-3 text-gray-600">
                       <p>AI: {formatQuota(plan.analysisQuotaAmount)}</p>
                       <p>Slide: {formatQuota(plan.slideQuotaAmount)}</p>
                       <p>Video: {formatQuota(plan.videoQuotaAmount)}</p>
+                      <p>Game: {formatQuota(plan.gameQuotaAmount)}</p>
                     </td>
                     <td className="px-5 py-3">
                       <span
@@ -416,17 +420,6 @@ export default function AdminPlansPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
             <div className="min-w-0">
-              <label className="mb-1 flex h-8 items-end text-xs font-medium text-gray-700">Thời hạn</label>
-              <input
-                type="number"
-                min={1}
-                value={form.durationDays}
-                onChange={(e) => setForm((prev) => ({ ...prev, durationDays: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
-              <p className="mt-1 text-[11px] text-gray-500">Đơn vị: ngày</p>
-            </div>
-            <div className="min-w-0">
               <label className="mb-1 flex h-8 items-end text-xs font-medium text-gray-700">Giá (EduCoin)</label>
               <input
                 type="number"
@@ -466,6 +459,16 @@ export default function AdminPlansPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
             </div>
+            <div className="min-w-0">
+              <label className="mb-1 flex h-8 items-end text-xs font-medium text-gray-700">Quota Game</label>
+              <input
+                type="number"
+                min={0}
+                value={form.gameQuotaAmount}
+                onChange={(e) => setForm((prev) => ({ ...prev, gameQuotaAmount: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -475,14 +478,12 @@ export default function AdminPlansPage() {
             <p className="mt-3 text-xl font-extrabold text-blue-700">
               {Number.isFinite(Number(form.price)) ? formatEduCoin(Math.max(0, Number(form.price))) : formatEduCoin(0)}
             </p>
-            <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-4">
               <p>AI: {Number.isFinite(Number(form.analysisQuotaAmount)) ? formatQuota(Math.max(0, Number(form.analysisQuotaAmount))) : '0'}</p>
               <p>Slide: {Number.isFinite(Number(form.slideQuotaAmount)) ? formatQuota(Math.max(0, Number(form.slideQuotaAmount))) : '0'}</p>
               <p>Video: {Number.isFinite(Number(form.videoQuotaAmount)) ? formatQuota(Math.max(0, Number(form.videoQuotaAmount))) : '0'}</p>
+              <p>Game: {Number.isFinite(Number(form.gameQuotaAmount)) ? formatQuota(Math.max(0, Number(form.gameQuotaAmount))) : '0'}</p>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Thời hạn: {Number.isFinite(Number(form.durationDays)) ? Math.max(0, Number(form.durationDays)) : 0} ngày
-            </p>
           </div>
 
           {formError && (

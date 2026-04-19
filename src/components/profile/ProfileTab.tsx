@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import type { UserInfo as AuthUserInfo } from '@/types/auth';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useUpdateMeService } from '@/services/authServices';
+import { adminServices } from '@/services/adminServices';
 import { uploadAvatarToGcs } from '@/services/gcsServices';
 import { useUpdateExpertProfile } from '@/hooks/useExpertApi';
 import { useUpdateStaffProfile } from '@/hooks/useStaffApi';
@@ -17,6 +17,7 @@ import { notify } from '@/components/common';
 
 interface ProfileTabProps {
   info: {
+    userCode?: string | null;
     fullName?: string | null;
     email?: string | null;
     phoneNumber?: string | null;
@@ -58,16 +59,16 @@ export default function ProfileTab({
   const [editRoleExtra, setEditRoleExtra]  = useState('');
   const [avatarLocalPreview, setAvatarLocalPreview] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [adminUpdatePending, setAdminUpdatePending] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
-  const updateMe             = useUpdateMeService();
   const updateExpertProfile  = useUpdateExpertProfile();
   const updateStaffProfile   = useUpdateStaffProfile();
   const updateTeacherProfile = useUpdateTeacherProfile();
 
   const canUpdateAvatar = !isStaff && !isTeacher && !isExpert;
   const profileUpdatePending =
-    updateMe.isPending ||
+    adminUpdatePending ||
     updateExpertProfile.isPending ||
     updateStaffProfile.isPending ||
     updateTeacherProfile.isPending;
@@ -159,10 +160,21 @@ export default function ProfileTab({
       );
       return;
     }
-    updateMe.mutate(
-      { fullName, phoneNumber, avatarUrl },
-      { onSuccess: (res) => handleSuccess(res?.result), onError: handleError },
-    );
+    if (!info?.userCode) {
+      notify.error('Không xác định được mã người dùng để cập nhật hồ sơ.');
+      return;
+    }
+
+    setAdminUpdatePending(true);
+    adminServices
+      .updateUser(info.userCode, {
+        fullName,
+        phoneNumber,
+        avatarUrl,
+      })
+      .then(() => handleSuccess())
+      .catch(handleError)
+      .finally(() => setAdminUpdatePending(false));
   };
 
   return (

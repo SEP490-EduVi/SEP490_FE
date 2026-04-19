@@ -38,13 +38,6 @@ export async function getPendingVerifications(): Promise<StaffVerificationDto[]>
   return data.result ?? [];
 }
 
-export async function getVerificationDetail(verificationCode: string): Promise<StaffVerificationDto> {
-  const { data } = await api.get<ApiResponse<StaffVerificationDto>>(
-    API_ENDPOINTS.STAFF.VERIFICATION_DETAIL(verificationCode),
-  );
-  return data.result;
-}
-
 export async function reviewVerification(
   verificationCode: string,
   input: ReviewVerificationInput,

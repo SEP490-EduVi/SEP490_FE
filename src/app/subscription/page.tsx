@@ -41,6 +41,20 @@ function formatPrice(price: number): string {
   return new Intl.NumberFormat('vi-VN').format(price);
 }
 
+function resolvePlanDurationDays(durationDays?: number | null, description?: string | null): number | null {
+  if (typeof durationDays === 'number' && Number.isFinite(durationDays) && durationDays > 0) {
+    return durationDays;
+  }
+
+  const parsedFromDescription = description?.match(/(\d+)\s*ngày/i)?.[1];
+  if (!parsedFromDescription) {
+    return null;
+  }
+
+  const parsed = Number(parsedFromDescription);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export default function SubscriptionPage() {
   const router = useRouter();
   const { user, role, isHydrated } = useAuthStore();
@@ -55,7 +69,13 @@ export default function SubscriptionPage() {
     }
   }, [isHydrated, isStaff, router]);
 
-  const activePlans = plans?.filter((p) => p.isActive && p.description && !p.description.includes('Test')) ?? [];
+  const activePlans = (plans ?? [])
+    .filter((p) => {
+      if (!p.isActive) return false;
+      const searchableText = `${p.planName} ${p.description ?? ''}`.toLowerCase();
+      return !searchableText.includes('test');
+    })
+    .sort((a, b) => a.price - b.price || a.planId - b.planId);
 
   const handleBuy = (planId: number) => {
     if (!user) {
@@ -121,9 +141,10 @@ export default function SubscriptionPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {activePlans.map((plan, index) => {
                 const colorIdx = Math.min(index + 1, 3);
-                const colors = PLAN_COLORS[colorIdx];
-                const icon = PLAN_ICONS[colorIdx];
+                const colors = PLAN_COLORS[plan.planId] ?? PLAN_COLORS[colorIdx];
+                const icon = PLAN_ICONS[plan.planId] ?? PLAN_ICONS[colorIdx];
                 const isPopular = index === 1;
+                const durationDays = resolvePlanDurationDays(plan.durationDays, plan.description);
 
                 return (
                   <div
@@ -148,32 +169,36 @@ export default function SubscriptionPage() {
                         {formatPrice(plan.price)}
                       </span>
                       <span className="text-[#4d6691] text-sm ml-1">đ</span>
-                      <span className="text-[#7b92b8] text-sm"> / {plan.durationDays} ngày</span>
+                      {durationDays ? <span className="text-[#7b92b8] text-sm"> / {durationDays} ngày</span> : null}
                     </div>
 
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                         <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
-                        <span><strong>{plan.analysisQuotaAmount.toLocaleString()}</strong> EduCoin phân tích AI</span>
+                        <span><strong>{plan.analysisQuotaAmount.toLocaleString('vi-VN')}</strong> EduCoin phân tích AI</span>
                       </li>
-                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
-                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
-                        <span>Hiệu lực {plan.durationDays} ngày</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
-                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
-                        <span>Tạo slide & video bài giảng</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
-                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
-                        <span>Truy cập kho tài liệu</span>
-                      </li>
-                      {index >= 1 && (
+                      {durationDays ? (
                         <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
                           <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
-                          <span>Hỗ trợ ưu tiên</span>
+                          <span>Hiệu lực {durationDays} ngày</span>
                         </li>
-                      )}
+                      ) : null}
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
+                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
+                        <span><strong>{plan.slideQuotaAmount.toLocaleString('vi-VN')}</strong> slide quota</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
+                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
+                        <span><strong>{plan.videoQuotaAmount.toLocaleString('vi-VN')}</strong> video quota</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
+                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
+                        <span><strong>{(plan.gameQuotaAmount ?? 0).toLocaleString('vi-VN')}</strong> game quota</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-sm text-[#2f4775]">
+                        <CheckCircle className="w-4.5 h-4.5 text-green-500 shrink-0 mt-0.5" />
+                        <span>Mô tả: {plan.description ?? 'Không có'}</span>
+                      </li>
                     </ul>
 
                     <button

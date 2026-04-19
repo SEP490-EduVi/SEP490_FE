@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Ban, CheckCircle2, ChevronDown, Eye, Pencil, Plus, Shield, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle2, ChevronDown, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Pagination from '@/components/admin/Pagination';
 import { notify } from '@/components/common';
@@ -50,12 +50,10 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUserResponse | null>(null);
   const [detailUser, setDetailUser] = useState<AdminUserResponse | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUserResponse | null>(null);
-  const [roleChangingUser, setRoleChangingUser] = useState<AdminUserResponse | null>(null);
   const [actionMenuUserCode, setActionMenuUserCode] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: 'ban' | 'unban' | 'delete'; user: AdminUserResponse } | null>(null);
 
   const [editForm, setEditForm] = useState({ fullName: '', phone: '', avatar: '' });
-  const [roleForm, setRoleForm] = useState('');
 
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -177,27 +175,6 @@ export default function AdminUsersPage() {
       await loadUsers(page);
     } catch (err) {
       notify.error(parseErrorMessage(err, 'Không thể cập nhật người dùng.'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const openChangeRoleModal = (user: AdminUserResponse) => {
-    setRoleChangingUser(user);
-    setRoleForm(String(user.roleId ?? user.role?.roleId ?? ''));
-  };
-
-  const handleChangeRole = async () => {
-    if (!roleChangingUser || !roleForm) return;
-
-    setBusy(true);
-    try {
-      await adminServices.changeUserRole(roleChangingUser.userCode, { roleId: Number(roleForm) });
-      setRoleChangingUser(null);
-      notify.success('Đổi vai trò thành công. Người dùng sẽ phải đăng nhập lại.');
-      await loadUsers(page);
-    } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể đổi vai trò.'));
     } finally {
       setBusy(false);
     }
@@ -602,17 +579,6 @@ export default function AdminUsersPage() {
                               <Pencil className="h-4 w-4" />
                               Sửa thông tin
                             </button>
-                            <button
-                              type="button"
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-violet-700 hover:bg-violet-50"
-                              onClick={() => {
-                                setActionMenuUserCode(null);
-                                openChangeRoleModal(user);
-                              }}
-                            >
-                              <Shield className="h-4 w-4" />
-                              Đổi vai trò
-                            </button>
                             {user.status === 0 ? (
                               <button
                                 type="button"
@@ -842,51 +808,6 @@ export default function AdminUsersPage() {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             />
           </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={!!roleChangingUser}
-        onClose={() => setRoleChangingUser(null)}
-        title="Đổi vai trò người dùng"
-        size="md"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setRoleChangingUser(null)}
-              disabled={busy}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleChangeRole()}
-              disabled={busy || !roleForm}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {busy ? 'Đang xử lý...' : 'Xác nhận'}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-3">
-          <p className="text-sm text-gray-600">
-            Người dùng: <strong>{roleChangingUser?.fullName || roleChangingUser?.username}</strong>
-          </p>
-          <select
-            value={roleForm}
-            onChange={(e) => setRoleForm(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          >
-            <option value="">Chọn vai trò</option>
-            {roles.map((r) => (
-              <option key={r.roleId} value={r.roleId}>
-                {r.roleName}
-              </option>
-            ))}
-          </select>
         </div>
       </Modal>
 
