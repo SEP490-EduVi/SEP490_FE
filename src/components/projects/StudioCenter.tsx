@@ -48,7 +48,7 @@ interface StudioCenterProps {
   isPipelineRunning: boolean;
   onOpenPipelineModal: () => void;
   onAnalyze: (doc: InputDocumentDto) => void;
-  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium' | 'detailed') => void;
+  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
   videoLoadingCode: string | null;
@@ -447,7 +447,7 @@ interface StudioToolbarProps {
   isPipelineRunning: boolean;
   onOpenPipelineModal: () => void;
   onAnalyze: (doc: InputDocumentDto) => void;
-  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium' | 'detailed') => void;
+  onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
   videoLoadingCode: string | null;
@@ -475,7 +475,7 @@ function StudioToolbar({
   const [showDocPicker, setShowDocPicker] = useState(false);
   const [showSlideRangePicker, setShowSlideRangePicker] = useState(false);
   const [pendingSlideProductCode, setPendingSlideProductCode] = useState<string | null>(null);
-  const [selectedSlideRange, setSelectedSlideRange] = useState<'short' | 'medium' | 'detailed'>('medium');
+  const [selectedSlideRange, setSelectedSlideRange] = useState<'short' | 'medium'>('medium');
 
   useEffect(() => {
     if (docs.length === 0) { setActiveDoc(null); return; }
@@ -675,7 +675,6 @@ function StudioToolbar({
                 {([
                   { value: 'short',  label: 'Ngắn gọn',   desc: 'Ý chính, súc tích, ít chữ trên mỗi slide' },
                   { value: 'medium', label: 'Trung bình',  desc: 'Cân bằng giữa nội dung và trình bày' },
-                  { value: 'detailed', label: 'Chi tiết', desc: 'Nhiều nội dung hơn, phù hợp để giảng sâu' },
                 ] as const).map((opt) => (
                   <button
                     key={opt.value}
