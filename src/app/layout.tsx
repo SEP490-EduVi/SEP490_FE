@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   title: 'EduVi - Nền tảng bài giảng thông minh',
   description: 'Tạo bài giảng chất lượng cao với EduVi. Công cụ tạo slide và video bài giảng thế hệ mới.',
   keywords: ['bài giảng', 'slide', 'giáo dục', 'EduVi', 'Next.js'],
+  icons: {
+    icon: '/tab-logo.png',
+    shortcut: '/tab-logo.png',
+    apple: '/tab-logo.png',
+  },
 };
 
 export default function RootLayout({

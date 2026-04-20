@@ -13,7 +13,6 @@ import {
   AdminUserUpdateRequest,
   AdminWalletResponse,
   ApiResponse,
-  ChangeUserRoleRequest,
   CreateGradeRequest,
   CreateLessonRequest,
   CreatePlanRequest,
@@ -180,25 +179,17 @@ export const adminServices = {
   },
 
   deleteUser: async (userCode: string) => {
-    const res = await api.delete<ApiResponse<boolean>>(API_ENDPOINTS.ADMIN.USER_BY_CODE(userCode));
+    const res = await api.delete<ApiResponse<string>>(API_ENDPOINTS.ADMIN.USER_BY_CODE(userCode));
     return res.data;
   },
 
   banUser: async (userCode: string) => {
-    const res = await api.post<ApiResponse<boolean>>(API_ENDPOINTS.ADMIN.USER_BAN(userCode));
+    const res = await api.post<ApiResponse<string>>(API_ENDPOINTS.ADMIN.USER_BAN(userCode));
     return res.data;
   },
 
   unbanUser: async (userCode: string) => {
-    const res = await api.post<ApiResponse<boolean>>(API_ENDPOINTS.ADMIN.USER_UNBAN(userCode));
-    return res.data;
-  },
-
-  changeUserRole: async (userCode: string, payload: ChangeUserRoleRequest) => {
-    const res = await api.put<ApiResponse<string>>(
-      API_ENDPOINTS.ADMIN.USER_CHANGE_ROLE(userCode),
-      payload
-    );
+    const res = await api.post<ApiResponse<string>>(API_ENDPOINTS.ADMIN.USER_UNBAN(userCode));
     return res.data;
   },
 
@@ -303,7 +294,7 @@ export const adminServices = {
   },
 
   softDeletePlan: async (planId: number) => {
-    const res = await api.delete<ApiResponse<boolean>>(API_ENDPOINTS.ADMIN.PLAN_BY_ID(planId));
+    const res = await api.delete<ApiResponse<string>>(API_ENDPOINTS.ADMIN.PLAN_BY_ID(planId));
     return res.data;
   },
 };

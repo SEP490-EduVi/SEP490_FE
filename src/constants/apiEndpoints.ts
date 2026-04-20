@@ -209,7 +209,6 @@ export const API_ENDPOINTS = {
     USER_BY_CODE: (userCode: string) => buildAdminEndpoint(`/users/${userCode}`),
     USER_BAN: (userCode: string) => buildAdminEndpoint(`/users/${userCode}/ban`),
     USER_UNBAN: (userCode: string) => buildAdminEndpoint(`/users/${userCode}/unban`),
-    USER_CHANGE_ROLE: (userCode: string) => buildAdminEndpoint(`/users/${userCode}/role`),
     ROLES: buildAdminEndpoint('/roles'),
 
     FINANCIAL_OVERVIEW: buildAdminEndpoint('/financial/overview'),
@@ -224,7 +223,6 @@ export const API_ENDPOINTS = {
   // Staff
   STAFF: {
     VERIFICATION_PENDING: buildStaffEndpoint('/verifications/pending'),
-    VERIFICATION_DETAIL: (code: string) => buildStaffEndpoint(`/verifications/${code}`),
     VERIFICATION_FILE: (code: string) => buildStaffEndpoint(`/verifications/${code}/file`),
     REVIEW_VERIFICATION: (code: string) => buildStaffEndpoint(`/verifications/${code}/review`),
     PROFILE: buildStaffEndpoint('/profile'),

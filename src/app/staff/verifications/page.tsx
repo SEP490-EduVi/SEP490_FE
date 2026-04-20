@@ -63,12 +63,12 @@ export default function StaffVerificationsPage() {
   const [blobUrls, setBlobUrls]         = useState<Record<string, string>>({});
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
-  const handleTogglePreview = async (verificationCode: string, signedUrl: string | null) => {
+  const handleTogglePreview = async (verificationCode: string, fileUrl: string | null) => {
     if (previewOpen[verificationCode]) {
       setPreviewOpen((p) => ({ ...p, [verificationCode]: false }));
       return;
     }
-    if (signedUrl) {
+    if (fileUrl) {
       setPreviewOpen((p) => ({ ...p, [verificationCode]: true }));
       return;
     }
@@ -173,7 +173,7 @@ export default function StaffVerificationsPage() {
               </div>
             ) : (
               data.map((item) => {
-                const previewUrl = item.signedUrl || blobUrls[item.verificationCode] || null;
+                const previewUrl = item.fileUrl || blobUrls[item.verificationCode] || null;
                 const isPreviewOpen = previewOpen[item.verificationCode] ?? false;
                 const hasReasonError = reasonErrors[item.verificationCode] ?? false;
 
@@ -191,7 +191,7 @@ export default function StaffVerificationsPage() {
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             <button
-                              onClick={() => handleTogglePreview(item.verificationCode, item.signedUrl)}
+                              onClick={() => handleTogglePreview(item.verificationCode, item.fileUrl)}
                               disabled={previewLoading === item.verificationCode}
                               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 ${
                                 isPreviewOpen

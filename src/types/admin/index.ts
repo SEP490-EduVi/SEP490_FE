@@ -66,10 +66,6 @@ export interface AdminUserCreateRequest {
   avatarUrl?: string;
 }
 
-export interface ChangeUserRoleRequest {
-  roleId: number;
-}
-
 export interface FinancialOverviewResponse {
   totalUsers: number;
   activeUsers: number;
@@ -153,11 +149,11 @@ export interface PlanResponse {
   planId: number;
   planName: string;
   description?: string | null;
-  durationDays: number;
   price: number;
   analysisQuotaAmount: number;
   slideQuotaAmount: number;
   videoQuotaAmount: number;
+  gameQuotaAmount: number;
   isActive: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -166,21 +162,21 @@ export interface PlanResponse {
 export interface CreatePlanRequest {
   planName: string;
   description?: string;
-  durationDays: number;
   price: number;
   analysisQuotaAmount: number;
   slideQuotaAmount: number;
   videoQuotaAmount: number;
+  gameQuotaAmount: number;
 }
 
 export interface UpdatePlanRequest {
   planName?: string;
   description?: string;
-  durationDays?: number;
   price?: number;
   analysisQuotaAmount?: number;
   slideQuotaAmount?: number;
   videoQuotaAmount?: number;
+  gameQuotaAmount?: number;
   isActive?: boolean;
 }
 

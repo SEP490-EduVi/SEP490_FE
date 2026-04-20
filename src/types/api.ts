@@ -219,7 +219,7 @@ export interface LessonAnalysisInput {
 
 export interface GenerateSlidesInput {
   productCode: string;
-  slideRange: 'short' | 'medium' | 'long';
+  slideRange: 'short' | 'medium' | 'detailed';
 }
 
 // ─── Games ───────────────────────────────────────────────────────────────
@@ -401,10 +401,11 @@ export interface SubscriptionPlanDto {
   planId: number;
   planName: string;
   price: number;
-  durationDays: number;
+  durationDays?: number | null;
   analysisQuotaAmount: number;
   slideQuotaAmount: number;
   videoQuotaAmount: number;
+  gameQuotaAmount?: number;
   description: string | null;
   isActive: boolean;
 }
@@ -438,9 +439,11 @@ export interface BuySubscriptionResponse {
   analysisQuotaAdded: number;
   slideQuotaAdded: number;
   videoQuotaAdded: number;
+  gameQuotaAdded: number;
   availableAnalysisQuotaAfter: number;
   availableSlideQuotaAfter: number;
   availableVideoQuotaAfter: number;
+  availableGameQuotaAfter: number;
   walletBalanceAfter: number;
   purchasedAt: string;
 }
@@ -519,11 +522,11 @@ export interface StaffVerificationDto {
   expertEmail: string;
   fileType: string;
   description: string | null;
-  status: string;
+  status: number;
   rejectionReason: string | null;
   uploadedAt: string;
   reviewedAt: string | null;
-  signedUrl: string | null;
+  fileUrl: string | null;
 }
 
 export interface ReviewVerificationInput {

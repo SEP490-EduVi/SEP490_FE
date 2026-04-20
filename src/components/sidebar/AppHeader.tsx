@@ -153,7 +153,6 @@ export default function AppHeader() {
     {
       key: 'ai',
       label: 'AI phân tích',
-      shortLabel: 'AI',
       available: quotaSummary.analysisAvailable,
       total: quotaSummary.analysisTotal,
       color: 'bg-blue-500',
@@ -162,7 +161,6 @@ export default function AppHeader() {
     {
       key: 'slide',
       label: 'Tạo slide',
-      shortLabel: 'S',
       available: quotaSummary.slideAvailable,
       total: quotaSummary.slideTotal,
       color: 'bg-violet-500',
@@ -171,7 +169,6 @@ export default function AppHeader() {
     {
       key: 'video',
       label: 'Tạo video',
-      shortLabel: 'V',
       available: quotaSummary.videoAvailable,
       total: quotaSummary.videoTotal,
       color: 'bg-rose-500',
@@ -180,7 +177,6 @@ export default function AppHeader() {
     {
       key: 'game',
       label: 'Trò chơi',
-      shortLabel: 'G',
       available: quotaSummary.gameAvailable,
       total: quotaSummary.gameTotal,
       color: 'bg-amber-500',
@@ -205,14 +201,6 @@ export default function AppHeader() {
   };
 
   const formatCompactBalance = (amount?: number) => {
-    const safe = Number.isFinite(amount) ? Number(amount) : 0;
-    return new Intl.NumberFormat('vi-VN', {
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(safe);
-  };
-
-  const formatCompactQuota = (amount?: number) => {
     const safe = Number.isFinite(amount) ? Number(amount) : 0;
     return new Intl.NumberFormat('vi-VN', {
       notation: 'compact',
@@ -296,11 +284,6 @@ export default function AppHeader() {
                   {quotaLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
                 </span>
                 <span className="font-semibold">Tài nguyên</span>
-                {!quotaLoading && (
-                  <span className="hidden 2xl:inline text-[11px] text-slate-500 tabular-nums whitespace-nowrap">
-                    {quotaDetailRows.map((item) => `${item.shortLabel} ${formatCompactQuota(item.available)}`).join(' · ')}
-                  </span>
-                )}
                 <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${quotaOpen ? 'rotate-180' : ''}`} />
               </button>
 
