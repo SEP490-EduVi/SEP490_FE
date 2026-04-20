@@ -103,7 +103,7 @@ export default function ProductResultPanel({
     try {
       const detail = await getGameByCode(gameCode);
       router.push(
-        `/teacher/game-maker?taskId=${encodeURIComponent(detail.taskId)}&productName=${encodeURIComponent(productGameName)}`,
+        `/teacher/game-maker?taskId=${encodeURIComponent(detail.taskId)}&productName=${encodeURIComponent(productGameName)}&gameCode=${encodeURIComponent(gameCode)}`,
       );
     } catch {
       setLaunchingGame(null);
