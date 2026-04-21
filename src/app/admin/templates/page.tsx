@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Trash2, LayoutTemplate } from 'lucide-react';
 import Modal from '@/components/common/Modal';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import SkeletonPreview from '@/components/common/SkeletonPreview';
 import { useTemplates, useDeleteTemplate } from '@/hooks/useTemplateApi';
 import type { ICardTemplate } from '@/types/api';
@@ -21,9 +21,9 @@ export default function AdminTemplatesPage() {
     if (!deletingTemplate) return;
     try {
       await deleteTemplate.mutateAsync(deletingTemplate.templateCode);
-      notify.success('Đã xóa template thành công');
+      notify.success(MSGS.template.deleteSuccess);
     } catch {
-      notify.error('Xóa template thất bại');
+      notify.error(MSGS.template.deleteError);
     } finally {
       setDeletingTemplate(null);
     }

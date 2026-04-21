@@ -24,6 +24,10 @@ function formatTime(s: number): string {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
 // ─── Quiz Overlay ──────────────────────────────────────────────────────────
 
 interface QuizOverlayProps {
@@ -581,7 +585,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
                       return (
                         <div
                           key={idx}
-                          title={item.type === 'flashcard' ? item.payload.front : item.type === 'fill_blank' ? item.payload.sentence : item.payload.question}
+                          title={item.type === 'flashcard' ? stripHtml(item.payload.front ?? '') : item.type === 'fill_blank' ? stripHtml(item.payload.sentence ?? '') : stripHtml(item.payload.question ?? '')}
                           className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-black shadow -translate-x-1/2 z-10 transition-colors"
                           style={{
                             left: `${(item.pause_time / duration) * 100}%`,
@@ -636,10 +640,10 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
                       <span className="w-12 text-gray-500 flex-shrink-0 tabular-nums">{formatTime(item.pause_time)}</span>
                       <span className="text-gray-300 line-clamp-1 flex-1">
                         {item.type === 'flashcard'
-                          ? (item.payload.front ?? item.payload.title)
+                          ? stripHtml(item.payload.front ?? item.payload.title ?? '')
                           : item.type === 'fill_blank'
-                          ? (item.payload.sentence ?? item.payload.title)
-                          : (item.payload.question ?? item.payload.title)}
+                          ? stripHtml(item.payload.sentence ?? item.payload.title ?? '')
+                          : stripHtml(item.payload.question ?? item.payload.title ?? '')}
                       </span>
                       {isAnswered && <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
                     </button>

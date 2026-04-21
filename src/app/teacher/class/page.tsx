@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import AppHeader from '@/components/sidebar/AppHeader';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import {
   useClassrooms,
@@ -303,10 +303,10 @@ export default function TeacherClassPage() {
   const handleCreate = (data: { description: string }) => {
     createClassroom.mutate(data, {
       onSuccess: () => {
-        notify.success('Đã tạo danh sách học sinh mới');
+        notify.success(MSGS.classroom.createSuccess);
         setShowCreateModal(false);
       },
-      onError: () => notify.error('Tạo danh sách học sinh thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error(MSGS.classroom.createError),
     });
   };
 
@@ -314,11 +314,11 @@ export default function TeacherClassPage() {
     if (!editTarget) return;
     updateClassroom.mutate({ studentListCode: editTarget.studentListCode, input: data }, {
       onSuccess: () => {
-        notify.success('Đã cập nhật danh sách học sinh');
+        notify.success(MSGS.classroom.updateSuccess);
         setEditTarget(null);
         if (activeCode === editTarget.studentListCode) refetchDetail();
       },
-      onError: () => notify.error('Cập nhật danh sách học sinh thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error(MSGS.classroom.updateError),
     });
   };
 
@@ -326,14 +326,14 @@ export default function TeacherClassPage() {
     if (!deleteTarget) return;
     deleteClassroom.mutate(deleteTarget.studentListCode, {
       onSuccess: () => {
-        notify.success(`Đã xóa "${deleteTarget.description}"`);
+        notify.success(MSGS.classroom.deleteSuccess(deleteTarget.description));
         setDeleteTarget(null);
         if (view === 'detail' && activeCode === deleteTarget.studentListCode) {
           setView('list');
           setActiveCode(null);
         }
       },
-      onError: () => notify.error('Xóa danh sách học sinh thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error(MSGS.classroom.deleteError),
     });
   };
 
@@ -379,12 +379,12 @@ export default function TeacherClassPage() {
         }
 
         if (students.length === 0) {
-          notify.error('Không tìm thấy dữ liệu học sinh trong file. Vui lòng kiểm tra lại.');
+          notify.error(MSGS.classroom.importNoData);
           return;
         }
         setImportPreview(students);
       } catch {
-        notify.error('Không thể đọc file Excel. Vui lòng kiểm tra lại định dạng.');
+        notify.error(MSGS.classroom.importFileError);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -396,11 +396,11 @@ export default function TeacherClassPage() {
     if (!activeCode || !importPreview) return;
     importStudents.mutate({ studentListCode: activeCode, input: { students: importPreview } }, {
       onSuccess: () => {
-        notify.success(`Đã nhập ${importPreview.length} học sinh`);
+        notify.success(MSGS.classroom.importSuccess(importPreview.length));
         setImportPreview(null);
         refetchDetail();
       },
-      onError: () => notify.error('Nhập danh sách thất bại. Vui lòng thử lại.'),
+      onError: () => notify.error(MSGS.classroom.importError),
     });
   };
 

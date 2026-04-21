@@ -28,6 +28,7 @@ export const MSGS = {
     saveSuccess:    'Lưu slide thành công!',
     saveError:      'Lưu slide thất bại. Vui lòng thử lại.',
     openError:      'Không thể mở slide. Vui lòng thử lại.',
+    loadError:      'Không thể tải slide. Vui lòng thử lại.',
     noSlideError:   'Không thể lấy đường dẫn slide. Vui lòng thử lại.',
     deleteSuccess:  'Xóa slide thành công.',
     deleteError:    'Không thể xóa slide. Vui lòng thử lại.',
@@ -52,6 +53,7 @@ export const MSGS = {
     createSuccess: 'Tạo game thành công! Đang chuyển đến trình soạn thảo...',
     createError:   'Tạo game thất bại. Vui lòng thử lại.',
     noSlideError:  'Không tìm thấy dữ liệu slide. Vui lòng lưu slide trước khi tạo game.',
+    openError:     'Không thể mở trò chơi. Vui lòng thử lại.',
   },
 
   // ── Sources / Documents ───────────────────────────────────────────────────
@@ -63,12 +65,6 @@ export const MSGS = {
   },
 
   // ── Material (all roles) ─────────────────────────────────────────────────
-  /**
-   * material.expert  — Expert tạo / sửa / xóa học liệu
-   * material.staff   — Staff duyệt / từ chối học liệu
-   * material.shop    — Teacher mua học liệu trên cửa hàng
-   * material.lib     — Teacher tải / xem học liệu đã mua
-   */
   material: {
     expert: {
       uploadSuccess:  'Tải lên tài liệu thành công!',
@@ -84,6 +80,8 @@ export const MSGS = {
       reviewError:      'Thao tác thất bại. Vui lòng thử lại.',
       previewError:     'Không có nội dung để xem trước.',
       previewLoadError: 'Không thể tải nội dung xem trước. Vui lòng thử lại.',
+      previewDownloadError: 'Không thể tải file để xem trước. Vui lòng thử lại.',
+      downloadError:        'Không thể tải file lúc này. Vui lòng thử lại.',
     },
     shop: {
       buySuccess: (title: string) => `Đã thêm "${title}" vào thư viện!`,
@@ -92,17 +90,26 @@ export const MSGS = {
     lib: {
       downloadError: 'Không thể tải tài liệu. Vui lòng thử lại.',
     },
+    productMaterial: {
+      uploadSuccess: (title: string) => `Đã tải lên "${title}"`,
+      uploadError:   'Tải lên thất bại. Vui lòng thử lại.',
+      deleteSuccess: 'Đã xóa học liệu',
+      deleteError:   'Xóa thất bại. Vui lòng thử lại.',
+      addSuccess:    (title: string) => `Đã thêm "${title}"`,
+      addError:      'Thêm học liệu thất bại. Vui lòng thử lại.',
+    },
   },
 
   // ── Subscription plans (admin) ────────────────────────────────────────────
   plan: {
-    createSuccess:  'Tạo gói cước thành công.',
-    updateSuccess:  'Cập nhật gói cước thành công.',
-    saveError:      'Không thể lưu gói cước. Vui lòng thử lại.',
-    deleteSuccess:  (name: string) => `Đã ngưng kích hoạt gói ${name}.`,
-    deleteError:    'Không thể xóa gói cước.',
-    toggleActive:   (name: string) => `Đã kích hoạt gói ${name}.`,
-    toggleInactive: (name: string) => `Đã vô hiệu hóa gói ${name}.`,
+    createSuccess:      'Tạo gói cước thành công.',
+    updateSuccess:      'Cập nhật gói cước thành công.',
+    saveError:          'Không thể lưu gói cước. Vui lòng thử lại.',
+    deleteSuccess:      (name: string) => `Đã ngưng kích hoạt gói ${name}.`,
+    deleteError:        'Không thể xóa gói cước.',
+    toggleActive:       (name: string) => `Đã kích hoạt gói ${name}.`,
+    toggleInactive:     (name: string) => `Đã vô hiệu hóa gói ${name}.`,
+    toggleStatusError:  'Không thể cập nhật trạng thái gói cước.',
   },
 
   // ── Admin: withdrawal management ─────────────────────────────────────────
@@ -144,35 +151,49 @@ export const MSGS = {
     updateError:      'Cập nhật hồ sơ thất bại. Vui lòng thử lại.',
     changePwSuccess:  'Đổi mật khẩu thành công!',
     changePwError:    'Đổi mật khẩu thất bại. Vui lòng thử lại.',
+    avatarRoleError:  'Vai trò hiện tại không hỗ trợ cập nhật ảnh đại diện tại màn này.',
+    avatarTypeError:  'Chỉ chấp nhận file ảnh.',
+    avatarSizeError:  'File ảnh tối đa 5 MB.',
+    avatarUploadError: 'Upload ảnh thất bại.',
+    nameRequired:     'Họ và tên không được để trống.',
+    avatarUploading:  'Vui lòng chờ ảnh tải lên xong.',
+    noUserCode:       'Không xác định được mã người dùng để cập nhật hồ sơ.',
   },
 
   // ── Certification / verification ──────────────────────────────────────────
   cert: {
-    submitSuccess: 'Nộp hồ sơ thành công! Đang chờ phê duyệt.',
-    deleteSuccess: 'Đã xóa hồ sơ thành công',
-    deleteError:   'Không thể xóa hồ sơ. Vui lòng thử lại.',
+    submitSuccess:    'Nộp hồ sơ thành công! Đang chờ phê duyệt.',
+    deleteSuccess:    'Đã xóa hồ sơ thành công',
+    deleteError:      'Không thể xóa hồ sơ. Vui lòng thử lại.',
+    noExpertProfile:  'Tài khoản chưa có hồ sơ Expert trong hệ thống. Vui lòng đăng xuất/đăng nhập lại hoặc liên hệ admin.',
+    uploadError:      'Upload chứng chỉ thất bại. Vui lòng thử lại.',
+    previewError:     'Không thể mở file chứng chỉ. Vui lòng thử lại.',
   },
 
   // ── Classroom ─────────────────────────────────────────────────────────────
   classroom: {
-    createSuccess:         'Đã tạo lớp học',
-    createError:           'Tạo lớp thất bại. Vui lòng thử lại.',
-    updateSuccess:         'Đã cập nhật lớp học',
-    updateError:           'Cập nhật thất bại. Vui lòng thử lại.',
-    deleteSuccess:         (name: string) => `Đã xóa lớp "${name}"`,
-    deleteError:           'Xóa lớp thất bại. Vui lòng thử lại.',
-    importSuccess:         (count: number) => `Đã nhập ${count} học sinh`,
-    importError:           'Nhập danh sách thất bại. Vui lòng thử lại.',
-    importNoData:          'Không tìm thấy dữ liệu học sinh trong file. Vui lòng kiểm tra lại.',
-    importFileError:       'Không thể đọc file Excel. Vui lòng kiểm tra lại định dạng.',
+    createSuccess:   'Đã tạo danh sách học sinh mới',
+    createError:     'Tạo danh sách học sinh thất bại. Vui lòng thử lại.',
+    updateSuccess:   'Đã cập nhật danh sách học sinh',
+    updateError:     'Cập nhật danh sách học sinh thất bại. Vui lòng thử lại.',
+    deleteSuccess:   (name: string) => `Đã xóa "${name}"`,
+    deleteError:     'Xóa danh sách học sinh thất bại. Vui lòng thử lại.',
+    importSuccess:   (count: number) => `Đã nhập ${count} học sinh`,
+    importError:     'Nhập danh sách thất bại. Vui lòng thử lại.',
+    importNoData:    'Không tìm thấy dữ liệu học sinh trong file. Vui lòng kiểm tra lại.',
+    importFileError: 'Không thể đọc file Excel. Vui lòng kiểm tra lại định dạng.',
   },
 
   // ── Templates (admin) ─────────────────────────────────────────────────────
   template: {
-    deleteSuccess: 'Đã xóa template thành công',
-    deleteError:   'Xóa template thất bại',
-    saveSuccess:   'Lưu template thành công.',
-    saveError:     'Lưu template thất bại.',
+    deleteSuccess:   'Đã xóa template thành công',
+    deleteError:     'Xóa template thất bại',
+    saveSuccess:     'Lưu template thành công.',
+    saveError:       'Lưu template thất bại.',
+    createSuccess:   'Đã tạo template mới.',
+    updateSuccess:   'Đã cập nhật template.',
+    nameRequired:    'Vui lòng nhập tên template.',
+    noSlideError:    'Vui lòng thiết kế ít nhất một slide.',
   },
 
   // ── Staff: expert verification ────────────────────────────────────────────
@@ -204,5 +225,29 @@ export const MSGS = {
     missingSubject:       'Vui lòng nhập đầy đủ mã và tên môn học.',
     missingLesson:        'Vui lòng nhập đầy đủ mã bài học, tên bài học và môn học.',
     confirmDeletePrompt:  'Vui lòng nhập đúng từ XOA để xác nhận xóa.',
+  },
+
+  // ── Admin: user management ────────────────────────────────────────────────
+  admin: {
+    user: {
+      loadError:             'Không thể tải thông tin người dùng.',
+      updateSuccess:         'Cập nhật người dùng thành công.',
+      updateError:           'Không thể cập nhật người dùng.',
+      requiredFields:        'Vui lòng nhập đầy đủ thông tin bắt buộc.',
+      addSuccess:            'Thêm người dùng thành công.',
+      addError:              'Không thể thêm người dùng.',
+      lockSuccess:           'Đã khóa người dùng và thu hồi token.',
+      unlockSuccess:         'Đã mở khóa người dùng.',
+      hardDeleteSuccess:     'Đã xóa người dùng (hard delete).',
+      actionError:           'Thao tác thất bại.',
+      exportRequireSelection:'Vui lòng chọn ít nhất một người dùng để xuất CSV.',
+      bulkActionRequired:    'Vui lòng chọn hành động hàng loạt.',
+      selectionRequired:     'Vui lòng chọn ít nhất một người dùng.',
+      bulkLockSuccess:       (count: number) => `Đã khóa ${count} người dùng.`,
+      bulkUnlockSuccess:     (count: number) => `Đã mở khóa ${count} người dùng.`,
+      bulkNoLockTarget:      'Không có người dùng phù hợp để khóa.',
+      bulkNoUnlockTarget:    'Không có người dùng phù hợp để mở khóa.',
+      bulkActionError:       'Thao tác hàng loạt thất bại.',
+    },
   },
 } as const;

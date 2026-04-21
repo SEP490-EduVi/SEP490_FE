@@ -13,7 +13,7 @@ import { uploadAvatarToGcs } from '@/services/gcsServices';
 import { useUpdateExpertProfile } from '@/hooks/useExpertApi';
 import { useUpdateStaffProfile } from '@/hooks/useStaffApi';
 import { useUpdateTeacherProfile } from '@/hooks/useTeacherApi';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 
 interface ProfileTabProps {
   info: {
@@ -84,11 +84,11 @@ export default function ProfileTab({
 
   const handleAvatarFileSelect = (file: File) => {
     if (!canUpdateAvatar) {
-      notify.error('Vai trò hiện tại không hỗ trợ cập nhật ảnh đại diện tại màn này.');
+      notify.error(MSGS.profile.avatarRoleError);
       return;
     }
-    if (!file.type.startsWith('image/')) { notify.error('Chỉ chấp nhận file ảnh.'); return; }
-    if (file.size > 5 * 1024 * 1024) { notify.error('File ảnh tối đa 5 MB.'); return; }
+    if (!file.type.startsWith('image/')) { notify.error(MSGS.profile.avatarTypeError); return; }
+    if (file.size > 5 * 1024 * 1024) { notify.error(MSGS.profile.avatarSizeError); return; }
 
     const reader = new FileReader();
     reader.onload = (ev) => setAvatarLocalPreview(ev.target?.result as string);
@@ -98,8 +98,8 @@ export default function ProfileTab({
     uploadAvatarToGcs(file, info?.userId)
       .then((publicUrl) => setEditAvatarUrl(publicUrl))
       .catch((err: unknown) => {
-        const msg = (err instanceof Error ? err.message : null) ?? 'Upload ảnh thất bại.';
-        notify.error(msg);
+        const msg = (err instanceof Error ? err.message : null) ?? MSGS.profile.avatarUploadError;
+        notify.error(MSGS.profile.avatarUploadError);
         setAvatarLocalPreview(null);
       })
       .finally(() => setAvatarUploading(false));
@@ -107,8 +107,8 @@ export default function ProfileTab({
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editFullName.trim()) { notify.error('Họ và tên không được để trống.'); return; }
-    if (avatarUploading) { notify.error('Vui lòng chờ ảnh tải lên xong.'); return; }
+    if (!editFullName.trim()) { notify.error(MSGS.profile.nameRequired); return; }
+    if (avatarUploading) { notify.error(MSGS.profile.avatarUploading); return; }
 
     const fullName    = editFullName.trim();
     const phoneNumber = editPhone.trim();
@@ -126,14 +126,14 @@ export default function ProfileTab({
           avatarUrl: canUpdateAvatar ? avatarUrl : (info.avatarUrl ?? null),
         } as AuthUserInfo);
       }
-      notify.success('Cập nhật hồ sơ thành công!');
+      notify.success(MSGS.profile.updateSuccess);
       setIsEditing(false);
     };
 
     const handleError = (err: unknown) => {
       const responseMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       const genericMsg  = err instanceof Error ? err.message : null;
-      notify.error(responseMsg ?? genericMsg ?? 'Cập nhật thất bại. Vui lòng thử lại.');
+      notify.error(MSGS.profile.updateError);
     };
 
     if (isStaff) {
@@ -161,7 +161,7 @@ export default function ProfileTab({
       return;
     }
     if (!info?.userCode) {
-      notify.error('Không xác định được mã người dùng để cập nhật hồ sơ.');
+      notify.error(MSGS.profile.noUserCode);
       return;
     }
 

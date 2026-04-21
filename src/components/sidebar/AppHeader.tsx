@@ -241,7 +241,7 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
 
         {/* ── Mobile hamburger ── */}
         {navItems.length > 0 && (
@@ -262,7 +262,7 @@ export default function AppHeader() {
 
         {/* ── Desktop role nav ── */}
         {navItems.length > 0 && (
-          <nav className="hidden md:flex items-center justify-center gap-0.5 flex-1 min-w-0" aria-label="Điều hướng chính">
+          <nav className="hidden md:flex items-start justify-start gap-0.5 flex-1 min-w-0" aria-label="Điều hướng chính">
             {navItems.map(({ href, label, icon: Icon }) => {
               const active = isActive(href);
               return (

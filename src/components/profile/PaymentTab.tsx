@@ -73,7 +73,7 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
         const text = msg ?? MSGS.topUp.verifyError;
         setPaymentError(text);
-        notify.error(text);
+        notify.error(MSGS.topUp.verifyError);
       },
     });
   }, [searchParams, verifyTopUp, verifyingOrder, refetchWallet, isStaff]);
@@ -107,7 +107,7 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
           const text = msg ?? MSGS.topUp.createError;
           setPaymentError(text);
-          notify.error(text);
+          notify.error(MSGS.topUp.createError);
         },
       },
     );
@@ -220,31 +220,31 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
             <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
           </div>
         ) : transactions?.items?.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
+          <div>
+            <table className="w-full text-xs">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Loại</th>
-                  <th className="px-5 py-3 text-left font-medium">Nội dung</th>
-                  <th className="px-5 py-3 text-left font-medium">Số tiền</th>
-                  <th className="px-5 py-3 text-left font-medium">Trạng thái</th>
-                  <th className="px-5 py-3 text-left font-medium">Thời gian</th>
+                  <th className="px-3 py-3 text-left font-medium w-20">Loại</th>
+                  <th className="px-3 py-3 text-left font-medium">Nội dung</th>
+                  <th className="px-3 py-3 text-left font-medium w-24">Số tiền</th>
+                  <th className="px-3 py-3 text-left font-medium w-24">Trạng thái</th>
+                  <th className="px-3 py-3 text-left font-medium w-32">Thời gian</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.items.map((tx) => (
                   <tr key={tx.transactionId} className="border-t border-gray-100">
-                    <td className="px-5 py-3 text-gray-700">
-                      <p className="whitespace-nowrap" title={tx.transactionType}>{tx.transactionType}</p>
+                    <td className="px-3 py-3 text-gray-700 w-20">
+                      <p className="break-words" title={tx.transactionType}>{tx.transactionType}</p>
                     </td>
-                    <td className="px-5 py-3 text-gray-700">
-                      <p className="whitespace-normal break-words" title={tx.description ?? tx.transactionType}>
+                    <td className="px-3 py-3 text-gray-700">
+                      <p className="break-words" title={tx.description ?? tx.transactionType}>
                         {tx.description ?? tx.transactionType}
                       </p>
                     </td>
-                    <td className="px-5 py-3 text-gray-900 font-medium whitespace-nowrap">{formatEduCoin(tx.amount)}</td>
-                    <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{tx.status}</td>
-                    <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{formatVnDateTime(tx.createdAt)}</td>
+                    <td className="px-3 py-3 text-gray-900 font-medium w-24">{formatEduCoin(tx.amount)}</td>
+                    <td className="px-3 py-3 text-gray-600 w-24">{tx.status}</td>
+                    <td className="px-3 py-3 text-gray-500 w-32">{formatVnDateTime(tx.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

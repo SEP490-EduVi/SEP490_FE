@@ -49,7 +49,7 @@ export default function GameConfigModal({ productCode, productName, onClose }: G
     } catch (e) {
       const msg = e instanceof Error ? e.message : MSGS.game.createError;
       setStatus(msg);
-      notify.error(msg);
+      notify.error(MSGS.game.createError);
     } finally {
       setCreating(false);
     }

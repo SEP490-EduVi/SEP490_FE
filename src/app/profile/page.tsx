@@ -26,7 +26,7 @@ import * as productService from '@/services/productServices';
 import VideoPlayerModal from '@/components/projects/VideoPlayerModal';
 import type { VideoProductDto } from '@/types/api';
 import AppHeader from '@/components/sidebar/AppHeader';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import SecurityTab from '@/components/profile/SecurityTab';
 import PaymentTab from '@/components/profile/PaymentTab';
 import WithdrawalTab from '@/components/profile/WithdrawalTab';
@@ -208,7 +208,7 @@ function ProfilePageInner() {
       }
       setDocument(slideDoc, productCode, '', hasEditedSlide);
       router.push('/teacher/editor');
-    } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
+    } catch { notify.error(MSGS.slide.openError); }
     finally { setViewSlideLoading(null); }
   };
 
