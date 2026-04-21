@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Shield, Lock, Eye, FileCheck, AlertTriangle } from 'lucide-react';
+import { Shield, Lock, Eye, FileCheck, AlertTriangle, Mail } from 'lucide-react';
 import PublicHeader from '@/components/common/PublicHeader';
 import PublicFooter from '@/components/common/PublicFooter';
 
@@ -11,6 +11,8 @@ const sections = [
   {
     icon: Eye,
     title: '1. Thu thập thông tin',
+    accent: '#2563eb',
+    bg: '#eff6ff',
     content: [
       'Khi bạn đăng ký tài khoản EduVi, chúng tôi thu thập các thông tin cần thiết bao gồm: họ tên, địa chỉ email, số điện thoại (tùy chọn) và thông tin đăng nhập.',
       'Khi sử dụng dịch vụ, chúng tôi có thể thu thập thông tin về cách bạn tương tác với nền tảng, bao gồm tài liệu tải lên, bài giảng tạo ra, và lịch sử giao dịch.',
@@ -20,6 +22,8 @@ const sections = [
   {
     icon: Lock,
     title: '2. Sử dụng thông tin',
+    accent: '#7c3aed',
+    bg: '#f5f3ff',
     content: [
       'Thông tin của bạn được sử dụng để: cung cấp và duy trì dịch vụ, xử lý thanh toán, gửi thông báo về tài khoản, và cải thiện trải nghiệm người dùng.',
       'Chúng tôi có thể sử dụng dữ liệu ẩn danh để phân tích xu hướng, nghiên cứu và phát triển tính năng mới cho nền tảng.',
@@ -29,6 +33,8 @@ const sections = [
   {
     icon: Shield,
     title: '3. Bảo mật dữ liệu',
+    accent: '#059669',
+    bg: '#ecfdf5',
     content: [
       'EduVi áp dụng các biện pháp bảo mật tiêu chuẩn ngành để bảo vệ dữ liệu của bạn, bao gồm mã hóa SSL/TLS, xác thực hai yếu tố và kiểm soát truy cập nghiêm ngặt.',
       'Tài liệu bài giảng và nội dung do bạn tạo ra thuộc quyền sở hữu của bạn. Chúng tôi chỉ lưu trữ trên máy chủ bảo mật và không sử dụng cho bất kỳ mục đích nào khác.',
@@ -38,6 +44,8 @@ const sections = [
   {
     icon: FileCheck,
     title: '4. Quyền của người dùng',
+    accent: '#0891b2',
+    bg: '#ecfeff',
     content: [
       'Bạn có quyền truy cập, chỉnh sửa và xóa thông tin cá nhân của mình bất kỳ lúc nào thông qua trang Quản lý tài khoản.',
       'Bạn có quyền yêu cầu xuất toàn bộ dữ liệu cá nhân mà chúng tôi lưu trữ.',
@@ -48,6 +56,8 @@ const sections = [
   {
     icon: AlertTriangle,
     title: '5. Điều khoản sử dụng',
+    accent: '#ea580c',
+    bg: '#fff7ed',
     content: [
       'Bằng việc sử dụng EduVi, bạn đồng ý tuân thủ các điều khoản sử dụng. Bạn cam kết không sử dụng dịch vụ cho bất kỳ mục đích bất hợp pháp nào.',
       'Nội dung được tạo bằng AI mang tính chất hỗ trợ. Giáo viên chịu trách nhiệm kiểm tra và đảm bảo tính chính xác của nội dung trước khi sử dụng trong giảng dạy.',
@@ -63,39 +73,50 @@ export default function PolicyPage() {
       <PublicHeader />
 
       {/* Hero */}
-      <section className="bg-[radial-gradient(circle_at_top_right,_#e8f0ff_0,_#f7fbff_45%,_#edf4ff_100%)] pt-10 pb-16 sm:pt-12 sm:pb-20 border-b border-[#dde8ff]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/90 border border-[#d5e3ff] text-[#2e5fb0] rounded-full text-sm font-medium mb-6">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#f0f5ff] via-[#f6f9ff] to-white">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-32 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[140px]" />
+          <div className="absolute bottom-0 -left-24 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-[120px]" />
+        </div>
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
+          <div className="inline-flex items-center gap-2 px-5 py-2 bg-white/80 backdrop-blur-sm border border-blue-200/60 text-blue-700 rounded-full text-sm font-medium mb-8 shadow-sm">
             <Shield className="w-4 h-4" />
             Chính sách & Điều khoản
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#122a58] mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
             Chính sách bảo mật
           </h1>
-          <p className="text-lg text-[#4d6691] max-w-2xl mx-auto">
-            Chúng tôi cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn. Vui lòng đọc kỹ chính sách dưới đây.
+          <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            Chúng tôi cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn.
+            Vui lòng đọc kỹ chính sách dưới đây.
           </p>
-          <p className="text-sm text-[#7a93bb] mt-4">
+          <p className="text-sm text-gray-400 mt-5">
             Cập nhật lần cuối: {LAST_UPDATED}
           </p>
         </div>
       </section>
 
       {/* Content */}
-      <section className="py-16 sm:py-20">
+      <section className="py-16 sm:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-10">
+          <div className="space-y-6">
             {sections.map((section, i) => (
-              <div key={i} className="bg-gray-50 rounded-2xl p-6 sm:p-8 border border-gray-100">
-                <div className="flex items-start gap-4 mb-5">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                    <section.icon className="w-5 h-5 text-blue-600" />
+              <div
+                key={i}
+                className="group rounded-3xl p-7 sm:p-8 border border-gray-100 bg-white hover:shadow-lg hover:shadow-gray-100/60 transition-all duration-300"
+              >
+                <div className="flex items-start gap-4 mb-6">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
+                    style={{ backgroundColor: section.bg }}
+                  >
+                    <section.icon className="w-6 h-6" style={{ color: section.accent }} />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 pt-1">{section.title}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 pt-2">{section.title}</h2>
                 </div>
-                <div className="space-y-3 ml-14">
+                <div className="space-y-4 ml-16">
                   {section.content.map((paragraph, j) => (
-                    <p key={j} className="text-gray-600 leading-relaxed text-sm">
+                    <p key={j} className="text-gray-600 leading-relaxed text-[15px]">
                       {paragraph}
                     </p>
                   ))}
@@ -104,20 +125,29 @@ export default function PolicyPage() {
             ))}
           </div>
 
-          {/* Contact for questions */}
-          <div className="mt-12 bg-blue-50 rounded-2xl p-8 border border-blue-100 text-center">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Có câu hỏi về chính sách?</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Nếu bạn có bất kỳ thắc mắc nào về chính sách bảo mật hoặc cách chúng tôi xử lý dữ liệu của bạn, vui lòng liên hệ:
-            </p>
-            <a
-              href="mailto:pdat1746@gmail.com"
-              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-blue-600 bg-white rounded-xl border border-blue-200 hover:bg-blue-600 hover:text-white transition-all"
-            >
-              pdat1746@gmail.com
-
-
-            </a>
+          {/* Contact */}
+          <div className="mt-12 relative rounded-3xl bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 border border-blue-100/60 p-8 sm:p-10 text-center overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-16 -right-16 w-48 h-48 bg-blue-100/50 rounded-full blur-[60px]" />
+              <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-violet-100/50 rounded-full blur-[60px]" />
+            </div>
+            <div className="relative">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-blue-100">
+                <Mail className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Có câu hỏi về chính sách?</h3>
+              <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                Nếu bạn có bất kỳ thắc mắc nào về chính sách bảo mật hoặc cách chúng tôi xử lý dữ liệu,
+                vui lòng liên hệ:
+              </p>
+              <a
+                href="mailto:pdat1746@gmail.com"
+                className="inline-flex items-center gap-2 px-7 py-3 text-sm font-semibold text-blue-600 bg-white rounded-2xl border border-blue-200/60 hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
+              >
+                <Mail className="w-4 h-4" />
+                pdat1746@gmail.com
+              </a>
+            </div>
           </div>
         </div>
       </section>

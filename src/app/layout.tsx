@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import QueryProvider from '@/providers/QueryProvider';
+import SessionProvider from '@/providers/SessionProvider';
 import { ToastProvider } from '@/components/common';
 import GlobalPipelinePill from '@/components/common/GlobalPipelinePill';
 
@@ -27,7 +28,9 @@ export default function RootLayout({
     <html lang="vi">
       <body className={inter.className}>
         <QueryProvider>
-          {children}
+          <SessionProvider>
+            {children}
+          </SessionProvider>
           <ToastProvider />
           <GlobalPipelinePill />
         </QueryProvider>
