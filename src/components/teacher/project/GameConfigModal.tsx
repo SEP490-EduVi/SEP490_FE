@@ -45,7 +45,14 @@ export default function GameConfigModal({ productCode, productName, onClose }: G
       });
       onClose();
       notify.success(MSGS.game.createSuccess);
-      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}&productName=${encodeURIComponent(productName)}`);
+
+      const query = new URLSearchParams({ taskId: task.taskId, productCode });
+      if (productName.trim()) query.set('productName', productName.trim());
+      const normalizedProductGameName = gameName.trim() || productName.trim() || 'Game chưa đặt tên';
+      if (normalizedProductGameName) query.set('productGameName', normalizedProductGameName);
+      if (templateId) query.set('templateCode', templateId);
+
+      router.push(`/teacher/game-maker?${query.toString()}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : MSGS.game.createError;
       setStatus(msg);

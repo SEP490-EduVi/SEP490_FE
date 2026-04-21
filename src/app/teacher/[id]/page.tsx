@@ -317,11 +317,15 @@ export default function ProjectDetailPage() {
     setEvalProductCode(productCode); setEvalProductName(product?.productName);
   };
 
-  const handleViewSlide = async (productCode: string) => {
+  const openProductInEditor = async (
+    productCode: string,
+    options?: { openEduviExport?: boolean },
+  ) => {
     try {
       setViewSlideLoading(productCode);
-      const product = products.find(p => p.productCode === productCode);
+      const product = products.find((p) => p.productCode === productCode);
       let slideDoc;
+
       if (product?.hasEditedSlide) {
         const result = await productService.getProductEditedSlide(productCode);
         slideDoc = result.slideEditedDocument;
@@ -329,6 +333,7 @@ export default function ProjectDetailPage() {
         const result = await productService.getProductSlide(productCode);
         slideDoc = result.slideDocument;
       }
+
       setDocument(
         slideDoc,
         productCode,
@@ -336,9 +341,24 @@ export default function ProjectDetailPage() {
         product?.hasEditedSlide ?? false,
         product?.productName,
       );
-      router.push('/teacher/editor');
-    } catch { notify.error(MSGS.slide.openError); }
-    finally { setViewSlideLoading(null); }
+
+      const target = options?.openEduviExport
+        ? '/teacher/editor?openEduviExport=1'
+        : '/teacher/editor';
+      router.push(target);
+    } catch {
+      notify.error(options?.openEduviExport ? 'Không thể mở slide để xuất .eduvi.' : MSGS.slide.openError);
+    } finally {
+      setViewSlideLoading(null);
+    }
+  };
+
+  const handleViewSlide = async (productCode: string) => {
+    await openProductInEditor(productCode);
+  };
+
+  const handleExportEduvi = async (productCode: string) => {
+    await openProductInEditor(productCode, { openEduviExport: true });
   };
 
   const handlePreviewSlide = async (productCode: string) => {
@@ -507,6 +527,7 @@ export default function ProjectDetailPage() {
             onGenerateSlides={handleGenerateSlides}
             onGenerateVideo={handleGenerateVideo}
             onGenerateGame={handleGenerateGame}
+            onExportEduvi={handleExportEduvi}
             videoLoadingCode={videoLoadingCode}
             activePipelineType={isPipelineRunning ? pipelineType : null}
           />
