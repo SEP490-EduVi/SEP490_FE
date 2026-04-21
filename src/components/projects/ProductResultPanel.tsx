@@ -98,13 +98,23 @@ export default function ProductResultPanel({
     ? products.filter((p) => p.documentCode === activeDocCode)
     : products;
 
-  const handlePlayGame = async (gameCode: string, productGameName: string) => {
+  const handlePlayGame = async (
+    gameCode: string,
+    productName: string,
+    productGameName: string,
+  ) => {
     setLaunchingGame(gameCode);
     try {
       const detail = await getGameByCode(gameCode);
-      router.push(
-        `/teacher/game-maker?taskId=${encodeURIComponent(detail.taskId)}&productName=${encodeURIComponent(productGameName)}`,
-      );
+
+      const query = new URLSearchParams({ taskId: detail.taskId, productCode: detail.productCode });
+      if (productName.trim()) query.set('productName', productName.trim());
+      if (productGameName.trim()) query.set('productGameName', productGameName.trim());
+      if (detail.productGameCode?.trim()) query.set('productGameCode', detail.productGameCode.trim());
+      if (detail.gameCode?.trim()) query.set('gameCode', detail.gameCode.trim());
+      if (detail.templateCode?.trim()) query.set('templateCode', detail.templateCode.trim());
+
+      router.push(`/teacher/game-maker?${query.toString()}`);
     } catch {
       setLaunchingGame(null);
       notify.error('Không thể mở trò chơi. Vui lòng thử lại.');
@@ -324,7 +334,7 @@ export default function ProductResultPanel({
                           {game.status === 'completed' && (
                             <button
                               type="button"
-                              onClick={() => handlePlayGame(game.gameCode, game.productGameName)}
+                              onClick={() => handlePlayGame(game.gameCode, product.productName, game.productGameName)}
                               disabled={launchingGame === game.gameCode}
                               className="flex items-center gap-0.5 text-[11px] text-white bg-violet-600 hover:bg-violet-700 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50"
                             >

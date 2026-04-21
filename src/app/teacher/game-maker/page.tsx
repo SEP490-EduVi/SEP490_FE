@@ -4,10 +4,14 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { PresentationGamePlayer } from '@/components/mediapipe-game/PresentationGamePlayer';
-import { GameEditorView } from '@/components/mediapipe-game/GameEditorView';
+import { GameEditorView, type GameEditorPlayable } from '@/components/mediapipe-game/GameEditorView';
 import { useGameHub } from '@/hooks/useGameHub';
 import { getGameTaskStatus } from '@/services/gamesServices';
+import { EduViGame, exportToEduvi } from '@/lib/exportToEduvi';
+import { getProjectByCode } from '@/services/projectServices';
+import { useDocumentStore } from '@/store';
 import type { GameProgressDto } from '@/types/api';
+import type { IDocument } from '@/types/nodes';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +53,99 @@ function normalizeGameStatusMessage(raw?: string | null) {
   return msg;
 }
 
+type GameExportMeta = {
+  gameCode?: string;
+  productGameCode?: string;
+  productCode?: string;
+  productGameName?: string;
+  templateCode?: string;
+  roundCount?: number;
+};
+
+function readStringByKeys(source: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized) return normalized;
+    }
+  }
+
+  return undefined;
+}
+
+function readNumberByKeys(source: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeGameExportMeta(result: Record<string, unknown> | null): GameExportMeta {
+  if (!result) return {};
+
+  const candidates: Record<string, unknown>[] = [result];
+
+  for (const key of ['game', 'playable', 'data', 'payload']) {
+    const nested = result[key];
+    if (nested && typeof nested === 'object') {
+      candidates.push(nested as Record<string, unknown>);
+    }
+  }
+
+  const meta: GameExportMeta = {};
+
+  for (const candidate of candidates) {
+    meta.gameCode ??= readStringByKeys(candidate, ['gameCode', 'game_code', 'code']);
+    meta.productGameCode ??= readStringByKeys(candidate, ['productGameCode', 'product_game_code']);
+    meta.productCode ??= readStringByKeys(candidate, ['productCode', 'product_code']);
+    meta.productGameName ??= readStringByKeys(candidate, ['productGameName', 'product_game_name', 'name']);
+    meta.templateCode ??= readStringByKeys(candidate, ['templateCode', 'templateId', 'template_code']);
+    meta.roundCount ??= readNumberByKeys(candidate, ['roundCount', 'round_count']);
+  }
+
+  return meta;
+}
+
+function mergeGameExportMeta(base: GameExportMeta, patch: GameExportMeta): GameExportMeta {
+  return {
+    gameCode: patch.gameCode ?? base.gameCode,
+    productGameCode: patch.productGameCode ?? base.productGameCode,
+    productCode: patch.productCode ?? base.productCode,
+    productGameName: patch.productGameName ?? base.productGameName,
+    templateCode: patch.templateCode ?? base.templateCode,
+    roundCount: patch.roundCount ?? base.roundCount,
+  };
+}
+
+function buildGameOnlyDocument(source: IDocument | null, fallbackTitle: string, taskId: string | null): IDocument {
+  if (source) {
+    return {
+      ...source,
+      cards: [],
+      activeCardId: '',
+    };
+  }
+
+  const now = new Date().toISOString();
+  return {
+    id: taskId ? `game-export-${taskId}` : 'game-export',
+    title: fallbackTitle,
+    cards: [],
+    activeCardId: '',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default function GameMakerPage() {
@@ -56,6 +153,16 @@ export default function GameMakerPage() {
   const searchParams = useSearchParams();
   const taskIdParam = searchParams.get('taskId');
   const [productName] = useState(() => searchParams.get('productName') ?? '');
+  const productGameNameParam = searchParams.get('productGameName')?.trim() ?? '';
+  const productCodeParam = searchParams.get('productCode')?.trim() ?? '';
+  const productGameCodeParam = searchParams.get('productGameCode')?.trim() ?? '';
+  const gameCodeParam = searchParams.get('gameCode')?.trim() ?? '';
+  const templateCodeParam = searchParams.get('templateCode')?.trim() ?? '';
+
+  const document = useDocumentStore((state) => state.document);
+  const currentProductCode = useDocumentStore((state) => state.currentProductCode);
+  const currentProductName = useDocumentStore((state) => state.currentProductName);
+  const currentProjectCode = useDocumentStore((state) => state.currentProjectCode);
 
   const taskIdRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -66,6 +173,14 @@ export default function GameMakerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isExportingGameEduvi, setIsExportingGameEduvi] = useState(false);
+  const [gameExportMeta, setGameExportMeta] = useState<GameExportMeta>(() => ({
+    productCode: productCodeParam || undefined,
+    productGameCode: productGameCodeParam || undefined,
+    gameCode: gameCodeParam || undefined,
+    templateCode: templateCodeParam || undefined,
+    productGameName: productGameNameParam || undefined,
+  }));
 
   // Stop interval polling
   const stopPolling = useCallback(() => {
@@ -95,6 +210,7 @@ export default function GameMakerPage() {
       if (isTerminalStatus(event.status)) {
         const result = normalizePlayableResult(event.result as Record<string, unknown> | null);
         if (result) {
+          setGameExportMeta((prev) => mergeGameExportMeta(prev, normalizeGameExportMeta(event.result)));
           stopPolling();
           setPlayable(result);
           setIsEditing(true);
@@ -168,14 +284,121 @@ export default function GameMakerPage() {
     setIsEditing(true);
   }, []);
 
+  const handleExportGameEduvi = useCallback(
+    async (edited: GameEditorPlayable) => {
+      setIsExportingGameEduvi(true);
+
+      try {
+        let academicContext: {
+          projectCode?: string;
+          projectName?: string;
+          subjectCode?: string;
+          subjectName?: string;
+          gradeCode?: string;
+          gradeName?: string;
+        } | undefined;
+        let projectName = '';
+
+        if (currentProjectCode) {
+          try {
+            const project = await getProjectByCode(currentProjectCode);
+            projectName = typeof project.projectName === 'string' ? project.projectName.trim() : '';
+            academicContext = {
+              projectCode: project.projectCode,
+              projectName: project.projectName,
+              subjectCode: project.subjectCode,
+              subjectName: project.subjectName,
+              gradeCode: project.gradeCode,
+              gradeName: project.gradeName,
+            };
+          } catch {
+            // Keep export flow smooth when project metadata cannot be loaded.
+          }
+        }
+
+        const normalizedCurrentProductName =
+          typeof currentProductName === 'string' ? currentProductName.trim() : '';
+        const normalizedProductName = productName.trim() || normalizedCurrentProductName;
+        const normalizedExportTitle = normalizedProductName || projectName || 'game-export';
+        const normalizedFolderName = normalizedProductName || projectName || 'eduvi-game-folder';
+
+        const effectiveProductCode =
+          gameExportMeta.productCode || currentProductCode || productCodeParam || 'UNKNOWN_PRODUCT';
+        const effectiveTemplateCode =
+          gameExportMeta.templateCode || edited.templateId || 'UNKNOWN_TEMPLATE';
+        const resolvedRoundCountFromPayload = Array.isArray(edited.payload) ? edited.payload.length : 1;
+        const effectiveRoundCount =
+          typeof gameExportMeta.roundCount === 'number' && gameExportMeta.roundCount > 0
+            ? gameExportMeta.roundCount
+            : Math.max(1, resolvedRoundCountFromPayload);
+        const effectiveProductGameCode =
+          gameExportMeta.productGameCode || gameExportMeta.gameCode || taskId || 'UNKNOWN_PRODUCT_GAME';
+        const effectiveGameCode = gameExportMeta.gameCode || taskId || effectiveProductGameCode;
+        const effectiveProductGameName =
+          gameExportMeta.productGameName || `Game ${taskId ?? ''}`.trim();
+
+        const gamePayload: EduViGame = {
+          gameCode: effectiveGameCode,
+          productGameCode: effectiveProductGameCode,
+          productCode: effectiveProductCode,
+          productGameName: effectiveProductGameName,
+          templateCode: effectiveTemplateCode,
+          roundCount: effectiveRoundCount,
+          status: 'completed',
+          resultJson: edited,
+        };
+
+        const gameOnlyDocument = buildGameOnlyDocument(
+          document,
+          normalizedExportTitle,
+          taskId,
+        );
+
+        const result = await exportToEduvi(gameOnlyDocument, {
+          requireOfflineReady: false,
+          academicContext,
+          projectName: normalizedExportTitle,
+          games: [gamePayload],
+          folderName: normalizedFolderName,
+          packageType: 'game',
+          fileNameSuffix: 'game',
+          embedAssets: false,
+        });
+
+        window.alert(
+          'Đã xuất file game .eduvi thành công.\n\n' +
+          `Folder trong metadata: ${normalizedFolderName}\n` +
+          `File: ${result.fileName}`,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Xuất file game .eduvi thất bại';
+        window.alert('Xuất file game .eduvi thất bại.\n\n' + message);
+      } finally {
+        setIsExportingGameEduvi(false);
+      }
+    },
+    [
+      currentProductCode,
+      currentProjectCode,
+      document,
+      gameExportMeta,
+      productCodeParam,
+      productName,
+      currentProductName,
+      taskId,
+    ],
+  );
+
   // ── render ────────────────────────────────────────────────────────────────
 
   // Edit screen — shown first after game generation
   if (playable && isEditing) {
     return (
       <GameEditorView
-        playable={playable as any}
+        playable={playable as GameEditorPlayable}
         productName={productName}
+        isExportingGameEduvi={isExportingGameEduvi}
+        onExportGameEduvi={handleExportGameEduvi}
         onStart={(edited) => {
           setPlayable(edited);
           setIsEditing(false);
