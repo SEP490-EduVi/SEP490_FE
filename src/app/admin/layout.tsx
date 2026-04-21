@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -26,6 +26,9 @@ import {
   LayoutTemplate,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useLogoutService } from '@/services/authServices';
+import { useQueryClient } from '@tanstack/react-query';
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Bảng điều khiển', icon: LayoutDashboard },
@@ -45,7 +48,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuthStore();
+  const logoutService = useLogoutService();
+  const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = () => {
+    logoutService.mutate(undefined, {
+      onSettled: () => {
+        queryClient.clear();
+        logout();
+        router.push('/login');
+      },
+    });
+  };
 
   const isActive = (href: string) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
@@ -110,15 +127,16 @@ export default function AdminLayout({
             )}
           </button>
 
-          {/* Back to app */}
-          <Link
-            href="/"
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-            title={collapsed ? 'Quay lại ứng dụng' : undefined}
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            disabled={logoutService.isPending}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+            title={collapsed ? 'Đăng xuất' : undefined}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span>Quay lại ứng dụng</span>}
-          </Link>
+            {!collapsed && <span>Đăng xuất</span>}
+          </button>
 
           {/* Admin badge */}
           {!collapsed && (
