@@ -12,7 +12,7 @@ import {
   useDeleteVerification,
 } from '@/hooks/useExpertApi';
 import { getVerificationFile } from '@/services/expertServices';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 
 const CERT_STATUS_CONFIG: Record<number, { label: string; textColor: string; bgColor: string; borderColor: string; icon: React.ElementType }> = {
   0: { label: 'Chờ duyệt', textColor: 'text-amber-700',   bgColor: 'bg-amber-50',   borderColor: 'border-amber-200',   icon: Clock       },
@@ -72,14 +72,14 @@ export default function CertificateTab({
   const handleCertSubmit = () => {
     if (!certFile) return;
     if (!expertId) {
-      notify.error('Tài khoản chưa có hồ sơ Expert trong hệ thống. Vui lòng đăng xuất/đăng nhập lại hoặc liên hệ admin.');
+      notify.error(MSGS.cert.noExpertProfile);
       return;
     }
     submitVerification.mutate(
       { file: certFile, fileType: certFileType, description: certDesc || undefined },
       {
         onSuccess: () => {
-          notify.success('Nộp hồ sơ thành công! Đang chờ phê duyệt.');
+          notify.success(MSGS.cert.submitSuccess);
           setCertFile(null); setCertDesc(''); setCertFileType('degree');
           setShowCertForm(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
@@ -92,10 +92,10 @@ export default function CertificateTab({
             : undefined;
           const rawError = (firstValidationError ?? msg ?? '').toString().toLowerCase();
           if (rawError.includes('expert') && rawError.includes('không tồn tại')) {
-            notify.error('Backend chưa có bản ghi Expert cho tài khoản này. Vui lòng liên hệ admin để tạo hồ sơ Expert hoặc đăng nhập lại để cập nhật claim.');
+            notify.error(MSGS.cert.noExpertProfile);
             return;
           }
-          notify.error(firstValidationError ?? msg ?? 'Upload chứng chỉ thất bại. Vui lòng thử lại.');
+          notify.error(MSGS.cert.uploadError);
         },
       },
     );
@@ -103,8 +103,8 @@ export default function CertificateTab({
 
   const handleCertDelete = (code: string) => {
     deleteVerification.mutate(code, {
-      onSuccess: () => { setConfirmDelete(null); notify.success('Đã rút lại chứng chỉ thành công.'); },
-      onError:   () => notify.error('Không thể xoá chứng chỉ. Vui lòng thử lại.'),
+      onSuccess: () => { setConfirmDelete(null); notify.success(MSGS.cert.deleteSuccess); },
+      onError:   () => notify.error(MSGS.cert.deleteError),
     });
   };
 
@@ -126,7 +126,7 @@ export default function CertificateTab({
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      notify.error(msg ?? 'Không thể mở file chứng chỉ. Vui lòng thử lại.');
+      notify.error(MSGS.cert.previewError);
     } finally {
       setOpeningCertFile(false);
     }

@@ -37,7 +37,7 @@ import { Modal } from '@/components/common/Modal';
 import { useDocumentStore } from '@/store';
 import { Sidebar, MainStage } from '@/components/layout';
 import { MaterialSidebar } from '@/components/sidebar/MaterialSidebar';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import { IMaterial, BlockType } from '@/types';
 import type { PurchasedMaterialDto } from '@/types/api';
 import { useTemplate, useCreateTemplate, useUpdateTemplate } from '@/hooks/useTemplateApi';
@@ -158,7 +158,7 @@ export default function AdminTemplateEditorPage() {
   const handleOpenSaveModal = () => {
     const activeCard = getActiveCard();
     if (!activeCard) {
-      notify.error('Vui lòng thiết kế ít nhất một slide');
+      notify.error(MSGS.template.noSlideError);
       return;
     }
     setShowSaveModal(true);
@@ -168,13 +168,13 @@ export default function AdminTemplateEditorPage() {
   const handleSave = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      notify.error('Vui lòng nhập tên template');
+      notify.error(MSGS.template.nameRequired);
       return;
     }
 
     const activeCard = getActiveCard();
     if (!activeCard) {
-      notify.error('Vui lòng thiết kế ít nhất một slide');
+      notify.error(MSGS.template.noSlideError);
       return;
     }
 
@@ -186,7 +186,7 @@ export default function AdminTemplateEditorPage() {
           templateCode,
           input: { name: trimmedName, category: 'layout', description: description.trim() || undefined, skeleton },
         });
-        notify.success('Đã cập nhật template');
+        notify.success(MSGS.template.updateSuccess);
       } else {
         await createTemplate.mutateAsync({
           name: trimmedName,
@@ -194,11 +194,11 @@ export default function AdminTemplateEditorPage() {
           description: description.trim() || undefined,
           skeleton,
         });
-        notify.success('Đã tạo template mới');
+        notify.success(MSGS.template.createSuccess);
       }
       router.push('/admin/templates');
     } catch {
-      notify.error('Lưu template thất bại. Vui lòng thử lại.');
+      notify.error(MSGS.template.saveError);
     } finally {
       setShowSaveModal(false);
     }

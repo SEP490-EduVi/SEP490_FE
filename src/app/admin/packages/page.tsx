@@ -200,7 +200,7 @@ export default function AdminPlansPage() {
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? MSGS.plan.saveError;
       setFormError(msg);
-      notify.error(msg);
+      notify.error(MSGS.plan.saveError);
     } finally {
       setSubmitting(false);
     }
@@ -216,10 +216,7 @@ export default function AdminPlansPage() {
       setDeletingPlan(null);
       await loadPlans(page);
     } catch (err) {
-      notify.error(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          MSGS.plan.deleteError,
-      );
+      notify.error(MSGS.plan.deleteError);
     } finally {
       setSubmitting(false);
     }
@@ -238,11 +235,8 @@ export default function AdminPlansPage() {
       );
       setTogglingPlan(null);
       await loadPlans(page);
-    } catch (err) {
-      notify.error(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          'Không thể cập nhật trạng thái gói cước.',
-      );
+    } catch {
+      notify.error(MSGS.plan.toggleStatusError);
     } finally {
       setSubmitting(false);
     }

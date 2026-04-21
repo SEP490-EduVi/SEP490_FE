@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, FileText, Loader2, Trash2, X, Upload, ChevronDown, BookOpen } from 'lucide-react';
 import { useInputDocumentsByProject, useUploadInputDocument, useDeleteInputDocument } from '@/hooks/useInputDocumentApi';
 import { useLessons } from '@/hooks/useMetadataApi';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import ProductMaterialsSection from './ProductMaterialsSection';
 import type { ProductDto } from '@/types/api';
 
@@ -94,10 +94,10 @@ export default function SourcesPanel({
       },
       {
         onSuccess: () => {
-          notify.success(`Đã tải lên "${uploadTitle}"`);
+          notify.success(MSGS.source.uploadSuccess(uploadTitle));
           resetForm();
         },
-        onError: () => notify.error('Tải lên thất bại. Vui lòng thử lại.'),
+        onError: () => notify.error(MSGS.source.uploadError),
       },
     );
   };
@@ -378,8 +378,8 @@ export default function SourcesPanel({
                     type="button"
                     onClick={() => {
                       deleteDoc.mutate(doc.documentCode, {
-                        onSuccess: () => notify.success('Đã xóa tài liệu'),
-                        onError: () => notify.error('Không thể xóa'),
+                        onSuccess: () => notify.success(MSGS.source.deleteSuccess),
+                        onError: () => notify.error(MSGS.source.deleteError),
                       });
                       setDeleteConfirm(null);
                     }}

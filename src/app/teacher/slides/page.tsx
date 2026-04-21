@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, Search, Loader2, Eye, FolderOpen, Plus } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
-import { Breadcrumb, notify } from '@/components/common';
+import { Breadcrumb, notify, MSGS } from '@/components/common';
 import { Pagination } from '@/components/paging';
 import { useAllProducts } from '@/hooks/useProductApi';
 import { useAllInputDocuments } from '@/hooks/useInputDocumentApi';
@@ -68,7 +68,7 @@ export default function TeacherSlidesPage() {
       }
       setDocument(slideDoc, productCode, '', hasEditedSlide, productName);
       router.push('/teacher/editor');
-    } catch { notify.error('Không thể mở slide. Vui lòng thử lại.'); }
+    } catch { notify.error(MSGS.slide.openError); }
     finally {
       setViewLoading(null);
     }

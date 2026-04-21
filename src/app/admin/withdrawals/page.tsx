@@ -109,7 +109,7 @@ export default function AdminWithdrawalsPage() {
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? MSGS.withdrawal.processError;
       setError(msg);
-      notify.error(msg);
+      notify.error(MSGS.withdrawal.processError);
     } finally {
       setProcessingId(null);
     }

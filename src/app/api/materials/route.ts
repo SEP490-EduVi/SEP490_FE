@@ -25,28 +25,9 @@ const mockMaterials: IMaterial[] = [
   // MEDIA CATEGORY
   // ========================================================================
   {
-    id: 'material-pdf-viewer',
-    name: 'PDF Viewer',
-    description: 'Embed and display PDF documents',
-    widgetType: WidgetType.MATERIAL_PDF,
-    icon: 'FileText',
-    category: MaterialCategory.MEDIA,
-    previewUrl: '/previews/pdf-viewer.png',
-    defaultData: {
-      src: 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.pdf',
-      title: 'Sample PDF Document',
-      totalPages: 3,
-    },
-    defaultStyles: {
-      width: '100%',
-      maxWidth: '800px',
-      aspectRatio: '3/4',
-    },
-  },
-  {
     id: 'material-video-player',
-    name: 'Video Player',
-    description: 'Embed custom video content',
+    name: 'Video',
+    description: 'Nhúng và phát video tùy chỉnh',
     widgetType: WidgetType.MATERIAL_VIDEO,
     icon: 'Video',
     category: MaterialCategory.MEDIA,
