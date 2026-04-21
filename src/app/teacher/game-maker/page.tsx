@@ -4,10 +4,11 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { PresentationGamePlayer } from '@/components/mediapipe-game/PresentationGamePlayer';
-import { GameEditorView } from '@/components/mediapipe-game/GameEditorView';
+import { GameEditorView, GameEditorPlayable } from '@/components/mediapipe-game/GameEditorView';
 import { useGameHub } from '@/hooks/useGameHub';
 import { getGameByCode, getGameTaskStatus } from '@/services/gamesServices';
 import type { GameProgressDto } from '@/types/api';
+import { exportToEduvi } from '@/lib/exportToEduvi';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,7 @@ export default function GameMakerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isExportingGameEduvi, setIsExportingGameEduvi] = useState(false);
 
   // Stop interval polling
   const stopPolling = useCallback(() => {
@@ -193,6 +195,50 @@ export default function GameMakerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskIdParam]);
 
+  // Export game to .eduvi
+  const handleExportGameEduvi = useCallback(async (edited: GameEditorPlayable) => {
+    if (isExportingGameEduvi) return;
+    setIsExportingGameEduvi(true);
+    try {
+      const payload = edited.payload;
+      const roundCount = Array.isArray(payload) ? payload.length : 1;
+      const gameCode = gameCodeRef.current ?? 'standalone';
+      const now = new Date().toISOString();
+      const minimalDocument = {
+        id: gameCode,
+        title: productName || 'Game',
+        cards: [] as never[],
+        activeCardId: '',
+        createdAt: now,
+        updatedAt: now,
+      };
+      await exportToEduvi(minimalDocument as any, {
+        requireOfflineReady: false,
+        projectName: productName || undefined,
+        packageType: 'game',
+        fileNameSuffix: 'game',
+        embedAssets: false,
+        games: [
+          {
+            gameCode,
+            productGameCode: gameCode,
+            productCode: gameCode,
+            productGameName: productName || 'Game',
+            templateCode: edited.templateId,
+            roundCount,
+            status: 'completed',
+            resultJson: edited,
+          },
+        ],
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Xuất file .eduvi thất bại';
+      window.alert(message);
+    } finally {
+      setIsExportingGameEduvi(false);
+    }
+  }, [isExportingGameEduvi, productName]);
+
   // Game end / replay
   const handleEnd = useCallback(() => {
     stopPolling();
@@ -218,6 +264,8 @@ export default function GameMakerPage() {
       <GameEditorView
         playable={playable as any}
         productName={productName}
+        onExportGameEduvi={handleExportGameEduvi}
+        isExportingGameEduvi={isExportingGameEduvi}
         onStart={(edited) => {
           setPlayable(edited);
           setIsEditing(false);

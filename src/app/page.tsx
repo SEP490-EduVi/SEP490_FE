@@ -16,18 +16,34 @@ import {
   Globe,
   Users,
   Shield,
+  Monitor,
+  Download,
+  Cpu,
+  Gamepad2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import PublicHeader from '@/components/common/PublicHeader';
 import PublicFooter from '@/components/common/PublicFooter';
 
+const ROLE_HOME: Record<string, string> = {
+  admin:  '/admin',
+  staff:  '/staff',
+  expert: '/expert',
+};
+
 export default function HomePage() {
   const router = useRouter();
-  const { hydrate } = useAuthStore();
+  const { hydrate, role, isHydrated } = useAuthStore();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    const redirect = ROLE_HOME[role];
+    if (redirect) router.replace(redirect);
+  }, [isHydrated, role, router]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fbff]">
@@ -176,6 +192,96 @@ export default function HomePage() {
                 <div className="text-sm text-blue-100">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      {/* App Desktop Download */}
+      <section className="py-20 sm:py-28 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 overflow-hidden relative">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: text */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-sm font-medium mb-6">
+                <Monitor className="w-4 h-4" />
+                Ứng dụng Desktop
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 leading-tight">
+                Tải EduVi App <br className="hidden sm:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                  cho máy tính của bạn
+                </span>
+              </h2>
+              <p className="text-slate-300 text-lg mb-6 leading-relaxed">
+                Phiên bản desktop mang lại trải nghiệm mượt mà hơn — chạy bài giảng tương tác, game giáo dục với camera trực tiếp ngay trên máy tính của bạn.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-3 mb-8">
+                {[
+                  { icon: Cpu, label: 'Hiệu năng cao', desc: 'Xử lý camera & AI nhanh hơn' },
+                  { icon: Gamepad2, label: 'Game tương tác', desc: 'Trò chơi giáo dục MediaPipe' },
+                  { icon: Monitor, label: 'Màn hình lớn', desc: 'Toàn màn hình cho lớp học' },
+                ].map((f) => (
+                  <div key={f.label} className="flex flex-col gap-1 bg-white/5 rounded-xl p-3 border border-white/10">
+                    <f.icon className="w-5 h-5 text-blue-400 mb-1" />
+                    <p className="text-white text-sm font-semibold leading-tight">{f.label}</p>
+                    <p className="text-slate-400 text-xs leading-snug">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href="https://drive.google.com/drive/folders/1hp2u5Aq0LXnf3TrpcALzF8EXG7AKGyoF?usp=sharing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold text-sm shadow-lg shadow-blue-500/30 transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  Tải EduVi Desktop
+                </a>
+                <a
+                  href="/teacher/guide"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-white/20 text-slate-300 hover:bg-white/10 font-medium text-sm transition-all"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Xem hướng dẫn cài đặt
+                </a>
+              </div>
+              <p className="mt-4 text-xs text-slate-500">Hỗ trợ Windows 10/11 và macOS 12+</p>
+            </div>
+
+            {/* Right: mock window */}
+            <div className="hidden lg:flex items-center justify-center">
+              <div className="w-full max-w-md bg-slate-800/60 backdrop-blur rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+                {/* titlebar */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-slate-900/60">
+                  <span className="w-3 h-3 rounded-full bg-red-500/70" />
+                  <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                  <span className="w-3 h-3 rounded-full bg-green-500/70" />
+                  <span className="flex-1 text-center text-xs text-slate-500">EduVi Desktop</span>
+                </div>
+                {/* content mock */}
+                <div className="p-5 space-y-3">
+                  <div className="h-5 bg-blue-500/30 rounded-lg w-3/4" />
+                  <div className="h-3 bg-white/10 rounded w-full" />
+                  <div className="h-3 bg-white/10 rounded w-5/6" />
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="h-24 bg-indigo-500/20 rounded-xl border border-indigo-500/20 flex items-center justify-center">
+                      <Gamepad2 className="w-8 h-8 text-indigo-400/60" />
+                    </div>
+                    <div className="h-24 bg-cyan-500/20 rounded-xl border border-cyan-500/20 flex items-center justify-center">
+                      <Video className="w-8 h-8 text-cyan-400/60" />
+                    </div>
+                  </div>
+                  <div className="h-3 bg-white/10 rounded w-4/5" />
+                  <div className="h-3 bg-white/10 rounded w-2/3" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

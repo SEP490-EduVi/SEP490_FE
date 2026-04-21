@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus, Clock3, ChevronRight, ChevronDown, BookOpen, GraduationCap } from 'lucide-react';
+import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus, Clock3, ChevronRight, ChevronDown, BookOpen, GraduationCap, HelpCircle } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import Modal from '@/components/common/Modal';
@@ -115,6 +115,12 @@ export default function TeacherDashboard() {
       icon: Film,
       label: 'Danh sách video',
       description: 'Theo dõi video đã tạo và kiểm tra chất lượng bài giảng.',
+    },
+    {
+      href: '/teacher/guide',
+      icon: HelpCircle,
+      label: 'Hướng dẫn & Tải app',
+      description: 'Tải EduVi Desktop và xem hướng dẫn sử dụng đầy đủ.',
     },
   ];
 

@@ -8,6 +8,7 @@ import {
   BarChart3,
   GalleryVerticalEnd,
   Video,
+  Download,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -51,6 +52,7 @@ interface StudioCenterProps {
   onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
+  onExportEduvi: (productCode: string) => void;
   videoLoadingCode: string | null;
   activePipelineType?: 'evaluation' | 'slides' | 'video' | null;
 }
@@ -450,6 +452,7 @@ interface StudioToolbarProps {
   onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
+  onExportEduvi: (productCode: string) => void;
   videoLoadingCode: string | null;
   activePipelineType?: 'evaluation' | 'slides' | 'video' | null;
   activeDocCode?: string | null;
@@ -465,6 +468,7 @@ function StudioToolbar({
   onGenerateSlides,
   onGenerateVideo,
   onGenerateGame,
+  onExportEduvi,
   videoLoadingCode,
   activePipelineType,
   activeDocCode,
@@ -527,6 +531,11 @@ function StudioToolbar({
   const handleGameClick = () => {
     if (!hasSlide || !latestSlide) return;
     onGenerateGame(latestSlide.productCode);
+  };
+
+  const handleExportEduviClick = () => {
+    if (!hasSlide || !latestSlide) return;
+    onExportEduvi(latestSlide.productCode);
   };
 
   return (
@@ -629,6 +638,16 @@ function StudioToolbar({
               accent="amber"
               onClick={handleGameClick}
             />
+
+            {/* Xuất EduVi */}
+            <ToolbarButton
+              icon={<Download className="w-3.5 h-3.5" />}
+              label="Xuất file"
+              disabled={!hasSlide}
+              locked={!hasSlide}
+              accent="emerald"
+              onClick={handleExportEduviClick}
+            />
           </div>
 
           {/* Pipeline indicator */}
@@ -716,7 +735,7 @@ function ToolbarButton({
   label: string;
   disabled?: boolean;
   locked?: boolean;
-  accent: 'blue' | 'indigo' | 'rose' | 'amber';
+  accent: 'blue' | 'indigo' | 'rose' | 'amber' | 'emerald';
   onClick: () => void;
 }) {
   const colors = {
@@ -724,6 +743,7 @@ function ToolbarButton({
     indigo: { active: 'bg-indigo-600 hover:bg-indigo-700 text-white', muted: 'bg-gray-100 text-gray-400' },
     rose:   { active: 'bg-rose-600 hover:bg-rose-700 text-white',   muted: 'bg-gray-100 text-gray-400' },
     amber:  { active: 'bg-amber-600 hover:bg-amber-700 text-white', muted: 'bg-gray-100 text-gray-400' },
+    emerald:{ active: 'bg-emerald-600 hover:bg-emerald-700 text-white', muted: 'bg-gray-100 text-gray-400' },
   };
   const cls = disabled ? colors[accent].muted : colors[accent].active;
   return (
@@ -760,6 +780,7 @@ export default function StudioCenter({
   onGenerateSlides,
   onGenerateVideo,
   onGenerateGame,
+  onExportEduvi,
   videoLoadingCode,
   activePipelineType,
 }: StudioCenterProps) {
@@ -793,6 +814,7 @@ export default function StudioCenter({
         onGenerateSlides={onGenerateSlides}
         onGenerateVideo={onGenerateVideo}
         onGenerateGame={onGenerateGame}
+        onExportEduvi={onExportEduvi}
         videoLoadingCode={videoLoadingCode}
         activePipelineType={activePipelineType}
         activeDocCode={activeDocCode}

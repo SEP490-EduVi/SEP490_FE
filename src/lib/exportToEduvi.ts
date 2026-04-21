@@ -70,10 +70,15 @@ export interface EduViFileSchema {
     classroomCode?: string;
     classroomName?: string;
     curriculumYear?: number;
+    folderName?: string;
+    packageType?: EduViPackageType;
   };
   
   /** The actual content - array of cards (slides) */
   cards: EduViCard[];
+
+  /** Optional exported game payloads linked to this product */
+  games?: EduViGame[];
 
   /** Optional embedded assets for offline playback in Flutter desktop app */
   assets?: Record<string, EduViAsset>;
@@ -123,9 +128,19 @@ export interface EduViExportOptions {
   academicContext?: Partial<EduViAcademicContext>;
   /** Optional project name used as preferred export title */
   projectName?: string;
+  /** Optional games to include in the exported EduVi package */
+  games?: EduViGame[];
+  /** Logical folder name written into metadata for app-side grouping */
+  folderName?: string;
+  /** Package intent of this export file */
+  packageType?: EduViPackageType;
+  /** Optional suffix appended to generated file name (e.g. slide/game) */
+  fileNameSuffix?: string;
   /** Timeout per asset fetch in milliseconds */
   mediaFetchTimeoutMs?: number;
 }
+
+export type EduViPackageType = 'slide' | 'game' | 'combined';
 
 export interface EduViAcademicContext {
   projectCode?: string;
@@ -158,6 +173,17 @@ export interface EduViCard {
   isVideoSlide?: boolean;
   renderedHtml?: string;
   layouts: EduViLayout[];
+}
+
+export interface EduViGame {
+  gameCode: string;
+  productGameCode: string;
+  productCode: string;
+  productGameName: string;
+  templateCode: string;
+  roundCount: number;
+  status: string;
+  resultJson: unknown;
 }
 
 export interface EduViLayout {
@@ -439,14 +465,23 @@ function resolveExportTitle(document: IDocument, fallbackProjectName?: string): 
   return 'Untitled';
 }
 
-function createExportFileName(document: IDocument, fallbackProjectName?: string): string {
+function createExportFileName(
+  document: IDocument,
+  fallbackProjectName?: string,
+  fileNameSuffix?: string,
+): string {
   const safeTitle = sanitizeFileTitle(resolveExportTitle(document, fallbackProjectName));
+  const normalizedSuffix =
+    typeof fileNameSuffix === 'string' && fileNameSuffix.trim().length > 0
+      ? sanitizeFileTitle(fileNameSuffix)
+      : '';
+  const suffixPart = normalizedSuffix ? `-${normalizedSuffix}` : '';
   const now = new Date();
   const pad2 = (value: number): string => String(value).padStart(2, '0');
   const datePart = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
   const timePart = `${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
 
-  return `${safeTitle}-${datePart}-${timePart}${EDUVI_FILE_EXTENSION}`;
+  return `${safeTitle}${suffixPart}-${datePart}-${timePart}${EDUVI_FILE_EXTENSION}`;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -902,7 +937,14 @@ async function buildEduViData(document: IDocument, options: EduViExportOptions =
     mediaFetchTimeoutMs: options.mediaFetchTimeoutMs ?? DEFAULT_MEDIA_FETCH_TIMEOUT_MS,
   };
 
-  const schema = transformDocument(document, options.academicContext, options.projectName);
+  const schema = transformDocument(
+    document,
+    options.academicContext,
+    options.games,
+    options.projectName,
+    options.folderName,
+    options.packageType,
+  );
   const embedResult = await embedAssets(schema, resolvedOptions);
   const stats = computeStats(schema, embedResult.failedUrls.length);
   schema.integrity = {
@@ -917,7 +959,10 @@ async function buildEduViData(document: IDocument, options: EduViExportOptions =
 function transformDocument(
   document: IDocument,
   academicContext?: Partial<EduViAcademicContext>,
+  games?: EduViGame[],
   fallbackProjectName?: string,
+  folderName?: string,
+  packageType?: EduViPackageType,
 ): EduViFileSchema {
   const fallbackTimestamp = new Date().toISOString();
   const normalizedTitle = resolveExportTitle(document, fallbackProjectName);
@@ -941,8 +986,26 @@ function transformDocument(
       ...(academicContext?.classroomCode ? { classroomCode: academicContext.classroomCode } : {}),
       ...(academicContext?.classroomName ? { classroomName: academicContext.classroomName } : {}),
       ...(typeof academicContext?.curriculumYear === 'number' ? { curriculumYear: academicContext.curriculumYear } : {}),
+      ...(typeof folderName === 'string' && folderName.trim().length > 0
+        ? { folderName: folderName.trim() }
+        : {}),
+      ...(packageType ? { packageType } : {}),
     },
     cards: document.cards.map((card, idx) => transformCard(card, idx)),
+    ...(Array.isArray(games) && games.length > 0
+      ? {
+          games: games.map((game) => ({
+            gameCode: game.gameCode,
+            productGameCode: game.productGameCode,
+            productCode: game.productCode,
+            productGameName: game.productGameName,
+            templateCode: game.templateCode,
+            roundCount: game.roundCount,
+            status: game.status,
+            resultJson: game.resultJson,
+          })),
+        }
+      : {}),
     sourceDocument: cloneDocument(document),
   };
 }
@@ -981,7 +1044,7 @@ export async function exportToEduvi(
   // Create download link
   const url = URL.createObjectURL(blob);
   const link = window.document.createElement('a');
-  const fileName = createExportFileName(document, options.projectName);
+  const fileName = createExportFileName(document, options.projectName, options.fileNameSuffix);
   
   // Generate filename from resolved export title
   link.download = fileName;
@@ -1038,7 +1101,7 @@ export async function serializeToEduviAdvanced(
   }
 
   return {
-    fileName: createExportFileName(document, options.projectName),
+    fileName: createExportFileName(document, options.projectName, options.fileNameSuffix),
     schema,
     validation,
   };
@@ -1062,6 +1125,9 @@ export function validateEduViSchema(data: unknown): { valid: boolean; errors: st
   if (!obj.metadata) errors.push('Missing required field: metadata');
   if (!obj.cards) errors.push('Missing required field: cards');
   if (!Array.isArray(obj.cards)) errors.push('cards must be an array');
+  if (obj.games !== undefined && !Array.isArray(obj.games)) {
+    errors.push('games must be an array when provided');
+  }
 
   // Check metadata
   if (obj.metadata && typeof obj.metadata === 'object') {
@@ -1069,6 +1135,15 @@ export function validateEduViSchema(data: unknown): { valid: boolean; errors: st
     if (!meta.title) errors.push('Missing required field: metadata.title');
     if (!meta.createdAt) errors.push('Missing required field: metadata.createdAt');
     if (!meta.updatedAt) errors.push('Missing required field: metadata.updatedAt');
+    if (meta.folderName !== undefined && typeof meta.folderName !== 'string') {
+      errors.push('metadata.folderName must be a string when provided');
+    }
+    if (meta.packageType !== undefined) {
+      const allowedPackageTypes = new Set(['slide', 'game', 'combined']);
+      if (typeof meta.packageType !== 'string' || !allowedPackageTypes.has(meta.packageType)) {
+        errors.push('metadata.packageType must be one of: slide, game, combined');
+      }
+    }
   }
 
   if (Array.isArray(obj.cards)) {
@@ -1114,6 +1189,25 @@ export function validateEduViSchema(data: unknown): { valid: boolean; errors: st
           }
         });
       });
+    });
+  }
+
+  if (Array.isArray(obj.games)) {
+    obj.games.forEach((gameRaw, gameIndex) => {
+      if (!gameRaw || typeof gameRaw !== 'object') {
+        errors.push(`games[${gameIndex}] must be an object`);
+        return;
+      }
+
+      const game = gameRaw as Record<string, unknown>;
+      if (!game.gameCode) errors.push(`games[${gameIndex}] missing gameCode`);
+      if (!game.productGameCode) errors.push(`games[${gameIndex}] missing productGameCode`);
+      if (!game.productCode) errors.push(`games[${gameIndex}] missing productCode`);
+      if (!game.productGameName) errors.push(`games[${gameIndex}] missing productGameName`);
+      if (!game.templateCode) errors.push(`games[${gameIndex}] missing templateCode`);
+      if (typeof game.roundCount !== 'number') errors.push(`games[${gameIndex}] roundCount must be a number`);
+      if (!game.status) errors.push(`games[${gameIndex}] missing status`);
+      if (!('resultJson' in game)) errors.push(`games[${gameIndex}] missing resultJson`);
     });
   }
 
