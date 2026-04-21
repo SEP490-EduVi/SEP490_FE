@@ -22,6 +22,14 @@ function formatEduCoin(value: number | null | undefined): string {
   return `${amount.toLocaleString('vi-VN')} EduCoin`;
 }
 
+function formatVnDateTime(value?: string | null): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const vnDate = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+  return vnDate.toLocaleString('vi-VN');
+}
+
 export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
   const searchParams = useSearchParams();
   const [topUpAmount, setTopUpAmount] = useState('10000');
@@ -29,8 +37,18 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [verifyingOrder, setVerifyingOrder] = useState<number | null>(null);
 
-  const { data: wallet, isLoading: walletLoading, isError: walletError, refetch: refetchWallet } = useWalletInfo({ enabled: !isStaff });
-  const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10, { enabled: !isStaff });
+  const { data: wallet, isLoading: walletLoading, isError: walletError, refetch: refetchWallet } = useWalletInfo({
+    enabled: !isStaff,
+    refetchIntervalMs: 7000,
+    staleTimeMs: 5000,
+    refetchInBackground: true,
+  });
+  const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10, {
+    enabled: !isStaff,
+    refetchIntervalMs: 5000,
+    staleTimeMs: 3000,
+    refetchInBackground: true,
+  });
   const topUpWallet = useTopUpWallet();
   const verifyTopUp = useVerifyTopUp();
 
@@ -120,7 +138,7 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
             <>
               <p className="text-2xl font-bold text-gray-900">{formatEduCoin(wallet.balance)}</p>
               <p className="text-xs text-gray-400 mt-1">
-                Cập nhật: {wallet.lastUpdated ? new Date(wallet.lastUpdated).toLocaleString('vi-VN') : '—'}
+                Cập nhật: {formatVnDateTime(wallet.lastUpdated)}
               </p>
             </>
           ) : (
@@ -203,10 +221,11 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
           </div>
         ) : transactions?.items?.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[980px] text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
                   <th className="px-5 py-3 text-left font-medium">Loại</th>
+                  <th className="px-5 py-3 text-left font-medium">Nội dung</th>
                   <th className="px-5 py-3 text-left font-medium">Số tiền</th>
                   <th className="px-5 py-3 text-left font-medium">Trạng thái</th>
                   <th className="px-5 py-3 text-left font-medium">Thời gian</th>
@@ -215,10 +234,17 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
               <tbody>
                 {transactions.items.map((tx) => (
                   <tr key={tx.transactionId} className="border-t border-gray-100">
-                    <td className="px-5 py-3 text-gray-700">{tx.transactionType}</td>
-                    <td className="px-5 py-3 text-gray-900 font-medium">{formatEduCoin(tx.amount)}</td>
-                    <td className="px-5 py-3 text-gray-600">{tx.status}</td>
-                    <td className="px-5 py-3 text-gray-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
+                    <td className="px-5 py-3 text-gray-700">
+                      <p className="whitespace-nowrap" title={tx.transactionType}>{tx.transactionType}</p>
+                    </td>
+                    <td className="px-5 py-3 text-gray-700">
+                      <p className="whitespace-normal break-words" title={tx.description ?? tx.transactionType}>
+                        {tx.description ?? tx.transactionType}
+                      </p>
+                    </td>
+                    <td className="px-5 py-3 text-gray-900 font-medium whitespace-nowrap">{formatEduCoin(tx.amount)}</td>
+                    <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{tx.status}</td>
+                    <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{formatVnDateTime(tx.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

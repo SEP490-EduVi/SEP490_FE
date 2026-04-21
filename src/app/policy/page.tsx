@@ -63,19 +63,19 @@ export default function PolicyPage() {
       <PublicHeader />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-slate-50 via-white to-gray-50 py-16 sm:py-20">
+      <section className="bg-[radial-gradient(circle_at_top_right,_#e8f0ff_0,_#f7fbff_45%,_#edf4ff_100%)] pt-10 pb-16 sm:pt-12 sm:pb-20 border-b border-[#dde8ff]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/90 border border-[#d5e3ff] text-[#2e5fb0] rounded-full text-sm font-medium mb-6">
             <Shield className="w-4 h-4" />
             Chính sách & Điều khoản
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#122a58] mb-4">
             Chính sách bảo mật
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-[#4d6691] max-w-2xl mx-auto">
             Chúng tôi cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn. Vui lòng đọc kỹ chính sách dưới đây.
           </p>
-          <p className="text-sm text-gray-400 mt-4">
+          <p className="text-sm text-[#7a93bb] mt-4">
             Cập nhật lần cuối: {LAST_UPDATED}
           </p>
         </div>

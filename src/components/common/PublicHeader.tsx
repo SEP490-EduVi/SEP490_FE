@@ -8,6 +8,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Menu, X } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 
+const getRoleHomeRoute = (role: string) => {
+  if (role === 'admin') return '/admin';
+  if (role === 'teacher') return '/teacher';
+  if (role === 'expert') return '/expert';
+  if (role === 'staff') return '/staff';
+  return '/';
+};
+
 const NAV_LINKS = [
   { href: '/', label: 'Trang chủ' },
   { href: '/subscription', label: 'Bảng giá' },
@@ -20,12 +28,10 @@ export default function PublicHeader() {
   const { user, role, isHydrated, logout } = useAuthStore();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const logoHref = isHydrated && user ? getRoleHomeRoute(role) : '/';
 
   const handleGoDashboard = () => {
-    if (role === 'admin') router.push('/admin');
-    else if (role === 'teacher') router.push('/teacher');
-    else if (role === 'expert') router.push('/expert');
-    else router.push('/');
+    router.push(getRoleHomeRoute(role));
   };
 
   const handleLogout = () => {
@@ -35,11 +41,11 @@ export default function PublicHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <header className="sticky top-0 z-50 border-b border-[#d5e3ff] bg-white/92 backdrop-blur-md shadow-[0_16px_40px_-30px_rgba(44,84,160,0.45)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <BrandLogo href="/" compact className="shrink-0" />
+          <BrandLogo href={logoHref} compact className="shrink-0" />
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
@@ -47,7 +53,7 @@ export default function PublicHeader() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-3.5 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                className="px-3.5 py-2 text-sm font-medium text-[#3f5f95] hover:text-[#1f4f9c] rounded-lg hover:bg-[#edf3ff] transition-colors"
               >
                 {link.label}
               </Link>
@@ -60,13 +66,13 @@ export default function PublicHeader() {
               <>
                 <button
                   onClick={handleGoDashboard}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[#355688] hover:text-[#1f4f9c] rounded-lg hover:bg-[#edf3ff] transition-colors"
                 >
                   Trang của tôi
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[#607aa6] hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   Đăng xuất
                 </button>
@@ -75,13 +81,13 @@ export default function PublicHeader() {
               <>
                 <Link
                   href="/register"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#2f62b4] to-[#4b79c8] rounded-lg hover:from-[#2a58a3] hover:to-[#426bb1] transition-all shadow-sm"
                 >
                   Đăng ký miễn phí
                 </Link>
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[#355688] hover:text-[#1f4f9c] rounded-lg hover:bg-[#edf3ff] transition-colors"
                 >
                   Đăng nhập
                 </Link>
@@ -92,7 +98,7 @@ export default function PublicHeader() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="md:hidden p-2 text-[#5a77a3] hover:text-[#1f4f9c]"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -101,24 +107,24 @@ export default function PublicHeader() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+        <div className="md:hidden bg-white border-t border-[#d5e3ff] shadow-lg">
           <div className="px-4 py-3 space-y-1">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-blue-50"
+                className="block px-3 py-2.5 text-sm font-medium text-[#355688] hover:text-[#1f4f9c] rounded-lg hover:bg-[#edf3ff]"
               >
                 {link.label}
               </Link>
             ))}
-            <hr className="my-2 border-gray-100" />
+            <hr className="my-2 border-[#dbe7ff]" />
             {isHydrated && user ? (
               <>
                 <button
                   onClick={() => { setMobileOpen(false); handleGoDashboard(); }}
-                  className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-blue-50"
+                  className="w-full text-left px-3 py-2.5 text-sm font-medium text-[#355688] hover:text-[#1f4f9c] rounded-lg hover:bg-[#edf3ff]"
                 >
                   Trang của tôi
                 </button>
@@ -134,7 +140,7 @@ export default function PublicHeader() {
                 <Link href="/register" onClick={() => setMobileOpen(false)} className="block px-3 py-2.5 text-sm font-semibold text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                   Đăng ký miễn phí
                 </Link>
-                <Link href="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                <Link href="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2.5 text-sm font-medium text-[#355688] hover:text-[#1f4f9c] rounded-lg hover:bg-[#edf3ff]">
                   Đăng nhập
                 </Link>
               </>

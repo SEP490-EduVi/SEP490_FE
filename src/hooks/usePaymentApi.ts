@@ -16,6 +16,9 @@ const WITHDRAWAL_ADMIN_QUERY_KEY = 'payment-withdrawal-admin';
 
 interface PaymentQueryOptions {
   enabled?: boolean;
+  refetchIntervalMs?: number;
+  staleTimeMs?: number;
+  refetchInBackground?: boolean;
 }
 
 export function useSubscriptionPlans(options?: PaymentQueryOptions) {
@@ -31,6 +34,9 @@ export function useWalletInfo(options?: PaymentQueryOptions) {
     queryKey: [WALLET_QUERY_KEY],
     queryFn: paymentService.getWalletInfo,
     enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchIntervalMs ?? false,
+    refetchIntervalInBackground: options?.refetchInBackground ?? false,
+    staleTime: options?.staleTimeMs ?? 0,
   });
 }
 
@@ -39,6 +45,9 @@ export function useWalletTransactions(page = 1, pageSize = 10, options?: Payment
     queryKey: [TX_QUERY_KEY, page, pageSize],
     queryFn: () => paymentService.getWalletTransactions(page, pageSize),
     enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchIntervalMs ?? false,
+    refetchIntervalInBackground: options?.refetchInBackground ?? false,
+    staleTime: options?.staleTimeMs ?? 0,
   });
 }
 
