@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { PresentationGamePlayer } from '@/components/mediapipe-game/PresentationGamePlayer';
 import { GameEditorView } from '@/components/mediapipe-game/GameEditorView';
 import { useGameHub } from '@/hooks/useGameHub';
-import { getGameTaskStatus } from '@/services/gamesServices';
+import { getGameByCode, getGameTaskStatus } from '@/services/gamesServices';
 import type { GameProgressDto } from '@/types/api';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -55,9 +55,11 @@ export default function GameMakerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const taskIdParam = searchParams.get('taskId');
+  const gameCodeParam = searchParams.get('gameCode');
   const [productName] = useState(() => searchParams.get('productName') ?? '');
 
   const taskIdRef = useRef<string | null>(null);
+  const gameCodeRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -100,6 +102,11 @@ export default function GameMakerPage() {
           setIsEditing(true);
           setIsLoading(false);
           setStatusText('');
+        } else {
+          // Task result is null even though status is terminal — fall back to game record
+          const gc = gameCodeRef.current;
+          if (gc) fallbackToGameByCode(gc);
+          else { stopPolling(); setIsLoading(false); setStatusText('Dữ liệu game đã hết hạn. Vui lòng tạo lại game.'); }
         }
       }
     },
@@ -108,6 +115,31 @@ export default function GameMakerPage() {
 
   // SignalR live updates
   useGameHub({ accessToken: taskId ? accessToken : null, onProgress: applyProgressUpdate });
+
+  // Fall back to the persisted result stored on the game record itself
+  const fallbackToGameByCode = useCallback((gc: string) => {
+    stopPolling();
+    setStatusText('Đang tải dữ liệu game...');
+    getGameByCode(gc)
+      .then((detail) => {
+        if (detail.result) {
+          const stored = normalizePlayableResult(detail.result);
+          if (stored) {
+            setPlayable(stored);
+            setIsEditing(true);
+            setIsLoading(false);
+            setStatusText('');
+            return;
+          }
+        }
+        setIsLoading(false);
+        setStatusText('Dữ liệu game đã hết hạn. Vui lòng tạo lại game.');
+      })
+      .catch(() => {
+        setIsLoading(false);
+        setStatusText('Dữ liệu game đã hết hạn. Vui lòng tạo lại game.');
+      });
+  }, [stopPolling]);
 
   // Resume an existing task (navigated here from Toolbar with taskId in URL)
   const resumeExistingTask = useCallback(
@@ -120,12 +152,19 @@ export default function GameMakerPage() {
       setIsLoading(true);
       setStatusText('Đang xử lý...');
 
-      // Immediate first poll
+      // Immediate first poll — if task is expired (404), fall back to game record immediately
       try {
         const first = await getGameTaskStatus(id);
         applyProgressUpdate(first);
       } catch {
-        /* ignore */
+        const gc = gameCodeRef.current;
+        if (gc) {
+          fallbackToGameByCode(gc);
+        } else {
+          setIsLoading(false);
+          setStatusText('Dữ liệu game đã hết hạn. Vui lòng tạo lại game.');
+        }
+        return;
       }
 
       // Fallback interval polling
@@ -135,15 +174,18 @@ export default function GameMakerPage() {
           const latest = await getGameTaskStatus(id);
           applyProgressUpdate(latest);
         } catch {
-          /* ignore */
+          const gc = gameCodeRef.current;
+          if (gc) fallbackToGameByCode(gc);
+          else { stopPolling(); setIsLoading(false); setStatusText('Dữ liệu game đã hết hạn. Vui lòng tạo lại game.'); }
         }
       }, 3000);
     },
-    [applyProgressUpdate, stopPolling],
+    [applyProgressUpdate, fallbackToGameByCode, stopPolling],
   );
 
   // On mount, start polling for the taskId in the URL
   useEffect(() => {
+    gameCodeRef.current = gameCodeParam;
     if (taskIdParam) {
       resumeExistingTask(taskIdParam);
     }

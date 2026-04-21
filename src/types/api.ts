@@ -254,7 +254,7 @@ export interface GameDto {
 
 export interface GameDetailDto extends GameDto {
   taskId: string;
-  result: string | null;
+  result: Record<string, unknown> | null;
   errorMessage: string | null;
 }
 
