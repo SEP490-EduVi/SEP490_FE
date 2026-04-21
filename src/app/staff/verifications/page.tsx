@@ -63,16 +63,16 @@ export default function StaffVerificationsPage() {
   const [blobUrls, setBlobUrls]         = useState<Record<string, string>>({});
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
-  const handleTogglePreview = async (verificationCode: string, fileUrl: string | null) => {
+  const handleTogglePreview = async (verificationCode: string, _fileUrl: string | null) => {
     if (previewOpen[verificationCode]) {
       setPreviewOpen((p) => ({ ...p, [verificationCode]: false }));
       return;
     }
-    if (fileUrl) {
+    // Always fetch via authenticated API → blob objectURL to avoid 404 on direct URL
+    if (blobUrls[verificationCode]) {
       setPreviewOpen((p) => ({ ...p, [verificationCode]: true }));
       return;
     }
-    // Fallback: fetch blob → objectURL
     try {
       setPreviewLoading(verificationCode);
       const { blob } = await downloadVerificationFile(verificationCode);
@@ -173,7 +173,7 @@ export default function StaffVerificationsPage() {
               </div>
             ) : (
               data.map((item) => {
-                const previewUrl = item.fileUrl || blobUrls[item.verificationCode] || null;
+                const previewUrl = blobUrls[item.verificationCode] || null;
                 const isPreviewOpen = previewOpen[item.verificationCode] ?? false;
                 const hasReasonError = reasonErrors[item.verificationCode] ?? false;
 

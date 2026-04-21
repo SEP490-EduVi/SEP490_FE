@@ -33,6 +33,30 @@ export async function getAllGames(): Promise<GameDto[]> {
   return data.result;
 }
 
+export async function getGamesByProductCode(productCode: string): Promise<GameDto[]> {
+  const games = await getAllGames();
+  return games.filter((game) => game.productCode === productCode);
+}
+
+export async function getGameResultJson(productGameCode: string): Promise<unknown> {
+  const response = await api.get<string>(
+    API_ENDPOINTS.GAMES.GET_RESULT_JSON(productGameCode),
+    { responseType: 'text' },
+  );
+
+  const raw = response.data;
+  if (typeof raw !== 'string') return raw;
+
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return { raw: trimmed };
+  }
+}
+
 export async function getGameByCode(gameCode: string): Promise<GameDetailDto> {
   const { data } = await api.get<ApiResponse<GameDetailDto>>(
     API_ENDPOINTS.GAMES.GET_BY_CODE(gameCode),

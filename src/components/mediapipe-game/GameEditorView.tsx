@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { Plus, Trash2, Play, Check } from 'lucide-react';
+import { Plus, Trash2, Play, Check, Download, Loader2 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -20,11 +20,13 @@ type DragItem    = { id: string; label: string };
 type DragZone    = { id: string; label: string; acceptsItemId: string };
 type DragRound   = { prompt: string; items: DragItem[]; dropZones: DragZone[] };
 
-type Playable    = { templateId: string; payload: unknown; settings?: Record<string, unknown> };
+export type GameEditorPlayable = { templateId: string; payload: unknown; settings?: Record<string, unknown> };
 
 type Props = {
-  playable: Playable;
-  onStart: (edited: Playable) => void;
+  playable: GameEditorPlayable;
+  onStart: (edited: GameEditorPlayable) => void;
+  onExportGameEduvi?: (edited: GameEditorPlayable) => void;
+  isExportingGameEduvi?: boolean;
   productName?: string;
 };
 
@@ -336,8 +338,14 @@ function DragRoundEditor({
 
 // ── Main Editor ───────────────────────────────────────────────────────────────
 
-export function GameEditorView({ playable, onStart, productName }: Props) {
-  const [edited, setEdited] = React.useState<Playable>(() => cloneDeep(playable));
+export function GameEditorView({
+  playable,
+  onStart,
+  onExportGameEduvi,
+  isExportingGameEduvi = false,
+  productName,
+}: Props) {
+  const [edited, setEdited] = React.useState<GameEditorPlayable>(() => cloneDeep(playable));
 
   // Rounds as array regardless of single/multi
   const rawPayload = edited.payload;
@@ -356,6 +364,10 @@ export function GameEditorView({ playable, onStart, productName }: Props) {
   };
 
   const handleStart = () => onStart(edited);
+  const handleExportGameEduvi = () => {
+    if (!onExportGameEduvi || isExportingGameEduvi) return;
+    onExportGameEduvi(edited);
+  };
 
   const canStart = (() => {
     if (isHover) {
@@ -393,22 +405,34 @@ export function GameEditorView({ playable, onStart, productName }: Props) {
           </div>
         </div>
 
-        {/* Start button */}
-        <button
-          type="button"
-          disabled={!canStart}
-          onClick={handleStart}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-150 hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
-          style={{
-            background: canStart
-              ? 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)'
-              : 'rgba(148,163,184,0.65)',
-            boxShadow: canStart ? '0 4px 18px rgba(79,70,229,0.45)' : 'none',
-          }}
-        >
-          <Play size={14} strokeWidth={2.5} />
-          Bắt đầu
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportGameEduvi}
+            disabled={isExportingGameEduvi}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 border border-slate-300 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExportingGameEduvi ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            Xuất game .eduvi
+          </button>
+
+          {/* Start button */}
+          <button
+            type="button"
+            disabled={!canStart}
+            onClick={handleStart}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-150 hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            style={{
+              background: canStart
+                ? 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)'
+                : 'rgba(148,163,184,0.65)',
+              boxShadow: canStart ? '0 4px 18px rgba(79,70,229,0.45)' : 'none',
+            }}
+          >
+            <Play size={14} strokeWidth={2.5} />
+            Bắt đầu
+          </button>
+        </div>
       </div>
 
       {/* ── Round tabs (if multi-round) ── */}

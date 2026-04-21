@@ -9,16 +9,21 @@
  *  Row 2 (insert bar): Quick-insert buttons for teachers (Tiêu đề, Văn bản, …)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { exportToEduvi } from '@/lib/exportToEduvi';
+import { EduViGame, exportToEduvi } from '@/lib/exportToEduvi';
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
-import { createPlayableGameTask } from '@/services/gamesServices';
+import {
+  createPlayableGameTask,
+  getGameResultJson,
+  getGamesByProductCode,
+} from '@/services/gamesServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { getProjectByCode } from '@/services/projectServices';
+import type { GameDto } from '@/types/api';
 import {
   Undo2,
   Redo2,
@@ -39,11 +44,14 @@ const LAST_EDITED_SLIDE_URL_KEY = 'eduvi_last_edited_slide_gcs_url';
 
 export function Toolbar() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const document = useDocumentStore((state) => state.document);
+  const hasSlides = !!document && Array.isArray(document.cards) && document.cards.length > 0;
   const startPresentation = useDocumentStore((state) => state.startPresentation);
   const canUndo = useDocumentStore((state) => state.canUndo());
   const canRedo = useDocumentStore((state) => state.canRedo());
   const currentProductCode = useDocumentStore((state) => state.currentProductCode);
+  const currentProductName = useDocumentStore((state) => state.currentProductName);
   const currentProjectCode = useDocumentStore((state) => state.currentProjectCode);
   const isSaving = useDocumentStore((state) => state.isSaving);
   const saveSlide = useDocumentStore((state) => state.saveSlide);
@@ -63,6 +71,20 @@ export function Toolbar() {
   const [gameName, setGameName] = useState<string>('');
   const [gameStatus, setGameStatus] = useState<string>('');
   const [isGameCreating, setIsGameCreating] = useState(false);
+  const [showEduviExportModal, setShowEduviExportModal] = useState(false);
+  const [exportFolderName, setExportFolderName] = useState('');
+  const [includeGamesInExport, setIncludeGamesInExport] = useState(false);
+  const [gamesForEduviExport, setGamesForEduviExport] = useState<GameDto[]>([]);
+  const [selectedProductGameCodes, setSelectedProductGameCodes] = useState<string[]>([]);
+  const [isLoadingGamesForExport, setIsLoadingGamesForExport] = useState(false);
+  const [isExportingEduvi, setIsExportingEduvi] = useState(false);
+  const [eduviExportError, setEduviExportError] = useState('');
+  const autoOpenEduviExportRef = useRef(false);
+
+  const getDefaultExportFolderName = useCallback(() => {
+    const normalizedTitle = typeof document?.title === 'string' ? document.title.trim() : '';
+    return normalizedTitle || 'eduvi-folder';
+  }, [document?.title]);
 
   useEffect(() => {
     const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
@@ -98,6 +120,24 @@ export function Toolbar() {
     if (showShareMenu) window.addEventListener('mousedown', handler);
     return () => window.removeEventListener('mousedown', handler);
   }, [showShareMenu]);
+
+  useEffect(() => {
+    if (autoOpenEduviExportRef.current) return;
+    if (searchParams.get('openEduviExport') !== '1') return;
+    if (!hasSlides) return;
+
+    autoOpenEduviExportRef.current = true;
+    setShowEduviExportModal(true);
+    setExportFolderName((prev) => (prev.trim() ? prev : getDefaultExportFolderName()));
+    setIncludeGamesInExport(false);
+    setGamesForEduviExport([]);
+    setSelectedProductGameCodes([]);
+    setEduviExportError('');
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('openEduviExport');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [getDefaultExportFolderName, hasSlides, searchParams]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -182,11 +222,230 @@ export function Toolbar() {
 
       setShowGameConfigModal(false);
       setGameStatus('');
-      router.push(`/teacher/game-maker?taskId=${encodeURIComponent(task.taskId)}`);
+
+      const query = new URLSearchParams({ taskId: task.taskId });
+      if (currentProductCode) query.set('productCode', currentProductCode);
+
+      const normalizedProductName =
+        typeof currentProductName === 'string' ? currentProductName.trim() : '';
+      if (normalizedProductName) query.set('productName', normalizedProductName);
+
+      const normalizedProductGameName =
+        gameName.trim() || normalizedProductName || 'Game chưa đặt tên';
+      if (normalizedProductGameName) query.set('productGameName', normalizedProductGameName);
+
+      if (gameTemplateId) query.set('templateCode', gameTemplateId);
+
+      router.push(`/teacher/game-maker?${query.toString()}`);
     } catch (e) {
       setGameStatus(e instanceof Error ? e.message : 'Tạo game thất bại');
     } finally {
       setIsGameCreating(false);
+    }
+  };
+
+  const loadGamesForEduviExport = async () => {
+    if (!currentProductCode) {
+      setEduviExportError('Không xác định được sản phẩm hiện tại để lấy game.');
+      setGamesForEduviExport([]);
+      setSelectedProductGameCodes([]);
+      return;
+    }
+
+    setEduviExportError('');
+    setIsLoadingGamesForExport(true);
+
+    try {
+      const games = await getGamesByProductCode(currentProductCode);
+      const completedGames = games.filter((game) => {
+        const normalizedStatus = (game.status || '').toLowerCase();
+        return normalizedStatus === 'completed' && !!game.productGameCode?.trim();
+      });
+
+      setGamesForEduviExport(completedGames);
+      setSelectedProductGameCodes(completedGames.map((game) => game.productGameCode));
+
+      if (completedGames.length === 0) {
+        setEduviExportError('Không có game hoàn thành nào thuộc sản phẩm này để xuất.');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể tải danh sách game để xuất';
+      setEduviExportError(message);
+      setGamesForEduviExport([]);
+      setSelectedProductGameCodes([]);
+    } finally {
+      setIsLoadingGamesForExport(false);
+    }
+  };
+
+  const handleOpenEduviExportModal = () => {
+    if (!hasSlides) {
+      window.alert('Bạn cần có ít nhất 1 slide để xuất file .eduvi.');
+      return;
+    }
+
+    setShowShareMenu(false);
+    setShowEduviExportModal(true);
+    setExportFolderName((prev) => (prev.trim() ? prev : getDefaultExportFolderName()));
+    setIncludeGamesInExport(false);
+    setGamesForEduviExport([]);
+    setSelectedProductGameCodes([]);
+    setEduviExportError('');
+  };
+
+  const handleIncludeGamesChange = async (checked: boolean) => {
+    setIncludeGamesInExport(checked);
+    setEduviExportError('');
+
+    if (!checked) return;
+    if (gamesForEduviExport.length > 0 || isLoadingGamesForExport) return;
+
+    await loadGamesForEduviExport();
+  };
+
+  const toggleSelectedGame = (productGameCode: string) => {
+    setSelectedProductGameCodes((prev) =>
+      prev.includes(productGameCode)
+        ? prev.filter((code) => code !== productGameCode)
+        : [...prev, productGameCode],
+    );
+  };
+
+  const handleExportEduvi = async () => {
+    if (!document || !hasSlides) {
+      setEduviExportError('Bạn cần có ít nhất 1 slide để xuất file .eduvi.');
+      return;
+    }
+
+    setEduviExportError('');
+    setIsExportingEduvi(true);
+
+    try {
+      let academicContext: {
+        projectCode?: string;
+        projectName?: string;
+        subjectCode?: string;
+        subjectName?: string;
+        gradeCode?: string;
+        gradeName?: string;
+      } | undefined;
+      let projectName = '';
+
+      if (currentProjectCode) {
+        try {
+          const project = await getProjectByCode(currentProjectCode);
+          projectName =
+            typeof project.projectName === 'string' ? project.projectName.trim() : '';
+          academicContext = {
+            projectCode: project.projectCode,
+            projectName: project.projectName,
+            subjectCode: project.subjectCode,
+            subjectName: project.subjectName,
+            gradeCode: project.gradeCode,
+            gradeName: project.gradeName,
+          };
+        } catch {
+          // Keep export flow smooth even if metadata lookup fails.
+        }
+      }
+
+      const normalizedFolderName =
+        exportFolderName.trim() ||
+        projectName ||
+        (typeof document.title === 'string' ? document.title.trim() : '') ||
+        'eduvi-folder';
+
+      let gamesForExport: EduViGame[] | undefined;
+      if (includeGamesInExport) {
+        if (selectedProductGameCodes.length === 0) {
+          throw new Error('Hãy chọn ít nhất một game để xuất file game .eduvi.');
+        }
+
+        const selectedGames = gamesForEduviExport.filter((game) =>
+          selectedProductGameCodes.includes(game.productGameCode),
+        );
+
+        if (selectedGames.length === 0) {
+          throw new Error('Không tìm thấy game hợp lệ để xuất. Vui lòng thử tải lại danh sách game.');
+        }
+
+        const gamePayloads = await Promise.all(
+          selectedGames.map(async (game) => {
+            const resultJson = await getGameResultJson(game.productGameCode);
+
+            return {
+              gameCode: game.gameCode,
+              productGameCode: game.productGameCode,
+              productCode: game.productCode,
+              productGameName: game.productGameName,
+              templateCode: game.templateCode || 'UNKNOWN',
+              roundCount: game.roundCount,
+              status: game.status || 'completed',
+              resultJson,
+            } satisfies EduViGame;
+          }),
+        );
+
+        gamesForExport = gamePayloads;
+      }
+
+      const exportedFileNames: string[] = [];
+
+      const slideResult = await exportToEduvi(document, {
+        requireOfflineReady: false,
+        academicContext,
+        projectName: projectName || undefined,
+        folderName: normalizedFolderName,
+        packageType: 'slide',
+        fileNameSuffix: 'slide',
+      });
+      exportedFileNames.push(slideResult.fileName);
+
+      if (includeGamesInExport) {
+        if (!gamesForExport || gamesForExport.length === 0) {
+          throw new Error('Không có dữ liệu game hợp lệ để xuất file game .eduvi.');
+        }
+
+        const gameOnlyDocument = {
+          ...document,
+          cards: [],
+          activeCardId: '',
+        };
+
+        const gameResult = await exportToEduvi(gameOnlyDocument, {
+          requireOfflineReady: false,
+          academicContext,
+          projectName: projectName || undefined,
+          games: gamesForExport,
+          folderName: normalizedFolderName,
+          packageType: 'game',
+          fileNameSuffix: 'game',
+          embedAssets: false,
+        });
+
+        exportedFileNames.push(gameResult.fileName);
+      }
+
+      const integrity = slideResult.schema.integrity;
+      let successMessage =
+        `Đã xuất thành công ${exportedFileNames.length} file .eduvi.\n\n` +
+        `Folder trong metadata: ${normalizedFolderName}\n` +
+        exportedFileNames.map((name) => `- ${name}`).join('\n');
+
+      if (integrity && !integrity.offlineReady) {
+        successMessage +=
+          '\n\n' +
+          `Lưu ý: còn ${integrity.stats.unresolvedMediaCount} media chưa thể đóng gói offline hoàn toàn trong file slide.`;
+      }
+
+      window.alert(successMessage);
+
+      setShowEduviExportModal(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Xuất file .eduvi thất bại';
+      setEduviExportError(message);
+    } finally {
+      setIsExportingEduvi(false);
     }
   };
 
@@ -322,70 +581,11 @@ export function Toolbar() {
                   </button>
                 )}
                 <button
-                  onClick={async () => {
-                    if (!document) {
-                      setShowShareMenu(false);
-                      return;
-                    }
-
-                    try {
-                      let academicContext: {
-                        projectCode?: string;
-                        projectName?: string;
-                        subjectCode?: string;
-                        subjectName?: string;
-                        gradeCode?: string;
-                        gradeName?: string;
-                      } | undefined;
-                      let projectName = '';
-
-                      if (currentProjectCode) {
-                        try {
-                          const project = await getProjectByCode(currentProjectCode);
-                          projectName =
-                            typeof project.projectName === 'string' ? project.projectName.trim() : '';
-                          academicContext = {
-                            projectCode: project.projectCode,
-                            projectName: project.projectName,
-                            subjectCode: project.subjectCode,
-                            subjectName: project.subjectName,
-                            gradeCode: project.gradeCode,
-                            gradeName: project.gradeName,
-                          };
-                        } catch {
-                          // Keep export flow smooth even if metadata lookup fails.
-                        }
-                      }
-
-                      const result = await exportToEduvi(document, {
-                        requireOfflineReady: false,
-                        academicContext,
-                        projectName: projectName || undefined,
-                      });
-                      const integrity = result.schema.integrity;
-
-                      if (integrity && !integrity.offlineReady) {
-                        window.alert(
-                          'Đã xuất file .eduvi thành công.\n\n' +
-                          `Lưu ý: còn ${integrity.stats.unresolvedMediaCount} media chưa thể đóng gói offline hoàn toàn. ` +
-                          'Khi không có mạng, các media này sẽ hiện ô trống.\n\n' 
-                          
-                          ,
-                        );
-                      }
-                    } catch (error) {
-                      const message = error instanceof Error ? error.message : 'Xuất file .eduvi thất bại';
-                      window.alert(
-                        'Xuất file .eduvi thất bại.\n\n' + message,
-                      );
-                    } finally {
-                      setShowShareMenu(false);
-                    }
-                  }}
-                  disabled={!document}
+                  onClick={handleOpenEduviExportModal}
+                  disabled={!hasSlides}
                   className={cn(
                     'flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors',
-                    !document ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
+                    !hasSlides ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
                   )}
                 >
                   <Download className="w-4 h-4 text-blue-500" />
@@ -520,6 +720,127 @@ export function Toolbar() {
                 className="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-colors"
               >
                 {isGameCreating ? 'Đang tạo...' : 'Bắt đầu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EduVi Export Modal ───────────────────────────────────────────── */}
+      {showEduviExportModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Download className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Xuất file .eduvi</h3>
+                <p className="text-sm text-gray-500">Luôn xuất 1 file slide. Nếu bật game, hệ thống sẽ xuất thêm 1 file game riêng.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên folder trong metadata</label>
+                <input
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  type="text"
+                  placeholder="vd: dia-li-bai-1"
+                  value={exportFolderName}
+                  onChange={(e) => setExportFolderName(e.target.value)}
+                />
+                {/* <p className="text-xs text-gray-500 mt-1">Tên này sẽ được ghi vào `metadata.folderName` của file slide và file game.</p> */}
+              </div>
+
+              <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3">
+                <input
+                  type="checkbox"
+                  checked={includeGamesInExport}
+                  onChange={(e) => { void handleIncludeGamesChange(e.target.checked); }}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Xuất thêm file game .eduvi</p>
+                  <p className="text-xs text-gray-500">Nếu bật, hệ thống sẽ lấy danh sách game theo sản phẩm hiện tại và tạo thêm 1 file game chỉ chứa dữ liệu game.</p>
+                </div>
+              </label>
+
+              {includeGamesInExport && (
+                <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-800">Game đã hoàn thành</p>
+                    <button
+                      type="button"
+                      onClick={() => { void loadGamesForEduviExport(); }}
+                      disabled={isLoadingGamesForExport}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-40"
+                    >
+                      Tải lại
+                    </button>
+                  </div>
+
+                  {isLoadingGamesForExport ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Đang tải danh sách game...
+                    </div>
+                  ) : gamesForEduviExport.length === 0 ? (
+                    <p className="text-sm text-gray-500">Không có game nào phù hợp để xuất.</p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-500">
+                        Đã chọn {selectedProductGameCodes.length}/{gamesForEduviExport.length} game.
+                      </p>
+                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                        {gamesForEduviExport.map((game) => (
+                          <label
+                            key={game.productGameCode}
+                            className="flex items-start gap-2 rounded-lg border border-gray-100 px-3 py-2 hover:bg-gray-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedProductGameCodes.includes(game.productGameCode)}
+                              onChange={() => toggleSelectedGame(game.productGameCode)}
+                              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{game.productGameName}</p>
+                              <p className="text-xs text-gray-500 truncate">
+                                template: {game.templateCode} • vòng: {game.roundCount} • code: {game.productGameCode}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {!!eduviExportError && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{eduviExportError}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setShowEduviExportModal(false)}
+                disabled={isExportingEduvi}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleExportEduvi}
+                disabled={
+                  isExportingEduvi ||
+                  !hasSlides ||
+                  (includeGamesInExport && (isLoadingGamesForExport || selectedProductGameCodes.length === 0))
+                }
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {isExportingEduvi ? 'Đang xuất...' : 'Xuất file .eduvi'}
               </button>
             </div>
           </div>
