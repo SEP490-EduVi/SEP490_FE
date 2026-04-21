@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, CheckCircle2, ChevronDown, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Pagination from '@/components/admin/Pagination';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import { adminServices } from '@/services/adminServices';
 import { AdminRoleResponse, AdminUserResponse } from '@/types/admin';
 
@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
       const res = await adminServices.getUserDetail(userCode);
       setDetailUser(res.result);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể tải thông tin người dùng.'));
+      notify.error(MSGS.admin.user.loadError);
     } finally {
       setBusy(false);
     }
@@ -171,10 +171,10 @@ export default function AdminUsersPage() {
         avatarUrl: editForm.avatar,
       });
       setEditingUser(null);
-      notify.success('Cập nhật người dùng thành công.');
+      notify.success(MSGS.admin.user.updateSuccess);
       await loadUsers(page);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể cập nhật người dùng.'));
+      notify.error(MSGS.admin.user.updateError);
     } finally {
       setBusy(false);
     }
@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
 
   const handleCreateUser = async () => {
     if (!createForm.username || !createForm.email || !createForm.password || !createForm.fullName || !createForm.roleId) {
-      notify.error('Vui lòng nhập đầy đủ thông tin bắt buộc.');
+      notify.error(MSGS.admin.user.requiredFields);
       return;
     }
 
@@ -208,10 +208,10 @@ export default function AdminUsersPage() {
         phoneNumber: '',
         avatarUrl: '',
       });
-      notify.success('Thêm người dùng thành công.');
+      notify.success(MSGS.admin.user.addSuccess);
       await loadUsers(1);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể thêm người dùng.'));
+      notify.error(MSGS.admin.user.addError);
     } finally {
       setBusy(false);
     }
@@ -224,24 +224,24 @@ export default function AdminUsersPage() {
     try {
       if (confirmAction.type === 'ban') {
         await adminServices.banUser(confirmAction.user.userCode);
-        notify.success('Đã khóa người dùng và thu hồi token.');
+        notify.success(MSGS.admin.user.lockSuccess);
       }
 
       if (confirmAction.type === 'unban') {
         await adminServices.unbanUser(confirmAction.user.userCode);
-        notify.success('Đã mở khóa người dùng.');
+        notify.success(MSGS.admin.user.unlockSuccess);
       }
 
       if (confirmAction.type === 'delete') {
         await adminServices.deleteUser(confirmAction.user.userCode);
-        notify.success('Đã xóa người dùng (hard delete).');
+        notify.success(MSGS.admin.user.hardDeleteSuccess);
       }
 
       setConfirmAction(null);
       setActionMenuUserCode(null);
       await loadUsers(page);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Thao tác thất bại.'));
+      notify.error(MSGS.admin.user.actionError);
     } finally {
       setBusy(false);
     }
@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
 
   const exportSelectedUsersCsv = () => {
     if (selectedUsers.length === 0) {
-      notify.error('Vui lòng chọn ít nhất một người dùng để xuất CSV.');
+      notify.error(MSGS.admin.user.exportRequireSelection);
       return;
     }
 
@@ -297,12 +297,12 @@ export default function AdminUsersPage() {
 
   const handleApplyBulkAction = () => {
     if (!bulkAction) {
-      notify.error('Vui lòng chọn hành động hàng loạt.');
+      notify.error(MSGS.admin.user.bulkActionRequired);
       return;
     }
 
     if (selectedUsers.length === 0) {
-      notify.error('Vui lòng chọn ít nhất một người dùng.');
+      notify.error(MSGS.admin.user.selectionRequired);
       return;
     }
 
@@ -325,8 +325,8 @@ export default function AdminUsersPage() {
     if (candidates.length === 0) {
       notify.error(
         bulkConfirmAction.type === 'ban'
-          ? 'Không có người dùng phù hợp để khóa.'
-          : 'Không có người dùng phù hợp để mở khóa.'
+          ? MSGS.admin.user.bulkNoLockTarget
+          : MSGS.admin.user.bulkNoUnlockTarget
       );
       setBulkConfirmAction(null);
       return;
@@ -344,14 +344,14 @@ export default function AdminUsersPage() {
 
       notify.success(
         bulkConfirmAction.type === 'ban'
-          ? `Đã khóa ${candidates.length} người dùng.`
-          : `Đã mở khóa ${candidates.length} người dùng.`
+          ? MSGS.admin.user.bulkLockSuccess(candidates.length)
+          : MSGS.admin.user.bulkUnlockSuccess(candidates.length)
       );
       setSelectedUserCodes([]);
       setBulkConfirmAction(null);
       await loadUsers(page);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Thao tác hàng loạt thất bại.'));
+      notify.error(MSGS.admin.user.bulkActionError);
     } finally {
       setBusy(false);
     }

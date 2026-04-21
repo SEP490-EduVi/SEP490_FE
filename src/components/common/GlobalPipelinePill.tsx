@@ -35,8 +35,8 @@ export default function GlobalPipelinePill() {
     tasks.length > 0 &&
     !!projectCode;
 
-  // Hide on the project detail page itself (it has its own modal)
-  if (!isActive || pathname === `/teacher/${projectCode}`) return null;
+  // Hide on the project detail page and editor (both have their own slide overlay)
+  if (!isActive || pathname === `/teacher/${projectCode}` || pathname === '/teacher/editor') return null;
 
   const label =
     pipelineType === 'video' ? 'Tạo video' :

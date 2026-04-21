@@ -93,7 +93,7 @@ export default function WithdrawalTab({
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
           const text = msg ?? MSGS.withdrawalRequest.otpSentError;
           setPaymentError(text);
-          notify.error(text);
+          notify.error(MSGS.withdrawalRequest.otpSentError);
         },
       },
     );
@@ -137,7 +137,7 @@ export default function WithdrawalTab({
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
           const text = msg ?? MSGS.withdrawalRequest.confirmError;
           setPaymentError(text);
-          notify.error(text);
+          notify.error(MSGS.withdrawalRequest.confirmError);
         },
       },
     );

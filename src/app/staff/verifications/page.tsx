@@ -5,7 +5,7 @@ import { Loader2, AlertCircle, Download, Eye, EyeOff, CheckCircle2, XCircle, Shi
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePendingVerifications, useReviewVerification } from '@/hooks/useStaffApi';
 import { downloadVerificationFile } from '@/services/staffServices';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 
 function InlinePreview({ url, fileType }: { url: string; fileType: string }) {
   const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(url);
@@ -80,7 +80,7 @@ export default function StaffVerificationsPage() {
       setBlobUrls((p) => ({ ...p, [verificationCode]: objectUrl }));
       setPreviewOpen((p) => ({ ...p, [verificationCode]: true }));
     } catch {
-      notify.error('Không thể tải file để xem trước. Vui lòng thử lại.');
+      notify.error(MSGS.material.staff.previewDownloadError);
     } finally {
       setPreviewLoading(null);
     }
@@ -99,7 +99,7 @@ export default function StaffVerificationsPage() {
       window.document.body.removeChild(link);
       URL.revokeObjectURL(objectUrl);
     } catch {
-      notify.error('Không thể tải file lúc này. Vui lòng thử lại.');
+      notify.error(MSGS.material.staff.downloadError);
     } finally {
       setDownloadingCode(null);
     }
@@ -124,8 +124,8 @@ export default function StaffVerificationsPage() {
         },
       },
       {
-        onSuccess: () => notify.success(approved ? 'Đã duyệt hồ sơ xác minh thành công' : 'Đã từ chối hồ sơ xác minh'),
-        onError: () => notify.error('Thao tác thất bại. Vui lòng thử lại.'),
+        onSuccess: () => notify.success(approved ? MSGS.staff.approveSuccess : MSGS.staff.rejectSuccess),
+        onError: () => notify.error(MSGS.staff.processError),
       },
     );
   };

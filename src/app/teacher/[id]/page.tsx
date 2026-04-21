@@ -9,6 +9,7 @@ import {
 import { useProject } from '@/hooks/useProjectApi';
 import { useProductsByProject, useDeleteProduct } from '@/hooks/useProductApi';
 import { useLessonAnalysis, useGenerateSlides, useGenerateVideo, useVideosByProject, useCurricula, useDeleteVideo } from '@/hooks/usePipelineApi';
+import { useInputDocumentsByProject } from '@/hooks/useInputDocumentApi';
 import { usePipelineHub } from '@/hooks/usePipelineHub';
 import SourcesPanel from '@/components/projects/SourcesPanel';
 import StudioCenter from '@/components/projects/StudioCenter';
@@ -24,9 +25,9 @@ import { useDocumentStore } from '@/store/useDocumentStore';
 import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
 import { usePipelineProgressStore } from '@/store/usePipelineProgressStore';
 import * as productService from '@/services/productServices';
-import { getEditedSlideGcsUrl } from '@/services/productServices';
+import { getEditedSlideGcsUrl, getProductEvaluation } from '@/services/productServices';
 import { notify, MSGS } from '@/components/common';
-import type { PipelineProgress, VideoProductDto, InputDocumentDto } from '@/types/api';
+import type { PipelineProgress, VideoProductDto, InputDocumentDto, ProductEvaluationResponse } from '@/types/api';
 import type { IDocument } from '@/types';
 
 export default function ProjectDetailPage() {
@@ -36,6 +37,7 @@ export default function ProjectDetailPage() {
 
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useProject(projectCode);
   const { data: products = [], refetch: refetchProducts } = useProductsByProject(projectCode);
+  const { data: inputDocs = [] } = useInputDocumentsByProject(projectCode);
   const deleteProduct = useDeleteProduct();
   const lessonAnalysis = useLessonAnalysis();
   const generateSlides = useGenerateSlides();
@@ -74,6 +76,13 @@ export default function ProjectDetailPage() {
   const [evalProductCode, setEvalProductCode] = useState<string | null>(null);
   const [evalProductName, setEvalProductName] = useState<string | undefined>(undefined);
   const [activeDocCode, setActiveDocCode] = useState<string | null>(null);
+
+  // Auto-select first inputDoc on load
+  useEffect(() => {
+    if (activeDocCode === null && inputDocs.length > 0) {
+      setActiveDocCode(inputDocs[0].documentCode);
+    }
+  }, [inputDocs, activeDocCode]);
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
   const [videoLoadingCode, setVideoLoadingCode] = useState<string | null>(null);
   const [deletingSlide, setDeletingSlide] = useState<string | null>(null);
@@ -89,6 +98,8 @@ export default function ProjectDetailPage() {
   const [detailProductCode, setDetailProductCode] = useState<string | null>(null);
   const [slidePreviewDoc, setSlidePreviewDoc] = useState<IDocument | null>(null);
   const [previewSlideLoading, setPreviewSlideLoading] = useState<string | null>(null);
+  const [slideWarnProductCode, setSlideWarnProductCode] = useState<string | null>(null);
+  const [slideWarnSlideRange, setSlideWarnSlideRange] = useState<'short' | 'medium'>('medium');
 
   const prevProductCodesRef = useRef<Set<string>>(new Set());
 
@@ -232,9 +243,8 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleGenerateSlides = (productCode: string, slideRange: 'short' | 'medium' = 'medium') => {
+  const doGenerateSlides = (productCode: string, slideRange: 'short' | 'medium') => {
     if (getTaskId('slides', productCode)) {
-      // Pipeline already running — navigate to editor where SlideGenerationOverlay resumes
       router.push('/teacher/editor');
       return;
     }
@@ -250,6 +260,31 @@ export default function ProjectDetailPage() {
         onError: () => notify.error(MSGS.slide.generateError),
       },
     );
+  };
+
+  const handleGenerateSlides = async (productCode: string, slideRange: 'short' | 'medium' = 'medium') => {
+    const product = products.find((p) => p.productCode === productCode);
+    if (product?.hasEvaluation) {
+      // Try cache first, then fetch from API
+      let evalData = queryClient.getQueryData<ProductEvaluationResponse>(
+        ['product', 'evaluation', productCode],
+      );
+      if (!evalData) {
+        try {
+          evalData = await getProductEvaluation(productCode);
+          queryClient.setQueryData(['product', 'evaluation', productCode], evalData);
+        } catch {
+          /* ignore — proceed without warning */
+        }
+      }
+      const score = evalData?.evaluationResult?.evaluation?.coverage_score ?? null;
+      if (score !== null && score < 50) {
+        setSlideWarnProductCode(productCode);
+        setSlideWarnSlideRange(slideRange);
+        return;
+      }
+    }
+    doGenerateSlides(productCode, slideRange);
   };
 
   const handleGenerateVideo = (productCode: string) => { setPendingVideoProductCode(productCode); setShowVideoConfirm(true); };
@@ -321,7 +356,7 @@ export default function ProjectDetailPage() {
       }
       setSlidePreviewDoc(slideDoc);
     } catch {
-      notify.error('Không thể tải slide. Vui lòng thử lại.');
+      notify.error(MSGS.slide.loadError);
     } finally {
       setPreviewSlideLoading(null);
     }
@@ -486,6 +521,7 @@ export default function ProjectDetailPage() {
               videos={projectVideos}
               games={games}
               activeDocCode={activeDocCode}
+              activeDocTitle={inputDocs.find((d) => d.documentCode === activeDocCode)?.title ?? null}
               isPipelineRunning={isPipelineRunning}
               activePipelineType={isPipelineRunning ? pipelineType : null}
               onOpenPipelineModal={() => setShowPipelineModal(true)}
@@ -525,15 +561,15 @@ export default function ProjectDetailPage() {
         onClose={() => { setShowPipelineModal(false); setPipelineProgress(null); }}
       />
 
-      {/* Floating resume pill (pipeline minimized) */}
-      {!showPipelineModal && isPipelineRunning && (
+      {/* Floating resume pill (pipeline minimized) — only for evaluation & video, not slides */}
+      {!showPipelineModal && isPipelineRunning && pipelineType !== 'slides' && (
         <button
           onClick={() => setShowPipelineModal(true)}
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl transition-all"
         >
           <Sparkles className="w-4 h-4 animate-pulse" />
           <span className="text-sm font-medium">
-            {pipelineType === 'evaluation' ? 'Đánh giá' : pipelineType === 'video' ? 'Tạo video' : 'Tạo slide'}
+            {pipelineType === 'evaluation' ? 'Đánh giá' : 'Tạo video'}
           </span>
           <span className="text-sm font-bold">{pipelineProgress?.progress ?? 0}%</span>
         </button>
@@ -559,6 +595,44 @@ export default function ProjectDetailPage() {
           productName={pendingGameProductName}
           onClose={() => { setShowGameConfigModal(false); setPendingGameProductCode(null); }}
         />
+      )}
+
+      {/* ── Slide low-score warning ── */}
+      {slideWarnProductCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">Chất lượng phân tích thấp</h3>
+                <p className="text-sm text-gray-600">Điểm phân tích nội dung tài liệu dưới 50%. Tạo slide từ tài liệu này có thể ảnh hưởng đến chất lượng bài giảng. Bạn có chắc chắn muốn tiếp tục?</p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setSlideWarnProductCode(null)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const pc = slideWarnProductCode;
+                  const range = slideWarnSlideRange;
+                  setSlideWarnProductCode(null);
+                  doGenerateSlides(pc, range);
+                }}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+              >
+                Vẫn tạo slide
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

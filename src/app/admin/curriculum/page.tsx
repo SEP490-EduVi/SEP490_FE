@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '@/components/common/Modal';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import { adminServices } from '@/services/adminServices';
 import {
   AdminGradeResponse,
@@ -80,7 +80,7 @@ export default function AdminCurriculumPage() {
 
   const handleCreateGrade = async () => {
     if (!gradeForm.gradeCode.trim() || !gradeForm.gradeName.trim()) {
-      notify.error('Vui lòng nhập đầy đủ mã và tên khối lớp.');
+      notify.error(MSGS.curriculum.missingGrade);
       return;
     }
 
@@ -88,10 +88,10 @@ export default function AdminCurriculumPage() {
     try {
       await adminServices.createGrade({ gradeCode: gradeForm.gradeCode.trim(), gradeName: gradeForm.gradeName.trim() });
       setGradeForm({ gradeCode: '', gradeName: '' });
-      notify.success('Tạo khối lớp thành công.');
+      notify.success(MSGS.curriculum.gradeCreateSuccess);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể tạo khối lớp.'));
+      notify.error(MSGS.curriculum.gradeCreateError);
     } finally {
       setBusy(false);
     }
@@ -99,7 +99,7 @@ export default function AdminCurriculumPage() {
 
   const handleCreateSubject = async () => {
     if (!subjectForm.subjectCode.trim() || !subjectForm.subjectName.trim()) {
-      notify.error('Vui lòng nhập đầy đủ mã và tên môn học.');
+      notify.error(MSGS.curriculum.missingSubject);
       return;
     }
 
@@ -107,10 +107,10 @@ export default function AdminCurriculumPage() {
     try {
       await adminServices.createSubject({ subjectCode: subjectForm.subjectCode.trim(), subjectName: subjectForm.subjectName.trim() });
       setSubjectForm({ subjectCode: '', subjectName: '' });
-      notify.success('Tạo môn học thành công.');
+      notify.success(MSGS.curriculum.subjectCreateSuccess);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể tạo môn học.'));
+      notify.error(MSGS.curriculum.subjectCreateError);
     } finally {
       setBusy(false);
     }
@@ -118,7 +118,7 @@ export default function AdminCurriculumPage() {
 
   const handleCreateLesson = async () => {
     if (!lessonForm.lessonCode.trim() || !lessonForm.lessonName.trim() || !lessonForm.subjectCode.trim()) {
-      notify.error('Vui lòng nhập đầy đủ mã bài học, tên bài học và môn học.');
+      notify.error(MSGS.curriculum.missingLesson);
       return;
     }
 
@@ -130,10 +130,10 @@ export default function AdminCurriculumPage() {
         subjectCode: lessonForm.subjectCode,
       });
       setLessonForm({ lessonCode: '', lessonName: '', subjectCode: '' });
-      notify.success('Tạo bài học thành công.');
+      notify.success(MSGS.curriculum.lessonCreateSuccess);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể tạo bài học.'));
+      notify.error(MSGS.curriculum.lessonCreateError);
     } finally {
       setBusy(false);
     }
@@ -143,10 +143,10 @@ export default function AdminCurriculumPage() {
     setBusy(true);
     try {
       await adminServices.deleteGrade(gradeCode);
-      notify.success('Xóa khối lớp thành công.');
+      notify.success(MSGS.curriculum.gradeDeleteSuccess);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể xóa khối lớp.'));
+      notify.error(MSGS.curriculum.gradeDeleteError);
     } finally {
       setBusy(false);
     }
@@ -156,13 +156,13 @@ export default function AdminCurriculumPage() {
     setBusy(true);
     try {
       await adminServices.deleteSubject(subjectCode);
-      notify.success('Xóa môn học thành công.');
+      notify.success(MSGS.curriculum.subjectDeleteSuccess);
       if (lessonFilterSubjectCode === subjectCode) {
         setLessonFilterSubjectCode('');
       }
       await loadAll(lessonFilterSubjectCode === subjectCode ? undefined : lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể xóa môn học.'));
+      notify.error(MSGS.curriculum.subjectDeleteError);
     } finally {
       setBusy(false);
     }
@@ -172,10 +172,10 @@ export default function AdminCurriculumPage() {
     setBusy(true);
     try {
       await adminServices.deleteLesson(lessonCode);
-      notify.success('Xóa bài học thành công.');
+      notify.success(MSGS.curriculum.lessonDeleteSuccess);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể xóa bài học.'));
+      notify.error(MSGS.curriculum.lessonDeleteError);
     } finally {
       setBusy(false);
     }
@@ -184,7 +184,7 @@ export default function AdminCurriculumPage() {
   const handleConfirmDelete = async () => {
     if (!deleteConfirm) return;
     if (deleteConfirmText.trim().toUpperCase() !== 'XOA') {
-      notify.error('Vui lòng nhập đúng từ XOA để xác nhận xóa.');
+      notify.error(MSGS.curriculum.confirmDeletePrompt);
       return;
     }
 
@@ -215,7 +215,7 @@ export default function AdminCurriculumPage() {
           gradeName: editState.data.gradeName.trim(),
         };
         await adminServices.updateGrade(editState.originalCode, payload);
-        notify.success('Cập nhật khối lớp thành công.');
+        notify.success(MSGS.curriculum.gradeUpdateSuccess);
       }
 
       if (editState.type === 'subject') {
@@ -224,7 +224,7 @@ export default function AdminCurriculumPage() {
           subjectName: editState.data.subjectName.trim(),
         };
         await adminServices.updateSubject(editState.originalCode, payload);
-        notify.success('Cập nhật môn học thành công.');
+        notify.success(MSGS.curriculum.subjectUpdateSuccess);
       }
 
       if (editState.type === 'lesson') {
@@ -234,13 +234,13 @@ export default function AdminCurriculumPage() {
           subjectCode: editState.data.subjectCode,
         };
         await adminServices.updateLesson(editState.originalCode, payload);
-        notify.success('Cập nhật bài học thành công.');
+        notify.success(MSGS.curriculum.lessonUpdateSuccess);
       }
 
       setEditState(null);
       await loadAll(lessonFilterSubjectCode || undefined);
     } catch (err) {
-      notify.error(parseErrorMessage(err, 'Không thể cập nhật dữ liệu.'));
+      notify.error(MSGS.curriculum.updateError);
     } finally {
       setBusy(false);
     }

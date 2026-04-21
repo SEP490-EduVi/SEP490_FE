@@ -72,7 +72,7 @@ export default function SecurityTab() {
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
           setPwError(msg ?? MSGS.profile.changePwError);
-          notify.error(msg ?? MSGS.profile.changePwError);
+          notify.error(MSGS.profile.changePwError);
         },
       },
     );

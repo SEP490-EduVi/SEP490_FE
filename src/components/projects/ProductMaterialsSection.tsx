@@ -11,7 +11,7 @@ import { useProductMaterials, useAddProductMaterial, useDeleteProductMaterial } 
 import { usePurchasedMaterials } from '@/hooks/useMaterialShopApi';
 import { uploadMaterialFilesToGcs } from '@/services/gcsServices';
 import { useAuthStore } from '@/store/useAuthStore';
-import { notify } from '@/components/common';
+import { notify, MSGS } from '@/components/common';
 import { GcsImage } from '@/components/common/GcsImage';
 import type { ProductDto } from '@/types/api';
 
@@ -95,10 +95,10 @@ export default function ProductMaterialsSection({
         resourceUrl,
         previewUrl: previewUrl ?? undefined,
       });
-      notify.success(`Đã thêm "${uploadTitle}"`);
+      notify.success(MSGS.material.productMaterial.uploadSuccess(uploadTitle));
       resetUpload();
     } catch {
-      notify.error('Tải lên thất bại. Vui lòng thử lại.');
+      notify.error(MSGS.material.productMaterial.uploadError);
     } finally {
       setIsUploading(false);
     }
@@ -107,8 +107,8 @@ export default function ProductMaterialsSection({
   // ─── Delete handler ───────────────────────────────────────────────────────
   const handleDelete = (code: string) => {
     deleteMaterial.mutate(code, {
-      onSuccess: () => { notify.success('Đã xóa'); setDeleteConfirm(null); },
-      onError: () => notify.error('Xóa thất bại'),
+      onSuccess: () => { notify.success(MSGS.material.productMaterial.deleteSuccess); setDeleteConfirm(null); },
+      onError: () => notify.error(MSGS.material.productMaterial.deleteError),
     });
   };
 
@@ -359,71 +359,132 @@ export default function ProductMaterialsSection({
             >
               <motion.div
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-md px-7 pt-6 pb-7"
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col"
+                style={{ maxHeight: 'calc(100vh - 2rem)' }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-base font-semibold text-gray-900">Chọn học liệu đã mua</h3>
+                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Chọn học liệu đã mua</h3>
+                    {purchased.length > 0 && (
+                      <p className="text-xs text-gray-400 mt-0.5">{purchased.length} học liệu trong thư viện</p>
+                    )}
+                  </div>
                   <button type="button" onClick={() => setShowMarketplaceModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* List */}
-                <div className="space-y-2 max-h-80 overflow-y-auto -mx-1 px-1">
+                {/* Grid */}
+                <div className="overflow-y-auto flex-1 p-5">
                   {purchased.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <ShoppingBag className="w-10 h-10 text-gray-300 mb-2" />
-                      <p className="text-sm text-gray-500">Chưa có học liệu nào được mua</p>
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <ShoppingBag className="w-12 h-12 text-gray-300 mb-3" />
+                      <p className="text-sm font-medium text-gray-500">Chưa có học liệu nào được mua</p>
+                      <p className="text-xs text-gray-400 mt-1">Ghé thăm Cửa hàng để mua học liệu</p>
                     </div>
-                  ) : purchased.map((m) => {
-                    const alreadyAdded = addedCodes.has(m.materialCode);
-                    return (
-                      <div
-                        key={m.materialCode}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-colors"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
-                          <MaterialIcon type={m.type} className="w-4 h-4 text-purple-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{m.title}</p>
-                          <p className="text-xs text-gray-400 truncate">{m.expertName}</p>
-                        </div>
-                        {alreadyAdded ? (
-                          <span className="flex-shrink-0 flex items-center gap-1 text-xs text-green-600 font-medium">
-                            <Check className="w-3.5 h-3.5" /> Đã thêm
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              addMaterial.mutate(
-                                { sourceType: 'Marketplace', materialCode: m.materialCode },
-                                {
-                                  onSuccess: () => notify.success(`Đã thêm "${m.title}"`),
-                                  onError: () => notify.error('Thêm thất bại'),
-                                },
-                              );
-                            }}
-                            disabled={addMaterial.isPending}
-                            className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium disabled:opacity-50 transition-colors"
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {purchased.map((m) => {
+                        const alreadyAdded = addedCodes.has(m.materialCode);
+                        const typeLabel = m.type === 'video' ? 'Video' : m.type === 'image' ? 'Hình ảnh' : m.type === 'audio' ? 'Âm thanh' : 'Tài liệu';
+                        const typeColor = m.type === 'video' ? 'bg-rose-50 text-rose-600' : m.type === 'image' ? 'bg-blue-50 text-blue-600' : m.type === 'audio' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600';
+                        const purchasedDate = m.purchasedDate ? new Date(m.purchasedDate).toLocaleDateString('vi-VN') : '';
+                        return (
+                          <div
+                            key={m.materialCode}
+                            className={`group relative flex flex-col rounded-2xl border transition-all overflow-hidden ${alreadyAdded ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-md'}`}
                           >
-                            <Plus className="w-3 h-3" /> Thêm
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+                            {/* Thumbnail */}
+                            <div className="relative aspect-video bg-gray-100 overflow-hidden flex-shrink-0">
+                              {m.previewUrl ? (
+                                <GcsImage
+                                  src={m.previewUrl}
+                                  alt={m.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <MaterialIcon type={m.type} className="w-8 h-8 text-gray-300" />
+                                </div>
+                              )}
+                              {/* Type badge */}
+                              <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeColor}`}>
+                                {typeLabel}
+                              </span>
+                              {/* Added overlay */}
+                              {alreadyAdded && (
+                                <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center">
+                                  <div className="bg-emerald-500 text-white rounded-full p-1.5">
+                                    <Check className="w-4 h-4" />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="p-3 flex flex-col flex-1">
+                              <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{m.title}</p>
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {m.subjectName && (
+                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                                    {m.subjectName}
+                                  </span>
+                                )}
+                                {m.gradeName && (
+                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+                                    {m.gradeName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-auto space-y-1">
+                                <p className="text-[11px] text-gray-400 truncate">👤 {m.expertName}</p>
+                                {purchasedDate && <p className="text-[11px] text-gray-400">🕒 {purchasedDate}</p>}
+                              </div>
+                            </div>
+
+                            {/* Action button */}
+                            <div className="px-3 pb-3">
+                              {alreadyAdded ? (
+                                <div className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-semibold border border-emerald-200">
+                                  <Check className="w-3.5 h-3.5" /> Đã thêm
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    addMaterial.mutate(
+                                      { sourceType: 'Marketplace', materialCode: m.materialCode },
+                                      {
+                                        onSuccess: () => notify.success(MSGS.material.productMaterial.addSuccess(m.title)),
+                                        onError: () => notify.error(MSGS.material.productMaterial.addError),
+                                      },
+                                    );
+                                  }}
+                                  disabled={addMaterial.isPending}
+                                  className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+                                >
+                                  <Plus className="w-3.5 h-3.5" /> Thêm vào dự án
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowMarketplaceModal(false)}
-                  className="mt-4 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  Đóng
-                </button>
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowMarketplaceModal(false)}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Đóng
+                  </button>
+                </div>
               </motion.div>
             </motion.div>
           </>
