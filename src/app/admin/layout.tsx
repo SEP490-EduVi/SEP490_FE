@@ -37,6 +37,7 @@ const NAV_ITEMS = [
   { href: '/admin/withdrawals', label: 'Rút tiền', icon: Wallet },
   { href: '/admin/curriculum', label: 'Chương trình học', icon: BookOpen },
   { href: '/admin/templates', label: 'Mẫu bố cục', icon: LayoutTemplate },
+  { href: '/admin/materials', label: 'Tài liệu', icon: FileText },
 ];
 
 export default function AdminLayout({

@@ -218,6 +218,9 @@ export const API_ENDPOINTS = {
 
     PLANS: buildAdminEndpoint('/plans'),
     PLAN_BY_ID: (planId: number) => buildAdminEndpoint(`/plans/${planId}`),
+
+    MATERIALS: buildAdminEndpoint('/materials'),
+    MATERIAL_BY_CODE: (materialCode: string) => buildAdminEndpoint(`/materials/${materialCode}`),
   },
 
   // Staff
