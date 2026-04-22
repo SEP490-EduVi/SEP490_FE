@@ -7,8 +7,8 @@ interface BrandLogoProps {
 }
 
 export default function BrandLogo({ href = '/', className = '', compact = false }: BrandLogoProps) {
-  const frameClass = compact ? 'h-12 w-[176px]' : 'h-24 w-[340px]';
-  const zoomClass = compact ? 'scale-[2.45]' : 'scale-[2.55]';
+  const frameClass = compact ? 'h-14 w-[200px]' : 'h-28 w-[400px]';
+  const zoomClass = compact ? 'scale-[2.0] translate-y-[6%]' : 'scale-[2.3] translate-y-[6%]';
 
   return (
     <Link href={href} className={`inline-flex items-center ${className}`} aria-label="EduVi Home">
@@ -16,7 +16,7 @@ export default function BrandLogo({ href = '/', className = '', compact = false 
         <img
           src="/image%20copy.png"
           alt="EDUVI"
-          className={`h-full w-full object-contain object-center ${zoomClass}`}
+          className={`h-full w-full object-contain ${zoomClass}`}
         />
       </span>
     </Link>

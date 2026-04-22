@@ -50,3 +50,11 @@ node_modules
 src/private/
 *-key.json
 *-credentials.json
+
+.claude
+CLAUDE.md
+start-claude.ps1
+
+# Large binary files — host on GitHub Releases instead
+public/Eduvi-App.zip
+public/*.zip
