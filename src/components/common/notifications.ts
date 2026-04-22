@@ -67,12 +67,13 @@ export const MSGS = {
   // ── Material (all roles) ─────────────────────────────────────────────────
   material: {
     expert: {
-      uploadSuccess:  'Tải lên tài liệu thành công!',
-      uploadError:    'Tải lên thất bại. Vui lòng thử lại.',
-      updateSuccess:  'Cập nhật tài liệu thành công!',
-      updateError:    'Không thể cập nhật tài liệu. Vui lòng thử lại.',
-      deleteSuccess:  'Đã xóa tài liệu thành công',
-      deleteError:    'Không thể xóa tài liệu. Vui lòng thử lại.',
+      uploadSuccess:     'Tải lên tài liệu thành công!',
+      uploadError:       'Tải lên thất bại. Vui lòng thử lại.',
+      updateSuccess:     'Cập nhật tài liệu thành công!',
+      updateError:       'Không thể cập nhật tài liệu. Vui lòng thử lại.',
+      deleteSuccess:     'Đã xóa tài liệu thành công',
+      deleteError:       'Không thể xóa tài liệu. Vui lòng thử lại.',
+      unauthorizedError: 'Bạn không có thẩm quyền để thực hiện hành động này',
     },
     staff: {
       approveSuccess:   'Đã duyệt học liệu thành công',
