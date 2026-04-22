@@ -170,6 +170,7 @@ export interface VideoProductDto {
   productCode: string;
   productName: string;
   productVideoCode: string;
+  videoName: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   slideDocumentUrl: string | null;
   videoUrl: string | null;
