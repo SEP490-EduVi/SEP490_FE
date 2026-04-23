@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useDocumentStore } from '@/store';
-import { EduViGame, exportToEduvi } from '@/lib/exportToEduvi';
+import { EduViGame, EduViVideo, exportToEduvi } from '@/lib/exportToEduvi';
 import { GAME_BLUEPRINTS } from '@/mediapipe-game/api-contracts.js';
 import {
   createPlayableGameTask,
@@ -23,6 +23,7 @@ import {
 } from '@/services/gamesServices';
 import { getEditedSlideGcsUrl } from '@/services/productServices';
 import { getProjectByCode } from '@/services/projectServices';
+import { getVideosByProject } from '@/services/videoServices';
 import type { GameDto } from '@/types/api';
 import {
   Undo2,
@@ -78,6 +79,7 @@ export function Toolbar() {
   const [selectedProductGameCodes, setSelectedProductGameCodes] = useState<string[]>([]);
   const [isLoadingGamesForExport, setIsLoadingGamesForExport] = useState(false);
   const [isExportingEduvi, setIsExportingEduvi] = useState(false);
+  const [isExportingVideoEduvi, setIsExportingVideoEduvi] = useState(false);
   const [eduviExportError, setEduviExportError] = useState('');
   const autoOpenEduviExportRef = useRef(false);
 
@@ -175,6 +177,117 @@ export function Toolbar() {
     router.push(
       `/teacher/${encodeURIComponent(currentProjectCode)}?action=generate-video&productCode=${encodeURIComponent(currentProductCode)}`
     );
+  };
+
+  const handleExportVideoEduvi = async () => {
+    if (!document || !currentProductCode || !currentProjectCode) {
+      window.alert('Không xác định được dữ liệu hiện tại để xuất video .eduvi.');
+      return;
+    }
+
+    setShowShareMenu(false);
+    setIsExportingVideoEduvi(true);
+
+    try {
+      // Ensure the latest content is saved before selecting the generated video package.
+      if (isDirty) {
+        await saveSlide();
+      }
+
+      const projectVideos = await getVideosByProject(currentProjectCode);
+      const candidateVideos = projectVideos
+        .filter(
+          (video) =>
+            video.productCode === currentProductCode
+            && video.status === 'completed'
+            && typeof video.videoUrl === 'string'
+            && video.videoUrl.trim().length > 0,
+        )
+        .sort((a, b) => {
+          const aTs = Date.parse(a.completedAt || a.updatedAt || a.createdAt || '');
+          const bTs = Date.parse(b.completedAt || b.updatedAt || b.createdAt || '');
+          return (Number.isNaN(bTs) ? 0 : bTs) - (Number.isNaN(aTs) ? 0 : aTs);
+        });
+
+      const latestVideo = candidateVideos[0];
+      if (!latestVideo || !latestVideo.videoUrl) {
+        throw new Error('Chưa có video hoàn thành cho slide này. Vui lòng tạo video trước khi xuất .eduvi.');
+      }
+
+      let academicContext: {
+        projectCode?: string;
+        projectName?: string;
+        subjectCode?: string;
+        subjectName?: string;
+        gradeCode?: string;
+        gradeName?: string;
+      } | undefined;
+      let projectName = '';
+
+      try {
+        const project = await getProjectByCode(currentProjectCode);
+        projectName = typeof project.projectName === 'string' ? project.projectName.trim() : '';
+        academicContext = {
+          projectCode: project.projectCode,
+          projectName: project.projectName,
+          subjectCode: project.subjectCode,
+          subjectName: project.subjectName,
+          gradeCode: project.gradeCode,
+          gradeName: project.gradeName,
+        };
+      } catch {
+        // Keep exporting even when metadata lookup fails.
+      }
+
+      const normalizedFolderName =
+        projectName
+        || (typeof document.title === 'string' ? document.title.trim() : '')
+        || 'eduvi-folder';
+
+      const videoOnlyDocument = {
+        ...document,
+        cards: [],
+        activeCardId: '',
+      };
+
+      const videosForExport: EduViVideo[] = [
+        {
+          productVideoCode: latestVideo.productVideoCode,
+          productCode: latestVideo.productCode,
+          productName: latestVideo.productName,
+          status: latestVideo.status,
+          duration: latestVideo.duration,
+          videoUrl: latestVideo.videoUrl,
+          createdAt: latestVideo.createdAt,
+          updatedAt: latestVideo.updatedAt,
+          completedAt: latestVideo.completedAt,
+          interactions: latestVideo.interactions,
+        },
+      ];
+
+      const videoResult = await exportToEduvi(videoOnlyDocument, {
+        requireOfflineReady: true,
+        academicContext,
+        projectName: projectName || undefined,
+        folderName: normalizedFolderName,
+        packageType: 'video',
+        fileNameSuffix: 'video',
+        videos: videosForExport,
+        mediaFetchTimeoutMs: 120000,
+      });
+
+      const embeddedAssets = videoResult.schema.integrity?.stats.embeddedAssetCount ?? 0;
+      window.alert(
+        `Đã xuất thành công file video .eduvi.\n\n` +
+        `- ${videoResult.fileName}\n` +
+        `- Offline assets đã nhúng: ${embeddedAssets}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Xuất file video .eduvi thất bại';
+      window.alert(message);
+    } finally {
+      setIsExportingVideoEduvi(false);
+    }
   };
 
   const handleStartGame = async () => {
@@ -578,6 +691,24 @@ export function Toolbar() {
                   >
                     <Film className="w-4 h-4 text-amber-500" />
                     Tạo video
+                  </button>
+                )}
+                {isSlideEdited && (
+                  <button
+                    onClick={() => { void handleExportVideoEduvi(); }}
+                    disabled={isSaving || isExportingVideoEduvi}
+                    title={isSaving ? 'Đang lưu slide, vui lòng đợi...' : isExportingVideoEduvi ? 'Đang xuất video .eduvi...' : ''}
+                    className={cn(
+                      'flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors',
+                      (isSaving || isExportingVideoEduvi)
+                        ? 'text-gray-300 cursor-not-allowed'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    {isExportingVideoEduvi
+                      ? <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                      : <Download className="w-4 h-4 text-emerald-500" />}
+                    Tải video .eduvi
                   </button>
                 )}
                 <button
