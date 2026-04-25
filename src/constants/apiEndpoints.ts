@@ -151,6 +151,12 @@ export const API_ENDPOINTS = {
     DELETE: (lessonCode: string) => `/api/Lesson/${lessonCode}`,
   },
 
+  // Expert Sales
+  EXPERT_SALES: {
+    OVERVIEW:   buildExpertEndpoint('/sales/overview'),
+    MATERIALS:  buildExpertEndpoint('/sales/materials'),
+  },
+
   // Expert Verification (Certificate)
   EXPERT_VERIFICATION: {
     SUBMIT:   '/api/expert/verifications',
@@ -179,6 +185,7 @@ export const API_ENDPOINTS = {
     BROWSE:      '/api/material/browse',
     PURCHASE:    (code: string) => `/api/material/${code}/purchase`,
     GET_PURCHASED: '/api/material/purchased',
+    GET_PURCHASED_DETAIL: (code: string) => `/api/material/purchased/${code}`,
   },
 
   // Curriculum Ingestion
@@ -217,9 +224,15 @@ export const API_ENDPOINTS = {
     FINANCIAL_WALLETS: buildAdminEndpoint('/financial/wallets'),
     FINANCIAL_TRANSACTIONS: buildAdminEndpoint('/financial/transactions'),
     FINANCIAL_ORDERS: buildAdminEndpoint('/financial/orders'),
+    FINANCIAL_FORECAST: buildAdminEndpoint('/financial/forecast'),
+    FINANCIAL_REVENUE_BY_MATERIAL: buildAdminEndpoint('/financial/revenue-by-material'),
+    FINANCIAL_REVENUE_BY_EXPERT: buildAdminEndpoint('/financial/revenue-by-expert'),
 
     PLANS: buildAdminEndpoint('/plans'),
     PLAN_BY_ID: (planId: number) => buildAdminEndpoint(`/plans/${planId}`),
+
+    MATERIALS: buildAdminEndpoint('/materials'),
+    MATERIAL_BY_CODE: (materialCode: string) => buildAdminEndpoint(`/materials/${materialCode}`),
   },
 
   // Staff

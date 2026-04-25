@@ -50,10 +50,6 @@ function registerApiInterceptor() {
       const method: string = (error?.config?.method ?? 'get').toUpperCase();
       if (method === 'GET') return Promise.reject(error);
 
-      const apiMessage: string | undefined = error?.response?.data?.message;
-      const message = apiMessage ?? 'Có lỗi không xác định. Vui lòng thử lại.';
-      toast.error(message, { duration: 4500 });
-
       return Promise.reject(error);
     },
   );

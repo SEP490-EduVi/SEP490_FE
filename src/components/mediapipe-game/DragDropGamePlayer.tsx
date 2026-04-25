@@ -45,6 +45,12 @@ export function DragDropGamePlayer({ playable, onEnd, onReplay }: Props) {
   const [score, setScore]               = React.useState(0);
   const [isPaused, setIsPaused]         = React.useState(false);
   const [showRoll, setShowRoll]         = React.useState(false);
+  // Pause camera when game is paused so MediaPipe stops tracking
+  React.useEffect(() => {
+    if (!videoRef.current) return;
+    if (isPaused) { videoRef.current.pause(); }
+    else { videoRef.current.play().catch(() => {}); }
+  }, [isPaused]);
 
   const handleRoundChange = React.useCallback(
     (roundIndex: number, totalRounds: number, lastResult: GameResult | null) => {

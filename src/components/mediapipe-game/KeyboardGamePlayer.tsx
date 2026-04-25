@@ -201,6 +201,8 @@ export function KeyboardGamePlayer({ playable, onEnd, onReplay }: Props) {
         </div>
       )}
 
+      {/* Mid-game correct answer fireworks */}
+
       {/* End Confirm Dialog */}
       {showEndConfirm && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60">

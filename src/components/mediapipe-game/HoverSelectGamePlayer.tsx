@@ -66,6 +66,14 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
   const scorePlusTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const timeLeftRef = React.useRef(ROUND_TIMER_SECONDS);
   const [isPaused, setIsPaused]         = React.useState(false);
+  const isPausedRef = React.useRef(false);
+  React.useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+  // Pause camera when game is paused so MediaPipe stops tracking
+  React.useEffect(() => {
+    if (!videoRef.current) return;
+    if (isPaused) { videoRef.current.pause(); }
+    else { videoRef.current.play().catch(() => {}); }
+  }, [isPaused]);
   const [showRoll, setShowRoll]         = React.useState(false);
 
   // Current round data from playable
@@ -105,12 +113,14 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
   // ── Hover / selection callbacks from engine ─────────────────────────────────
 
   const handleHoverChange = React.useCallback((choiceId: string | null) => {
+    if (isPausedRef.current) return;
     setHoveredChoiceId(choiceId);
     // If user moves to a new hover target, clear previous wrong feedback
     if (choiceId !== null) setSelectedState(null);
   }, []);
 
   const handleChoiceSelected = React.useCallback((choiceId: string, isCorrect: boolean) => {
+    if (isPausedRef.current) return;
     setSelectedState({ choiceId, isCorrect });
     if (isCorrect) {
       const base = 100;
@@ -295,7 +305,12 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
             <button
               type="button"
               title={isPaused ? 'Tiếp tục' : 'Tạm dừng'}
-              onClick={() => setIsPaused((p) => !p)}
+              onClick={() => {
+                setIsPaused((p) => {
+                  if (!p) { setHoveredChoiceId(null); setSelectedState(null); }
+                  return !p;
+                });
+              }}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-white/60 hover:text-white transition-colors"
               style={{ background: isPaused ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.08)', border: isPaused ? '1px solid rgba(34,197,94,0.45)' : '1px solid rgba(255,255,255,0.12)' }}
             >
@@ -598,6 +613,8 @@ export function HoverSelectGamePlayer({ playable, onEnd, onReplay }: Props) {
         {gameResult && (
           <HoverResultScreen result={gameResult} score={score} onEnd={onEnd} onReplay={onReplay} />
         )}
+
+        {/* ── Mid-game correct answer fireworks ── */}
 
         {/* ── Pause overlay ── */}
         {isPaused && !gameResult && !cameraError && (

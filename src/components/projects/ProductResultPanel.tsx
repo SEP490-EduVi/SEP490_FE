@@ -288,7 +288,7 @@ export default function ProductResultPanel({
                               ) : (
                                 <Video className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
                               )}
-                              <span className="text-xs text-gray-600 truncate">{video.productName}</span>
+                              <span className="text-xs text-gray-600 truncate">{video.videoName}</span>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               <VideoStatusChip status={video.status} isCreating={isPipelineRunning && activePipelineType === 'video'} />

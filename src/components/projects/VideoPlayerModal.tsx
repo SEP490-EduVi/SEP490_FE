@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { VideoProductDto, VideoInteraction } from '@/types/api';
 import { getVideoSignedUrl, getLatestVideoByDocument } from '@/services/videoServices';
+import { Fireworks } from '@/components/common/Fireworks';
 
 interface VideoPlayerModalProps {
   video: VideoProductDto;
@@ -93,6 +94,8 @@ function QuizOverlay({ interaction, onAnswer }: QuizOverlayProps) {
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
     >
+      {/* Fireworks on correct answer */}
+      <Fireworks show={isCorrect} duration={2000} />
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
@@ -173,6 +176,7 @@ function FlashcardOverlay({ interaction, onAnswer }: { interaction: VideoInterac
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
     >
+      <Fireworks show={flipped} duration={2000} />
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
@@ -240,6 +244,11 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
   const [inputs, setInputs] = useState<string[]>(Array(blankCount).fill(''));
   const [submitted, setSubmitted] = useState(false);
 
+  const isCorrect = (idx: number) =>
+    (inputs[idx] ?? '').trim().toLowerCase() === (correctBlanks[idx] ?? '').trim().toLowerCase();
+
+  const allCorrect = submitted && inputs.every((_, i) => isCorrect(i));
+
   // Reset when a new interaction is shown
   useEffect(() => {
     setInputs(Array(Math.floor((payload.sentence ?? '').split(/\[([^\]]+)\]/).length / 2)).fill(''));
@@ -250,9 +259,6 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
     setTimeout(onAnswer, 2200);
   };
 
-  const isCorrect = (idx: number) =>
-    (inputs[idx] ?? '').trim().toLowerCase() === (correctBlanks[idx] ?? '').trim().toLowerCase();
-
   return (
     <motion.div
       key={`fill-blank-overlay-${interaction.pause_time}`}
@@ -261,6 +267,7 @@ function FillBlankOverlay({ interaction, onAnswer }: { interaction: VideoInterac
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
     >
+      <Fireworks show={allCorrect} duration={2000} />
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
@@ -436,6 +443,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
     setCurrentTime(el.currentTime);
     if (activeQuiz || !video.interactions?.length) return;
     for (const interaction of video.interactions) {
+      if (interaction.type === 'index') continue;
       const pauseAt = interaction.pause_time;
       if (el.currentTime >= pauseAt - 0.5 && el.currentTime <= pauseAt + 0.5 && !triggeredRef.current.has(pauseAt)) {
         triggeredRef.current.add(pauseAt);
@@ -485,9 +493,57 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
 
   const progressPct  = duration > 0 ? (currentTime / duration) * 100 : 0;
   const interactions = video.interactions ?? [];
+  const indexItems       = interactions.filter((i) => i.type === 'index');
+  const interactiveItems = interactions.filter((i) => i.type !== 'index');
+  // Current chapter = last index entry whose start_time has been passed
+  const currentChapter = [...indexItems].reverse().find((i) => i.start_time <= currentTime) ?? null;
 
   const playerPanel = (
-    <div className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full">
+    <div className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full flex">
+
+          {/* Table of Contents sidebar */}
+          {indexItems.length > 0 && (
+            <div className="hidden sm:flex flex-col w-52 xl:w-60 bg-gray-900 border-r border-white/10 flex-shrink-0">
+              <div className="px-3 py-2.5 border-b border-white/10 flex-shrink-0">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mục lục</p>
+              </div>
+              <div className="flex-1 overflow-y-auto py-1.5">
+                {indexItems.map((item, idx) => {
+                  const isActive = currentChapter?.start_time === item.start_time;
+                  const seekTime = item.payload.seek_time ?? item.start_time;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (videoRef.current) {
+                          videoRef.current.currentTime = seekTime;
+                          videoRef.current.play();
+                        }
+                      }}
+                      className={`relative flex items-start gap-2 w-full text-left px-3 py-2 text-xs transition-colors ${
+                        isActive
+                          ? 'bg-white/10 text-white'
+                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                      }`}
+                    >
+                      {isActive && (
+                        <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-blue-400" />
+                      )}
+                      <span className="w-10 text-gray-500 flex-shrink-0 tabular-nums leading-tight">
+                        {formatTime(seekTime)}
+                      </span>
+                      <span className="flex-1 leading-tight line-clamp-2">
+                        {item.payload.label ?? ''}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Main panel */}
+          <div className="flex-1 flex flex-col min-w-0">
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 bg-gray-900/80 border-b border-white/10">
@@ -501,7 +557,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
                   {video.duration != null && (
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(video.duration)}</span>
                   )}
-                  {interactions.length > 0 && <span>{interactions.length} hoạt động tương tác</span>}
+                  {interactiveItems.length > 0 && <span>{interactiveItems.length} hoạt động tương tác</span>}
                 </div>
               </div>
             </div>
@@ -580,7 +636,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
                       style={{ left: `${progressPct}%` }}
                     />
                     {/* Pause-point markers */}
-                    {duration > 0 && interactions.map((item, idx) => {
+                    {duration > 0 && interactiveItems.map((item, idx) => {
                       const isAnswered = answered.includes(item.pause_time);
                       return (
                         <div
@@ -617,41 +673,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
               )}
             </AnimatePresence>
           </div>
-
-          {/* Interactions timeline */}
-          {interactions.length > 0 && (
-            <div className="px-5 py-4 bg-gray-900/60 border-t border-white/10 max-h-44 overflow-y-auto">
-              <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-3">
-                Hoạt động tương tác ({interactions.length})
-              </p>
-              <div className="space-y-1">
-                {interactions.map((item, idx) => {
-                  const isAnswered = answered.includes(item.pause_time);
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => { if (videoRef.current) { videoRef.current.currentTime = Math.max(0, item.start_time); videoRef.current.play(); } }}
-                      className="flex items-center gap-3 text-xs w-full text-left hover:bg-white/5 rounded-lg px-2 py-1.5 transition-colors"
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full flex-shrink-0 transition-colors"
-                        style={{ backgroundColor: isAnswered ? '#10b981' : '#facc15' }}
-                      />
-                      <span className="w-12 text-gray-500 flex-shrink-0 tabular-nums">{formatTime(item.pause_time)}</span>
-                      <span className="text-gray-300 line-clamp-1 flex-1">
-                        {item.type === 'flashcard'
-                          ? stripHtml(item.payload.front ?? item.payload.title ?? '')
-                          : item.type === 'fill_blank'
-                          ? stripHtml(item.payload.sentence ?? item.payload.title ?? '')
-                          : stripHtml(item.payload.question ?? item.payload.title ?? '')}
-                      </span>
-                      {isAnswered && <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          </div>{/* end Main panel */}
     </div>
   );
 
@@ -666,7 +688,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
         onClick={() => { if (!activeQuiz && !isFullscreen) onClose(); }}
       >
         <motion.div
-          className="w-full max-w-4xl"
+          className="w-full max-w-6xl"
           initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
           onClick={(e) => e.stopPropagation()}

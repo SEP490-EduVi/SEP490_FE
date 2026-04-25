@@ -247,7 +247,11 @@ export default function MaterialPage() {
             isUploading={uploadMaterial.isPending}
             onUpload={(data) => uploadMaterial.mutate(data, {
               onSuccess: () => { setShowForm(false); notify.success(MSGS.material.expert.uploadSuccess); },
-              onError: () => notify.error(MSGS.material.expert.uploadError),
+              onError: (err) => {
+                const status = (err as { response?: { status?: number } })?.response?.status;
+                if (status === 403) { notify.error(MSGS.material.expert.unauthorizedError); }
+                else { notify.error(MSGS.material.expert.uploadError); }
+              },
             })}
             onCancel={() => setShowForm(false)}
           />

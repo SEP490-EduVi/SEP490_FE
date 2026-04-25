@@ -229,3 +229,113 @@ export interface UpdateLessonRequest {
   lessonName?: string;
   subjectCode?: string;
 }
+
+export interface AdminMaterialResponse {
+  materialCode: string;
+  title: string;
+  description?: string | null;
+  type: string;
+  price: number;
+  previewUrl?: string | null;
+  resourceUrl?: string | null;
+  subjectCode?: string | null;
+  subjectName?: string | null;
+  gradeCode?: string | null;
+  gradeName?: string | null;
+  approvalStatus: number;
+  rejectionReason?: string | null;
+  expertCode?: string | null;
+  expertName?: string | null;
+  createdAt?: string | null;
+}
+
+export interface AdminCreateMaterialRequest {
+  expertCode?: string;
+  title: string;
+  description?: string;
+  type: string;
+  price: number;
+  resourceUrl: string;
+  previewUrl?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  approvalStatus: number;
+  rejectionReason?: string;
+}
+
+export interface AdminUpdateMaterialRequest {
+  expertCode?: string;
+  title?: string;
+  description?: string;
+  type?: string;
+  price?: number;
+  resourceUrl?: string;
+  previewUrl?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  approvalStatus?: number;
+  rejectionReason?: string;
+}
+
+export interface ListAdminMaterialsParams {
+  approvalStatus?: number;
+  type?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  expertCode?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// ─── Revenue / Sales types ─────────────────────────────────────────────────────
+
+export interface RevenueFilterParams {
+  fromDate?: string;
+  toDate?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  expertCode?: string;
+  materialCode?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminRevenueForecastResponse {
+  fromDate?: string;
+  toDate?: string;
+  periodDays?: number;
+  forecastDays?: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  revenueGrowthRatePercent: number;
+  averageDailyRevenue: number;
+  forecastRevenue: number;
+  currentSoldCount: number;
+  previousSoldCount?: number;
+  currentUniqueBuyerCount: number;
+  previousUniqueBuyerCount?: number;
+}
+
+export interface AdminMaterialSalesItem {
+  materialCode: string;
+  title: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  expertCode?: string;
+  expertName?: string;
+  soldCount: number;
+  uniqueBuyerCount: number;
+  grossRevenue: number;
+  lastPurchasedDate?: string;
+}
+
+export interface AdminExpertSalesItem {
+  expertCode: string;
+  expertName: string;
+  soldMaterialCount: number;
+  soldCount: number;
+  uniqueBuyerCount?: number;
+  grossRevenue: number;
+  lastPurchasedDate?: string;
+}

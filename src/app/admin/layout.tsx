@@ -31,7 +31,7 @@ import { useLogoutService } from '@/services/authServices';
 import { useQueryClient } from '@tanstack/react-query';
 
 const NAV_ITEMS = [
-  { href: '/admin', label: 'Bảng điều khiển', icon: LayoutDashboard },
+  { href: '/admin', label: 'Bảng quản lý doanh thu', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Người dùng', icon: Users },
   { href: '/admin/packages', label: 'Gói cước', icon: Package },
   { href: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
@@ -40,6 +40,7 @@ const NAV_ITEMS = [
   { href: '/admin/withdrawals', label: 'Rút tiền', icon: Wallet },
   { href: '/admin/curriculum', label: 'Chương trình học', icon: BookOpen },
   { href: '/admin/templates', label: 'Mẫu bố cục', icon: LayoutTemplate },
+  { href: '/admin/materials', label: 'Tài liệu', icon: FileText },
 ];
 
 export default function AdminLayout({

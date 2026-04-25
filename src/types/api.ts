@@ -143,7 +143,7 @@ export interface GenerateVideoInput {
 
 // ─── Video ─────────────────────────────────────────────────────────────────
 export interface VideoInteraction {
-  type: 'quiz' | 'flashcard' | 'fill_blank' | string;
+  type: 'quiz' | 'flashcard' | 'fill_blank' | 'index' | string;
   slide_index: number;
   card_index: number;
   start_time: number;
@@ -151,6 +151,9 @@ export interface VideoInteraction {
   pause_time: number;
   payload: {
     title: string;
+    // index (table of contents)
+    label?: string;
+    seek_time?: number;
     // quiz
     question?: string;
     options?: string[];
@@ -170,6 +173,7 @@ export interface VideoProductDto {
   productCode: string;
   productName: string;
   productVideoCode: string;
+  videoName: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   slideDocumentUrl: string | null;
   videoUrl: string | null;
@@ -620,3 +624,44 @@ export interface AddProductMaterialInput {
   resourceUrl?: string;
   previewUrl?: string;
 }
+
+// ─── Expert Sales ─────────────────────────────────────────────────────────
+
+export interface ExpertSalesFilterParams {
+  fromDate?: string;
+  toDate?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  materialCode?: string;
+  forecastDays?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ExpertSalesOverviewResponse {
+  fromDate?: string;
+  toDate?: string;
+  periodDays?: number;
+  forecastDays?: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  revenueGrowthRatePercent: number;
+  averageDailyRevenue: number;
+  forecastRevenue: number;
+  currentSoldCount: number;
+  previousSoldCount: number;
+  currentUniqueBuyerCount: number;
+  previousUniqueBuyerCount: number;
+}
+
+export interface ExpertMaterialSalesItem {
+  materialCode: string;
+  title: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  soldCount: number;
+  uniqueBuyerCount: number;
+  grossRevenue: number;
+  lastPurchasedDate?: string;
+}
+

@@ -1,9 +1,11 @@
 // src/hooks/useExpertApi.ts
 
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as expertService from '@/services/expertServices';
 import * as materialService from '@/services/materialServices';
-import type { UpdateExpertProfileInput, UpdateMaterialInput } from '@/types/api';
+import type { UpdateExpertProfileInput, UpdateMaterialInput, VerificationDto, MaterialDto, ExpertSalesFilterParams } from '@/types/api';
+import { notify, MSGS } from '@/components/common';
 
 // ─── Verifications ─────────────────────────────────────────────────────────
 
@@ -31,10 +33,44 @@ export function useUpdateExpertProfile() {
 }
 
 export function useVerifications() {
-  return useQuery({
+  const prevDataRef = useRef<VerificationDto[] | undefined>(undefined);
+
+  const query = useQuery({
     queryKey: [VERIFICATION_KEY],
     queryFn: expertService.getVerifications,
+    // Poll every 5 s while the BE is processing (status 0 = pending).
+    // Stops automatically once all verifications are resolved.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.some((v) => {
+        const s = typeof v.status === 'number' ? v.status : Number(v.status);
+        return s === 0;
+      })
+        ? 5_000
+        : false;
+    },
+    refetchIntervalInBackground: false,
   });
+
+  useEffect(() => {
+    const prev = prevDataRef.current;
+    const curr = query.data;
+    if (prev && curr) {
+      curr.forEach((v) => {
+        const prevV = prev.find((p) => p.verificationCode === v.verificationCode);
+        const prevStatus = prevV != null
+          ? (typeof prevV.status === 'number' ? prevV.status : Number(prevV.status))
+          : null;
+        const currStatus = typeof v.status === 'number' ? v.status : Number(v.status);
+        if (prevStatus === 0 && currStatus === 2) {
+          notify.error(MSGS.cert.autoRejected);
+        }
+      });
+    }
+    prevDataRef.current = curr;
+  }, [query.data]);
+
+  return query;
 }
 
 export function useSubmitVerification() {
@@ -59,10 +95,35 @@ export function useDeleteVerification() {
 const MATERIAL_KEY = 'my-materials';
 
 export function useMyMaterials() {
-  return useQuery({
+  const prevDataRef = useRef<MaterialDto[] | undefined>(undefined);
+
+  const query = useQuery({
     queryKey: [MATERIAL_KEY],
     queryFn: materialService.getMyMaterials,
+    // Poll every 5 s while the BE is processing (approvalStatus 0 = pending).
+    // Stops automatically once all materials are approved or rejected.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.some((m) => m.approvalStatus === 0) ? 5_000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
+
+  useEffect(() => {
+    const prev = prevDataRef.current;
+    const curr = query.data;
+    if (prev && curr) {
+      curr.forEach((m) => {
+        const prevM = prev.find((p) => p.materialCode === m.materialCode);
+        if (prevM?.approvalStatus === 0 && m.approvalStatus === 2) {
+          notify.error(MSGS.material.expert.autoRejected(m.title));
+        }
+      });
+    }
+    prevDataRef.current = curr;
+  }, [query.data]);
+
+  return query;
 }
 
 export function useUploadMaterial() {
@@ -89,3 +150,23 @@ export function useDeleteMaterial() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [MATERIAL_KEY] }),
   });
 }
+
+// ─── Expert Sales ──────────────────────────────────────────────────────────
+
+const EXPERT_SALES_OVERVIEW_KEY = 'expert-sales-overview';
+const EXPERT_SALES_MATERIALS_KEY = 'expert-sales-materials';
+
+export function useExpertSalesOverview(params?: ExpertSalesFilterParams) {
+  return useQuery({
+    queryKey: [EXPERT_SALES_OVERVIEW_KEY, params],
+    queryFn: () => expertService.getExpertSalesOverview(params),
+  });
+}
+
+export function useExpertMaterialSales(params?: ExpertSalesFilterParams) {
+  return useQuery({
+    queryKey: [EXPERT_SALES_MATERIALS_KEY, params],
+    queryFn: () => expertService.getExpertMaterialSales(params),
+  });
+}
+

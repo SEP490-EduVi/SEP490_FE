@@ -24,6 +24,14 @@ import {
   UpdateLessonRequest,
   UpdatePlanRequest,
   UpdateSubjectRequest,
+  AdminMaterialResponse,
+  AdminCreateMaterialRequest,
+  AdminUpdateMaterialRequest,
+  ListAdminMaterialsParams,
+  RevenueFilterParams,
+  AdminRevenueForecastResponse,
+  AdminMaterialSalesItem,
+  AdminExpertSalesItem,
 } from '@/types/admin';
 
 interface ListUsersParams {
@@ -295,6 +303,80 @@ export const adminServices = {
 
   softDeletePlan: async (planId: number) => {
     const res = await api.delete<ApiResponse<string>>(API_ENDPOINTS.ADMIN.PLAN_BY_ID(planId));
+    return res.data;
+  },
+
+  // ── Materials ──────────────────────────────────────────────────────────────
+  listAdminMaterials: async (params: ListAdminMaterialsParams) => {
+    const res = await api.get<ApiResponse<PagedResponse<AdminMaterialResponse>>>(
+      API_ENDPOINTS.ADMIN.MATERIALS,
+      {
+        params: normalizeParams({
+          ApprovalStatus: params.approvalStatus,
+          Type: params.type,
+          SubjectCode: params.subjectCode,
+          GradeCode: params.gradeCode,
+          ExpertCode: params.expertCode,
+          Search: params.search,
+          Page: params.page,
+          PageSize: params.pageSize,
+        }),
+      },
+    );
+    return res.data;
+  },
+
+  getAdminMaterial: async (materialCode: string) => {
+    const res = await api.get<ApiResponse<AdminMaterialResponse>>(
+      API_ENDPOINTS.ADMIN.MATERIAL_BY_CODE(materialCode),
+    );
+    return res.data;
+  },
+
+  createAdminMaterial: async (payload: AdminCreateMaterialRequest) => {
+    const res = await api.post<ApiResponse<AdminMaterialResponse>>(
+      API_ENDPOINTS.ADMIN.MATERIALS,
+      payload,
+    );
+    return res.data;
+  },
+
+  updateAdminMaterial: async (materialCode: string, payload: AdminUpdateMaterialRequest) => {
+    const res = await api.put<ApiResponse<AdminMaterialResponse>>(
+      API_ENDPOINTS.ADMIN.MATERIAL_BY_CODE(materialCode),
+      payload,
+    );
+    return res.data;
+  },
+
+  deleteAdminMaterial: async (materialCode: string) => {
+    const res = await api.delete<ApiResponse<string>>(
+      API_ENDPOINTS.ADMIN.MATERIAL_BY_CODE(materialCode),
+    );
+    return res.data;
+  },
+
+  getRevenueForecast: async (params?: RevenueFilterParams) => {
+    const res = await api.get<ApiResponse<AdminRevenueForecastResponse>>(
+      API_ENDPOINTS.ADMIN.FINANCIAL_FORECAST,
+      { params: params ? normalizeParams(params) : undefined },
+    );
+    return res.data;
+  },
+
+  getRevenueByMaterial: async (params?: RevenueFilterParams) => {
+    const res = await api.get<ApiResponse<PagedResponse<AdminMaterialSalesItem>>>(
+      API_ENDPOINTS.ADMIN.FINANCIAL_REVENUE_BY_MATERIAL,
+      { params: params ? normalizeParams(params) : undefined },
+    );
+    return res.data;
+  },
+
+  getRevenueByExpert: async (params?: RevenueFilterParams) => {
+    const res = await api.get<ApiResponse<PagedResponse<AdminExpertSalesItem>>>(
+      API_ENDPOINTS.ADMIN.FINANCIAL_REVENUE_BY_EXPERT,
+      { params: params ? normalizeParams(params) : undefined },
+    );
     return res.data;
   },
 };

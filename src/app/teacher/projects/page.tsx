@@ -70,10 +70,11 @@ export default function TeacherProjectsPage() {
               );
             })()
           : null;
-        const type: 'evaluation' | 'slides' | 'video' =
-          event.step?.includes('video') ? 'video'
-          : (event.step?.includes('slide') || event.step?.includes('generating') || event.step?.includes('planning') || event.step?.includes('assembling')) ? 'slides'
-          : 'evaluation';
+        const type: 'evaluation' | 'slides' | 'video' = stored
+          ? (stored.key.startsWith('video:') ? 'video' : stored.key.startsWith('slides:') ? 'slides' : 'evaluation')
+          : (event.step?.includes('video') ? 'video'
+            : (event.step?.includes('slide') || event.step?.includes('generating') || event.step?.includes('planning') || event.step?.includes('assembling')) ? 'slides'
+            : 'evaluation');
         setGlobalProgress(event, type, projectCode);
       }
       if (event.status === 'completed' || event.status === 'failed') {

@@ -185,12 +185,6 @@ export default function ProjectDetailPage() {
     }
 
     setPipelineProgress(event);
-    if (event.status !== 'completed' && event.status !== 'failed') {
-      const t = event.step?.includes('video') ? 'video'
-              : (event.step?.includes('slide') || event.step?.includes('generating') || event.step?.includes('planning') || event.step?.includes('assembling')) ? 'slides'
-              : 'evaluation';
-      setGlobalProgress(event, t, projectCode);
-    }
     if (event.status === 'completed' || event.status === 'failed') {
       clearGlobalProgress();
       refetchProducts();
