@@ -52,7 +52,9 @@ interface StudioCenterProps {
   onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
-  onExportEduvi: (productCode: string) => void;
+  onExportSlide: (productCode: string) => void;
+  onExportVideo: (video: VideoProductDto) => void;
+  onExportGame?: (game: GameDto) => void;
   videoLoadingCode: string | null;
   activePipelineType?: 'evaluation' | 'slides' | 'video' | null;
 }
@@ -488,17 +490,189 @@ function SlidePreviewInline({ doc }: { doc: IDocument }) {
   );
 }
 
+// ── Export EduVi Modal ────────────────────────────────────────────────────────
+function ExportEduviModal({
+  open,
+  onClose,
+  slideProducts,
+  docVideos,
+  docGames,
+  onExportSlide,
+  onExportVideo,
+  onExportGame,
+}: {
+  open: boolean;
+  onClose: () => void;
+  slideProducts: ProductDto[];
+  docVideos: VideoProductDto[];
+  docGames: GameDto[];
+  onExportSlide: (productCode: string) => void;
+  onExportVideo: (video: VideoProductDto) => void;
+  onExportGame?: (game: GameDto) => void;
+}) {
+  const hasAnything = slideProducts.length > 0 || docVideos.length > 0 || docGames.length > 0;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.93, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.93, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <Download className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Xuất file .eduvi</p>
+                  <p className="text-xs text-gray-400">Chọn sản phẩm để xuất</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
+              {!hasAnything && (
+                <div className="py-8 text-center">
+                  <p className="text-sm text-gray-400">Chưa có sản phẩm nào để xuất.</p>
+                  <p className="text-xs text-gray-400 mt-1">Hãy tạo slide, video hoặc mini-game trước.</p>
+                </div>
+              )}
+
+              {/* Slides */}
+              {slideProducts.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <GalleryVerticalEnd className="w-3.5 h-3.5 text-indigo-500" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slide</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {slideProducts.map((p) => (
+                      <div key={p.productCode} className="flex items-center gap-2 bg-indigo-50/60 rounded-xl px-3 py-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                          <GalleryVerticalEnd className="w-3 h-3 text-indigo-500" />
+                        </div>
+                        <span className="flex-1 text-xs text-gray-700 truncate">{p.productName}</span>
+                        <button
+                          type="button"
+                          onClick={() => { onExportSlide(p.productCode); onClose(); }}
+                          className="flex items-center gap-1 text-[11px] font-medium text-white bg-indigo-500 hover:bg-indigo-600 px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <Download className="w-2.5 h-2.5" /> Xuất
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Videos */}
+              {docVideos.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Video className="w-3.5 h-3.5 text-rose-500" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Video</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {docVideos.map((v) => (
+                      <div key={v.productVideoCode} className="flex items-center gap-2 bg-rose-50/60 rounded-xl px-3 py-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
+                          <Video className="w-3 h-3 text-rose-500" />
+                        </div>
+                        <span className="flex-1 text-xs text-gray-700 truncate">{v.videoName}</span>
+                        <button
+                          type="button"
+                          onClick={() => { onExportVideo(v); onClose(); }}
+                          className="flex items-center gap-1 text-[11px] font-medium text-white bg-rose-500 hover:bg-rose-600 px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <Download className="w-2.5 h-2.5" /> Xuất
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Games */}
+              {docGames.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gamepad2 className="w-3.5 h-3.5 text-violet-500" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mini-game</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {docGames.map((g) => (
+                      <div key={g.gameCode} className="flex items-center gap-2 bg-violet-50/60 rounded-xl px-3 py-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+                          <Gamepad2 className="w-3 h-3 text-violet-500" />
+                        </div>
+                        <span className="flex-1 text-xs text-gray-700 truncate">{g.productGameName}</span>
+                        <button
+                          type="button"
+                          onClick={() => { onExportGame?.(g); onClose(); }}
+                          className="flex items-center gap-1 text-[11px] font-medium text-white bg-violet-500 hover:bg-violet-600 px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <Download className="w-2.5 h-2.5" /> Xuất
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // ── Studio Toolbar ────────────────────────────────────────────────────────────
 interface StudioToolbarProps {
   projectCode: string;
   products: ProductDto[];
+  videos: VideoProductDto[];
+  games: GameDto[];
   isPipelineRunning: boolean;
   onOpenPipelineModal: () => void;
   onAnalyze: (doc: InputDocumentDto) => void;
   onGenerateSlides: (productCode: string, slideRange: 'short' | 'medium') => void;
   onGenerateVideo: (productCode: string) => void;
   onGenerateGame: (productCode: string) => void;
-  onExportEduvi: (productCode: string) => void;
+  onExportSlide: (productCode: string) => void;
+  onExportVideo: (video: VideoProductDto) => void;
+  onExportGame?: (game: GameDto) => void;
   videoLoadingCode: string | null;
   activePipelineType?: 'evaluation' | 'slides' | 'video' | null;
   activeDocCode?: string | null;
@@ -508,13 +682,17 @@ interface StudioToolbarProps {
 function StudioToolbar({
   projectCode,
   products,
+  videos,
+  games,
   isPipelineRunning,
   onOpenPipelineModal,
   onAnalyze,
   onGenerateSlides,
   onGenerateVideo,
   onGenerateGame,
-  onExportEduvi,
+  onExportSlide,
+  onExportVideo,
+  onExportGame,
   videoLoadingCode,
   activePipelineType,
   activeDocCode,
@@ -526,6 +704,7 @@ function StudioToolbar({
   const [showSlideRangePicker, setShowSlideRangePicker] = useState(false);
   const [pendingSlideProductCode, setPendingSlideProductCode] = useState<string | null>(null);
   const [selectedSlideRange, setSelectedSlideRange] = useState<'short' | 'medium'>('medium');
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     if (docs.length === 0) { setActiveDoc(null); return; }
@@ -548,6 +727,15 @@ function StudioToolbar({
   const hasSlide      = docProducts.some((p) => p.hasSlide || p.hasEditedSlide);
   const latestEval    = docProducts.filter((p) => p.hasEvaluation).at(-1) ?? null;
   const latestSlide   = docProducts.filter((p) => p.hasSlide || p.hasEditedSlide).at(-1) ?? null;
+
+  const docVideos = videos.filter((v) =>
+    docProducts.some((p) => p.productCode === v.productCode) && v.status === 'completed'
+  );
+  const docGames = games.filter((g) =>
+    docProducts.some((p) => p.productCode === g.productCode) && g.status === 'completed'
+  );
+  const slideProducts = docProducts.filter((p) => p.hasSlide || p.hasEditedSlide);
+  const hasExport = slideProducts.length > 0 || docVideos.length > 0 || docGames.length > 0;
 
   const handleAnalyzeClick = () => {
     if (isPipelineRunning) { onOpenPipelineModal(); return; }
@@ -580,8 +768,7 @@ function StudioToolbar({
   };
 
   const handleExportEduviClick = () => {
-    if (!hasSlide || !latestSlide) return;
-    onExportEduvi(latestSlide.productCode);
+    setShowExportModal(true);
   };
 
   return (
@@ -689,8 +876,7 @@ function StudioToolbar({
             <ToolbarButton
               icon={<Download className="w-3.5 h-3.5" />}
               label="Xuất file"
-              disabled={!hasSlide}
-              locked={!hasSlide}
+              disabled={!hasExport}
               accent="emerald"
               onClick={handleExportEduviClick}
             />
@@ -769,6 +955,17 @@ function StudioToolbar({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ExportEduviModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        slideProducts={slideProducts}
+        docVideos={docVideos}
+        docGames={docGames}
+        onExportSlide={onExportSlide}
+        onExportVideo={onExportVideo}
+        onExportGame={onExportGame}
+      />
     </>
   );
 }
@@ -826,7 +1023,9 @@ export default function StudioCenter({
   onGenerateSlides,
   onGenerateVideo,
   onGenerateGame,
-  onExportEduvi,
+  onExportSlide,
+  onExportVideo,
+  onExportGame,
   videoLoadingCode,
   activePipelineType,
 }: StudioCenterProps) {
@@ -854,13 +1053,17 @@ export default function StudioCenter({
       <StudioToolbar
         projectCode={projectCode}
         products={products}
+        videos={videos}
+        games={games}
         isPipelineRunning={isPipelineRunning}
         onOpenPipelineModal={onOpenPipelineModal}
         onAnalyze={onAnalyze}
         onGenerateSlides={onGenerateSlides}
         onGenerateVideo={onGenerateVideo}
         onGenerateGame={onGenerateGame}
-        onExportEduvi={onExportEduvi}
+        onExportSlide={onExportSlide}
+        onExportVideo={onExportVideo}
+        onExportGame={onExportGame}
         videoLoadingCode={videoLoadingCode}
         activePipelineType={activePipelineType}
         activeDocCode={activeDocCode}
