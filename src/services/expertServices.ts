@@ -5,7 +5,11 @@ import type {
   ExpertProfileDto,
   UpdateExpertProfileInput,
   VerificationDto,
+  ExpertSalesFilterParams,
+  ExpertSalesOverviewResponse,
+  ExpertMaterialSalesItem,
 } from '@/types/api';
+import type { PagedResponse } from '@/types/admin';
 
 function unwrapApiResponse<T>(response: ApiResponse<T>, fallbackMessage: string): T {
   if (response.code !== 200) {
@@ -69,3 +73,25 @@ export async function updateExpertProfile(input: UpdateExpertProfileInput): Prom
   );
   return unwrapApiResponse(data, 'Cập nhật hồ sơ Expert thất bại.');
 }
+
+const normalizeParams = <T extends object>(params: T) =>
+  Object.fromEntries(
+    Object.entries(params as Record<string, unknown>).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+  );
+
+export async function getExpertSalesOverview(params?: ExpertSalesFilterParams): Promise<ExpertSalesOverviewResponse> {
+  const { data } = await api.get<ApiResponse<ExpertSalesOverviewResponse>>(
+    API_ENDPOINTS.EXPERT_SALES.OVERVIEW,
+    { params: params ? normalizeParams(params) : undefined },
+  );
+  return unwrapApiResponse(data, 'Không thể tải tổng quan doanh số.');
+}
+
+export async function getExpertMaterialSales(params?: ExpertSalesFilterParams): Promise<ExpertMaterialSalesItem[]> {
+  const { data } = await api.get<ApiResponse<ExpertMaterialSalesItem[]>>(
+    API_ENDPOINTS.EXPERT_SALES.MATERIALS,
+    { params: params ? normalizeParams(params) : undefined },
+  );
+  return unwrapApiResponse(data, 'Không thể tải doanh số tài liệu.');
+}
+

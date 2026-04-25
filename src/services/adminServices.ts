@@ -28,6 +28,10 @@ import {
   AdminCreateMaterialRequest,
   AdminUpdateMaterialRequest,
   ListAdminMaterialsParams,
+  RevenueFilterParams,
+  AdminRevenueForecastResponse,
+  AdminMaterialSalesItem,
+  AdminExpertSalesItem,
 } from '@/types/admin';
 
 interface ListUsersParams {
@@ -348,6 +352,30 @@ export const adminServices = {
   deleteAdminMaterial: async (materialCode: string) => {
     const res = await api.delete<ApiResponse<string>>(
       API_ENDPOINTS.ADMIN.MATERIAL_BY_CODE(materialCode),
+    );
+    return res.data;
+  },
+
+  getRevenueForecast: async (params?: RevenueFilterParams) => {
+    const res = await api.get<ApiResponse<AdminRevenueForecastResponse>>(
+      API_ENDPOINTS.ADMIN.FINANCIAL_FORECAST,
+      { params: params ? normalizeParams(params) : undefined },
+    );
+    return res.data;
+  },
+
+  getRevenueByMaterial: async (params?: RevenueFilterParams) => {
+    const res = await api.get<ApiResponse<PagedResponse<AdminMaterialSalesItem>>>(
+      API_ENDPOINTS.ADMIN.FINANCIAL_REVENUE_BY_MATERIAL,
+      { params: params ? normalizeParams(params) : undefined },
+    );
+    return res.data;
+  },
+
+  getRevenueByExpert: async (params?: RevenueFilterParams) => {
+    const res = await api.get<ApiResponse<PagedResponse<AdminExpertSalesItem>>>(
+      API_ENDPOINTS.ADMIN.FINANCIAL_REVENUE_BY_EXPERT,
+      { params: params ? normalizeParams(params) : undefined },
     );
     return res.data;
   },

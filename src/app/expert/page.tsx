@@ -7,7 +7,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -24,11 +24,17 @@ import {
   Sparkles,
   Rocket,
   BadgeCheck,
+  TrendingUp,
+  TrendingDown,
+  ShoppingCart,
+  Users,
+  BarChart3,
 } from 'lucide-react';
 
-import { useVerifications, useMyMaterials } from '@/hooks/useExpertApi';
+import { useVerifications, useMyMaterials, useExpertSalesOverview, useExpertMaterialSales } from '@/hooks/useExpertApi';
+import type { ExpertSalesFilterParams } from '@/types/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import type { VerificationDto, MaterialDto } from '@/types/api';
+import type { VerificationDto, MaterialDto, ExpertMaterialSalesItem } from '@/types/api';
 import { AppHeader } from '@/components';
 import { GcsImage } from '@/components/common';
 
@@ -61,10 +67,34 @@ const APPROVAL_STATUS_MAP: Record<number, { label: string; color: string }> = {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+const formatVND = (n: number) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
+
 export default function ExpertDashboard() {
   const user = useAuthStore((s) => s.user);
   const { data: verifications = [], isLoading: verificationsLoading } = useVerifications();
   const { data: materials = [], isLoading: materialsLoading } = useMyMaterials();
+
+  // Sales filters – default to last 30 days so the material table shows data on first render
+  const defaultSalesTo = () => new Date().toISOString().split('T')[0];
+  const defaultSalesFrom = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  };
+  const [salesFrom, setSalesFrom] = useState(defaultSalesFrom);
+  const [salesTo, setSalesTo] = useState(defaultSalesTo);
+  const salesParams: ExpertSalesFilterParams = {
+    // DB stores UTC (Vietnam time - 7h). Append time components so the backend
+    // includes the full UTC day, not just from midnight.
+    ...(salesFrom ? { fromDate: `${salesFrom}T00:00:00` } : {}),
+    ...(salesTo ? { toDate: `${salesTo}T23:59:59` } : {}),
+    pageSize: 20,
+  };
+  const { data: salesOverview, isLoading: overviewLoading } = useExpertSalesOverview(salesParams);
+  const { data: materialSalesPage, isLoading: matSalesLoading } = useExpertMaterialSales(salesParams);
+  // API returns direct array in result
+  const materialSales: ExpertMaterialSalesItem[] = materialSalesPage ?? [];
 
   const displayName =
     (user && 'fullName' in user && user.fullName) ||
@@ -319,32 +349,131 @@ export default function ExpertDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">Hành động nhanh</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {quickLinks.map((item) => {
-              const Icon = item.icon;
+        {/* Sales Overview */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Doanh thu &amp; Bán hàng</h3>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={salesFrom}
+                onChange={(e) => setSalesFrom(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <span className="text-xs text-gray-400">—</span>
+              <input
+                type="date"
+                value={salesTo}
+                onChange={(e) => setSalesTo(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          </div>
+
+          {/* KPI cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              {
+                label: 'Doanh thu hiện tại',
+                value: overviewLoading ? '...' : formatVND(salesOverview?.currentRevenue ?? 0),
+                sub: overviewLoading ? '' : `Kỳ trước: ${formatVND(salesOverview?.previousRevenue ?? 0)}`,
+                icon: DollarSign,
+                color: 'text-emerald-600 bg-emerald-50',
+              },
+              {
+                label: 'Tăng trưởng',
+                value: overviewLoading
+                  ? '...'
+                  : `${(salesOverview?.revenueGrowthRatePercent ?? 0) >= 0 ? '+' : ''}${(salesOverview?.revenueGrowthRatePercent ?? 0).toFixed(1)}%`,
+                sub: 'So với kỳ trước',
+                icon: (salesOverview?.revenueGrowthRatePercent ?? 0) >= 0 ? TrendingUp : TrendingDown,
+                color: (salesOverview?.revenueGrowthRatePercent ?? 0) >= 0
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-red-500 bg-red-50',
+              },
+              {
+                label: 'Dự báo doanh thu',
+                value: overviewLoading ? '...' : formatVND(salesOverview?.forecastRevenue ?? 0),
+                sub: overviewLoading ? '' : `TB/ngày: ${formatVND(salesOverview?.averageDailyRevenue ?? 0)}`,
+                icon: BarChart3,
+                color: 'text-blue-600 bg-blue-50',
+              },
+              {
+                label: 'Lượt bán',
+                value: overviewLoading ? '...' : (salesOverview?.currentSoldCount ?? 0).toLocaleString('vi-VN'),
+                sub: overviewLoading ? '' : `Kỳ trước: ${(salesOverview?.previousSoldCount ?? 0).toLocaleString('vi-VN')}`,
+                icon: ShoppingCart,
+                color: 'text-indigo-600 bg-indigo-50',
+              },
+              {
+                label: 'Người mua',
+                value: overviewLoading ? '...' : (salesOverview?.currentUniqueBuyerCount ?? 0).toLocaleString('vi-VN'),
+                sub: overviewLoading ? '' : `Kỳ trước: ${(salesOverview?.previousUniqueBuyerCount ?? 0).toLocaleString('vi-VN')}`,
+                icon: Users,
+                color: 'text-violet-600 bg-violet-50',
+              },
+            ].map((kpi) => {
+              const Icon = kpi.icon;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-5 hover:shadow-lg hover:shadow-blue-100 transition-all"
-                >
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r ${item.style}`} />
-                  <div className="relative z-10 flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-50 group-hover:bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors">
-                      <Icon className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900 group-hover:text-white transition-colors">{item.title}</p>
-                      <p className="text-xs text-gray-500 group-hover:text-blue-50 transition-colors">{item.desc}</p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-white transition-colors" />
+                <div key={kpi.label} className="rounded-2xl border border-white/80 bg-white/80 backdrop-blur p-5">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${kpi.color}`}>
+                    <Icon className="w-5 h-5" />
                   </div>
-                </Link>
+                  <p className="text-xl font-bold text-gray-900">{kpi.value}</p>
+                  <p className="text-xs text-gray-700 font-medium mt-0.5">{kpi.label}</p>
+                  {kpi.sub && <p className="text-xs text-gray-400 mt-0.5">{kpi.sub}</p>}
+                </div>
               );
             })}
+          </div>
+
+          {/* Material sales table */}
+          <div className="bg-white/90 backdrop-blur rounded-2xl border border-blue-100/70 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-blue-50">
+              <BookOpen className="w-4 h-4 text-blue-600" />
+              <h3 className="font-semibold text-gray-900">Doanh thu theo tài liệu</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left text-xs uppercase text-slate-400">
+                    <th className="px-5 py-3">Tài liệu</th>
+                    <th className="px-4 py-3 text-right">Lượt bán</th>
+                    <th className="px-4 py-3 text-right">Người mua</th>
+                    <th className="px-4 py-3 text-right">Doanh thu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matSalesLoading
+                    ? Array.from({ length: 4 }).map((_, i) => (
+                        <tr key={i} className="border-b border-slate-50">
+                          {[...Array(4)].map((__, j) => (
+                            <td key={j} className="px-5 py-3">
+                              <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    : materialSales.length === 0
+                    ? (
+                        <tr>
+                          <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">
+                            Chưa có dữ liệu bán hàng cho khoảng thời gian này.
+                          </td>
+                        </tr>
+                      )
+                    : materialSales.map((item) => (
+                        <tr key={item.materialCode} className="border-b border-slate-50 hover:bg-slate-50/50">
+                          <td className="px-5 py-3 font-medium text-slate-800">{item.title}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{item.soldCount.toLocaleString('vi-VN')}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{item.uniqueBuyerCount.toLocaleString('vi-VN')}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-emerald-600">{formatVND(item.grossRevenue)}</td>
+                        </tr>
+                      ))
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </main>

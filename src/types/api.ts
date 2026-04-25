@@ -624,3 +624,44 @@ export interface AddProductMaterialInput {
   resourceUrl?: string;
   previewUrl?: string;
 }
+
+// ─── Expert Sales ─────────────────────────────────────────────────────────
+
+export interface ExpertSalesFilterParams {
+  fromDate?: string;
+  toDate?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  materialCode?: string;
+  forecastDays?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ExpertSalesOverviewResponse {
+  fromDate?: string;
+  toDate?: string;
+  periodDays?: number;
+  forecastDays?: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  revenueGrowthRatePercent: number;
+  averageDailyRevenue: number;
+  forecastRevenue: number;
+  currentSoldCount: number;
+  previousSoldCount: number;
+  currentUniqueBuyerCount: number;
+  previousUniqueBuyerCount: number;
+}
+
+export interface ExpertMaterialSalesItem {
+  materialCode: string;
+  title: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  soldCount: number;
+  uniqueBuyerCount: number;
+  grossRevenue: number;
+  lastPurchasedDate?: string;
+}
+

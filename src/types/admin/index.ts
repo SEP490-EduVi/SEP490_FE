@@ -287,3 +287,55 @@ export interface ListAdminMaterialsParams {
   page?: number;
   pageSize?: number;
 }
+
+// ─── Revenue / Sales types ─────────────────────────────────────────────────────
+
+export interface RevenueFilterParams {
+  fromDate?: string;
+  toDate?: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  expertCode?: string;
+  materialCode?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminRevenueForecastResponse {
+  fromDate?: string;
+  toDate?: string;
+  periodDays?: number;
+  forecastDays?: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  revenueGrowthRatePercent: number;
+  averageDailyRevenue: number;
+  forecastRevenue: number;
+  currentSoldCount: number;
+  previousSoldCount?: number;
+  currentUniqueBuyerCount: number;
+  previousUniqueBuyerCount?: number;
+}
+
+export interface AdminMaterialSalesItem {
+  materialCode: string;
+  title: string;
+  subjectCode?: string;
+  gradeCode?: string;
+  expertCode?: string;
+  expertName?: string;
+  soldCount: number;
+  uniqueBuyerCount: number;
+  grossRevenue: number;
+  lastPurchasedDate?: string;
+}
+
+export interface AdminExpertSalesItem {
+  expertCode: string;
+  expertName: string;
+  soldMaterialCount: number;
+  soldCount: number;
+  uniqueBuyerCount?: number;
+  grossRevenue: number;
+  lastPurchasedDate?: string;
+}

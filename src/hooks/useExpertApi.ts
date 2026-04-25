@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as expertService from '@/services/expertServices';
 import * as materialService from '@/services/materialServices';
-import type { UpdateExpertProfileInput, UpdateMaterialInput, VerificationDto, MaterialDto } from '@/types/api';
+import type { UpdateExpertProfileInput, UpdateMaterialInput, VerificationDto, MaterialDto, ExpertSalesFilterParams } from '@/types/api';
 import { notify, MSGS } from '@/components/common';
 
 // ─── Verifications ─────────────────────────────────────────────────────────
@@ -150,3 +150,23 @@ export function useDeleteMaterial() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [MATERIAL_KEY] }),
   });
 }
+
+// ─── Expert Sales ──────────────────────────────────────────────────────────
+
+const EXPERT_SALES_OVERVIEW_KEY = 'expert-sales-overview';
+const EXPERT_SALES_MATERIALS_KEY = 'expert-sales-materials';
+
+export function useExpertSalesOverview(params?: ExpertSalesFilterParams) {
+  return useQuery({
+    queryKey: [EXPERT_SALES_OVERVIEW_KEY, params],
+    queryFn: () => expertService.getExpertSalesOverview(params),
+  });
+}
+
+export function useExpertMaterialSales(params?: ExpertSalesFilterParams) {
+  return useQuery({
+    queryKey: [EXPERT_SALES_MATERIALS_KEY, params],
+    queryFn: () => expertService.getExpertMaterialSales(params),
+  });
+}
+
