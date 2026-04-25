@@ -111,3 +111,8 @@ export async function getMaterialByCode(materialCode: string): Promise<MaterialD
   const { data } = await api.get<ApiResponse<MaterialDto>>(API_ENDPOINTS.MATERIAL.GET_BY_CODE(materialCode));
   return data.result;
 }
+
+export async function getPurchasedMaterialDetail(materialCode: string): Promise<PurchasedMaterialDto> {
+  const { data } = await api.get<ApiResponse<PurchasedMaterialDto>>(API_ENDPOINTS.MATERIAL.GET_PURCHASED_DETAIL(materialCode));
+  return data.result;
+}

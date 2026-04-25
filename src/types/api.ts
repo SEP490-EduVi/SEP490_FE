@@ -143,7 +143,7 @@ export interface GenerateVideoInput {
 
 // ─── Video ─────────────────────────────────────────────────────────────────
 export interface VideoInteraction {
-  type: 'quiz' | 'flashcard' | 'fill_blank' | string;
+  type: 'quiz' | 'flashcard' | 'fill_blank' | 'index' | string;
   slide_index: number;
   card_index: number;
   start_time: number;
@@ -151,6 +151,9 @@ export interface VideoInteraction {
   pause_time: number;
   payload: {
     title: string;
+    // index (table of contents)
+    label?: string;
+    seek_time?: number;
     // quiz
     question?: string;
     options?: string[];

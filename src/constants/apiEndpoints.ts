@@ -179,6 +179,7 @@ export const API_ENDPOINTS = {
     BROWSE:      '/api/material/browse',
     PURCHASE:    (code: string) => `/api/material/${code}/purchase`,
     GET_PURCHASED: '/api/material/purchased',
+    GET_PURCHASED_DETAIL: (code: string) => `/api/material/purchased/${code}`,
   },
 
   // Curriculum Ingestion

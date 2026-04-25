@@ -8,7 +8,7 @@ import {
   Check, Plus, X, ChevronDown,
 } from 'lucide-react';
 import { useProductMaterials, useAddProductMaterial, useDeleteProductMaterial } from '@/hooks/useProductMaterialApi';
-import { usePurchasedMaterials } from '@/hooks/useMaterialShopApi';
+import { usePurchasedMaterials, useMaterialDetail } from '@/hooks/useMaterialShopApi';
 import { uploadMaterialFilesToGcs } from '@/services/gcsServices';
 import { useAuthStore } from '@/store/useAuthStore';
 import { notify, MSGS } from '@/components/common';
@@ -28,6 +28,103 @@ function MaterialIcon({ type, className }: { type: string; className?: string })
   if (type === 'video') return <Film className={className} />;
   if (type === 'audio') return <Music className={className} />;
   return <FileText className={className} />;
+}
+
+// ─── Purchased picker card (fetches fresh detail to detect deleted materials) ─
+function PurchasedPickerCard({
+  m, alreadyAdded, addMaterial,
+}: {
+  m: { materialCode: string; title: string; type: string; previewUrl?: string | null; subjectName?: string; gradeName?: string; expertName?: string; purchasedDate?: string };
+  alreadyAdded: boolean;
+  addMaterial: ReturnType<typeof useAddProductMaterial>;
+}) {
+  const { data: detail, isLoading, isError } = useMaterialDetail(m.materialCode);
+  const isUnavailable = isError || (detail !== undefined && !detail.resourceUrl);
+
+  const typeLabel = m.type === 'video' ? 'Video' : m.type === 'image' ? 'Hình ảnh' : m.type === 'audio' ? 'Âm thanh' : 'Tài liệu';
+  const typeColor = m.type === 'video' ? 'bg-rose-50 text-rose-600' : m.type === 'image' ? 'bg-blue-50 text-blue-600' : m.type === 'audio' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600';
+  const purchasedDate = m.purchasedDate ? new Date(m.purchasedDate).toLocaleDateString('vi-VN') : '';
+
+  return (
+    <div className={`group relative flex flex-col rounded-2xl border transition-all overflow-hidden ${
+      isUnavailable ? 'border-gray-200 bg-gray-50 opacity-60'
+      : alreadyAdded ? 'border-emerald-200 bg-emerald-50/30'
+      : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-md'
+    }`}>
+      {/* Thumbnail */}
+      <div className="relative aspect-video bg-gray-100 overflow-hidden flex-shrink-0">
+        {m.previewUrl ? (
+          <GcsImage src={m.previewUrl} alt={m.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <MaterialIcon type={m.type} className="w-8 h-8 text-gray-300" />
+          </div>
+        )}
+        <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeColor}`}>{typeLabel}</span>
+        {alreadyAdded && (
+          <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center">
+            <div className="bg-emerald-500 text-white rounded-full p-1.5"><Check className="w-4 h-4" /></div>
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-3 flex flex-col flex-1">
+        <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{m.title}</p>
+        <div className="flex flex-wrap gap-1 mb-2">
+          {m.subjectName && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">{m.subjectName}</span>}
+          {m.gradeName && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">{m.gradeName}</span>}
+        </div>
+        <div className="mt-auto space-y-1">
+          <p className="text-[11px] text-gray-400 truncate">👤 {m.expertName}</p>
+          {purchasedDate && <p className="text-[11px] text-gray-400">🕒 {purchasedDate}</p>}
+        </div>
+      </div>
+
+      {/* Action button */}
+      <div className="px-3 pb-3">
+        {isLoading ? (
+          <div className="w-full flex items-center justify-center py-1.5">
+            <Loader2 className="w-4 h-4 animate-spin text-gray-300" />
+          </div>
+        ) : isUnavailable ? (
+          <div className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-gray-100 text-gray-400 text-xs font-semibold cursor-not-allowed">
+            Không còn sẵn sàng
+          </div>
+        ) : alreadyAdded ? (
+          <div className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-semibold border border-emerald-200">
+            <Check className="w-3.5 h-3.5" /> Đã thêm
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => addMaterial.mutate(
+              {
+                sourceType: 'Marketplace',
+                materialCode: m.materialCode,
+                title: detail?.title ?? m.title,
+                type: detail?.type ?? m.type,
+                resourceUrl: detail?.resourceUrl ?? undefined,
+                previewUrl: detail?.previewUrl ?? undefined,
+              },
+              {
+                onSuccess: () => notify.success(MSGS.material.productMaterial.addSuccess(m.title)),
+                onError: (err) => {
+                  const status = (err as { response?: { status?: number } })?.response?.status;
+                  if (status === 404) notify.error(MSGS.material.productMaterial.addUnavailableError);
+                  else notify.error(MSGS.material.productMaterial.addError);
+                },
+              },
+            )}
+            disabled={addMaterial.isPending}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Thêm vào dự án
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -385,92 +482,14 @@ export default function ProductMaterialsSection({
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {purchased.map((m) => {
-                        const alreadyAdded = addedCodes.has(m.materialCode);
-                        const typeLabel = m.type === 'video' ? 'Video' : m.type === 'image' ? 'Hình ảnh' : m.type === 'audio' ? 'Âm thanh' : 'Tài liệu';
-                        const typeColor = m.type === 'video' ? 'bg-rose-50 text-rose-600' : m.type === 'image' ? 'bg-blue-50 text-blue-600' : m.type === 'audio' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600';
-                        const purchasedDate = m.purchasedDate ? new Date(m.purchasedDate).toLocaleDateString('vi-VN') : '';
-                        return (
-                          <div
-                            key={m.materialCode}
-                            className={`group relative flex flex-col rounded-2xl border transition-all overflow-hidden ${alreadyAdded ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-md'}`}
-                          >
-                            {/* Thumbnail */}
-                            <div className="relative aspect-video bg-gray-100 overflow-hidden flex-shrink-0">
-                              {m.previewUrl ? (
-                                <GcsImage
-                                  src={m.previewUrl}
-                                  alt={m.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <MaterialIcon type={m.type} className="w-8 h-8 text-gray-300" />
-                                </div>
-                              )}
-                              {/* Type badge */}
-                              <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeColor}`}>
-                                {typeLabel}
-                              </span>
-                              {/* Added overlay */}
-                              {alreadyAdded && (
-                                <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center">
-                                  <div className="bg-emerald-500 text-white rounded-full p-1.5">
-                                    <Check className="w-4 h-4" />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Info */}
-                            <div className="p-3 flex flex-col flex-1">
-                              <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{m.title}</p>
-                              <div className="flex flex-wrap gap-1 mb-2">
-                                {m.subjectName && (
-                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                                    {m.subjectName}
-                                  </span>
-                                )}
-                                {m.gradeName && (
-                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
-                                    {m.gradeName}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="mt-auto space-y-1">
-                                <p className="text-[11px] text-gray-400 truncate">👤 {m.expertName}</p>
-                                {purchasedDate && <p className="text-[11px] text-gray-400">🕒 {purchasedDate}</p>}
-                              </div>
-                            </div>
-
-                            {/* Action button */}
-                            <div className="px-3 pb-3">
-                              {alreadyAdded ? (
-                                <div className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-semibold border border-emerald-200">
-                                  <Check className="w-3.5 h-3.5" /> Đã thêm
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    addMaterial.mutate(
-                                      { sourceType: 'Marketplace', materialCode: m.materialCode },
-                                      {
-                                        onSuccess: () => notify.success(MSGS.material.productMaterial.addSuccess(m.title)),
-                                        onError: () => notify.error(MSGS.material.productMaterial.addError),
-                                      },
-                                    );
-                                  }}
-                                  disabled={addMaterial.isPending}
-                                  className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
-                                >
-                                  <Plus className="w-3.5 h-3.5" /> Thêm vào dự án
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {purchased.map((m) => (
+                        <PurchasedPickerCard
+                          key={m.materialCode}
+                          m={m}
+                          alreadyAdded={addedCodes.has(m.materialCode)}
+                          addMaterial={addMaterial}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

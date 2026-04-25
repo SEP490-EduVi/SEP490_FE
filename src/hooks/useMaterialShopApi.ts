@@ -38,7 +38,7 @@ export function usePurchasedMaterials() {
 export function useMaterialDetail(materialCode?: string) {
   return useQuery({
     queryKey: [MATERIAL_DETAIL_KEY, materialCode],
-    queryFn: () => materialService.getMaterialByCode(materialCode!),
+    queryFn: () => materialService.getPurchasedMaterialDetail(materialCode!),
     enabled: !!materialCode,
     staleTime: 60_000,
   });

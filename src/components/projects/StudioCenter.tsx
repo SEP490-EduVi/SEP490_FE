@@ -194,6 +194,57 @@ function EvaluationInline({ productCode }: { productCode: string }) {
 
 // ── Read-only slide renderer (for inline preview) ────────────────────────────
 
+/** Resolves gs:// URLs and renders a <video> player */
+function ReadonlyVideo({ src }: { src: string }) {
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(
+    src && !src.startsWith('gs://') ? src : null
+  );
+  const [loading, setLoading] = useState(!!src && src.startsWith('gs://'));
+
+  useEffect(() => {
+    if (!src || !src.startsWith('gs://')) {
+      setResolvedSrc(src || null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    let cancelled = false;
+    fetch('/api/gcs/download-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcsUrl: src }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d.signedUrl) setResolvedSrc(d.signedUrl); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [src]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center rounded-lg bg-gray-100 min-h-[80px]">
+        <Loader2 className="w-5 h-5 animate-spin text-gray-300" />
+      </div>
+    );
+  }
+  if (!resolvedSrc) {
+    return (
+      <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5">
+        <Video className="w-4 h-4 text-rose-400 flex-shrink-0" />
+        <span className="text-xs text-rose-500">Không thể tải video</span>
+      </div>
+    );
+  }
+  return (
+    <video
+      controls
+      src={resolvedSrc}
+      className="w-full rounded-lg bg-black max-h-64"
+    />
+  );
+}
+
 /** Resolves gs:// URLs to signed download URLs, like ImageBlock does in the editor */
 function ReadonlyImage({ src, alt, caption }: { src: string; alt?: string; caption?: string }) {
   const [resolvedSrc, setResolvedSrc] = useState<string | null>(
@@ -276,12 +327,7 @@ function RenderBlock({ block }: { block: IBlock }) {
   }
 
   if (content.type === BlockType.VIDEO) {
-    return (
-      <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5">
-        <Video className="w-4 h-4 text-rose-400 flex-shrink-0" />
-        <span className="text-xs text-rose-600 truncate">Video: {content.src}</span>
-      </div>
-    );
+    return <ReadonlyVideo src={content.src} />;
   }
 
   if (content.type === BlockType.QUIZ) {

@@ -74,6 +74,7 @@ export const MSGS = {
       deleteSuccess:     'Đã xóa tài liệu thành công',
       deleteError:       'Không thể xóa tài liệu. Vui lòng thử lại.',
       unauthorizedError: 'Bạn không có thẩm quyền để thực hiện hành động này',
+      autoRejected:      (title: string) => `Nội dung "${title}" của bạn không phù hợp và đã bị từ chối.`,
     },
     staff: {
       approveSuccess:   'Đã duyệt học liệu thành công',
@@ -98,6 +99,7 @@ export const MSGS = {
       deleteError:   'Xóa thất bại. Vui lòng thử lại.',
       addSuccess:    (title: string) => `Đã thêm "${title}"`,
       addError:      'Thêm học liệu thất bại. Vui lòng thử lại.',
+      addUnavailableError: 'Học liệu này đã bị xóa và không thể thêm vào dự án.',
     },
   },
 
@@ -169,6 +171,7 @@ export const MSGS = {
     noExpertProfile:  'Tài khoản chưa có hồ sơ Expert trong hệ thống. Vui lòng đăng xuất/đăng nhập lại hoặc liên hệ admin.',
     uploadError:      'Upload chứng chỉ thất bại. Vui lòng thử lại.',
     previewError:     'Không thể mở file chứng chỉ. Vui lòng thử lại.',
+    autoRejected:     'Hồ sơ chứng chỉ của bạn không phù hợp và đã bị từ chối.',
   },
 
   // ── Classroom ─────────────────────────────────────────────────────────────
