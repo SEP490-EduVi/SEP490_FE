@@ -891,14 +891,13 @@ async function embedAssets(
 
   if (Array.isArray(schema.videos) && schema.videos.length > 0) {
     for (const video of schema.videos) {
-      const videoRecord = video as Record<string, unknown>;
-      const videoUrl = typeof videoRecord.videoUrl === 'string' ? videoRecord.videoUrl : undefined;
+      const videoUrl = typeof video.videoUrl === 'string' ? video.videoUrl : undefined;
 
       await registerAsset(videoUrl, 'video', true, (rewrittenUrl) => {
-        videoRecord.videoUrl = rewrittenUrl;
+        video.videoUrl = rewrittenUrl;
       });
 
-      await rewriteDeepMediaFields(videoRecord, 'video');
+      await rewriteDeepMediaFields(video, 'video');
     }
   }
 
