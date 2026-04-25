@@ -80,6 +80,9 @@ export interface EduViFileSchema {
   /** Optional exported game payloads linked to this product */
   games?: EduViGame[];
 
+  /** Optional exported video payloads linked to this product */
+  videos?: EduViVideo[];
+
   /** Optional embedded assets for offline playback in Flutter desktop app */
   assets?: Record<string, EduViAsset>;
 
@@ -130,6 +133,8 @@ export interface EduViExportOptions {
   projectName?: string;
   /** Optional games to include in the exported EduVi package */
   games?: EduViGame[];
+  /** Optional videos to include in the exported EduVi package */
+  videos?: EduViVideo[];
   /** Logical folder name written into metadata for app-side grouping */
   folderName?: string;
   /** Package intent of this export file */
@@ -140,7 +145,7 @@ export interface EduViExportOptions {
   mediaFetchTimeoutMs?: number;
 }
 
-export type EduViPackageType = 'slide' | 'game' | 'combined';
+export type EduViPackageType = 'slide' | 'game' | 'combined' | 'video';
 
 export interface EduViAcademicContext {
   projectCode?: string;
@@ -184,6 +189,19 @@ export interface EduViGame {
   roundCount: number;
   status: string;
   resultJson: unknown;
+}
+
+export interface EduViVideo {
+  productVideoCode: string;
+  productCode: string;
+  productName: string;
+  status: string;
+  duration: number | null;
+  videoUrl: string;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string | null;
+  interactions?: unknown;
 }
 
 export interface EduViLayout {
@@ -871,6 +889,19 @@ async function embedAssets(
     }
   }
 
+  if (Array.isArray(schema.videos) && schema.videos.length > 0) {
+    for (const video of schema.videos) {
+      const videoRecord = video as Record<string, unknown>;
+      const videoUrl = typeof videoRecord.videoUrl === 'string' ? videoRecord.videoUrl : undefined;
+
+      await registerAsset(videoUrl, 'video', true, (rewrittenUrl) => {
+        videoRecord.videoUrl = rewrittenUrl;
+      });
+
+      await rewriteDeepMediaFields(videoRecord, 'video');
+    }
+  }
+
   if (Object.keys(assets).length > 0) {
     schema.assets = assets;
   }
@@ -920,6 +951,18 @@ function computeStats(schema: EduViFileSchema, failedEmbedUrlCount = 0): EduViSt
     }
   }
 
+  if (Array.isArray(schema.videos)) {
+    for (const video of schema.videos) {
+      const videoUrl = typeof video.videoUrl === 'string' ? video.videoUrl : '';
+      if (
+        !videoUrl
+        || (!videoUrl.startsWith('asset://') && !videoUrl.startsWith('http') && !videoUrl.startsWith('data:'))
+      ) {
+        unresolvedMediaCount += 1;
+      }
+    }
+  }
+
   return {
     totalCards: schema.cards.length,
     totalLayouts,
@@ -941,6 +984,7 @@ async function buildEduViData(document: IDocument, options: EduViExportOptions =
     document,
     options.academicContext,
     options.games,
+    options.videos,
     options.projectName,
     options.folderName,
     options.packageType,
@@ -960,6 +1004,7 @@ function transformDocument(
   document: IDocument,
   academicContext?: Partial<EduViAcademicContext>,
   games?: EduViGame[],
+  videos?: EduViVideo[],
   fallbackProjectName?: string,
   folderName?: string,
   packageType?: EduViPackageType,
@@ -1003,6 +1048,22 @@ function transformDocument(
             roundCount: game.roundCount,
             status: game.status,
             resultJson: game.resultJson,
+          })),
+        }
+      : {}),
+    ...(Array.isArray(videos) && videos.length > 0
+      ? {
+          videos: videos.map((video) => ({
+            productVideoCode: video.productVideoCode,
+            productCode: video.productCode,
+            productName: video.productName,
+            status: video.status,
+            duration: video.duration,
+            videoUrl: video.videoUrl,
+            createdAt: video.createdAt,
+            updatedAt: video.updatedAt,
+            completedAt: video.completedAt,
+            interactions: video.interactions,
           })),
         }
       : {}),
@@ -1128,6 +1189,9 @@ export function validateEduViSchema(data: unknown): { valid: boolean; errors: st
   if (obj.games !== undefined && !Array.isArray(obj.games)) {
     errors.push('games must be an array when provided');
   }
+  if (obj.videos !== undefined && !Array.isArray(obj.videos)) {
+    errors.push('videos must be an array when provided');
+  }
 
   // Check metadata
   if (obj.metadata && typeof obj.metadata === 'object') {
@@ -1139,11 +1203,25 @@ export function validateEduViSchema(data: unknown): { valid: boolean; errors: st
       errors.push('metadata.folderName must be a string when provided');
     }
     if (meta.packageType !== undefined) {
-      const allowedPackageTypes = new Set(['slide', 'game', 'combined']);
+      const allowedPackageTypes = new Set(['slide', 'game', 'combined', 'video']);
       if (typeof meta.packageType !== 'string' || !allowedPackageTypes.has(meta.packageType)) {
-        errors.push('metadata.packageType must be one of: slide, game, combined');
+        errors.push('metadata.packageType must be one of: slide, game, combined, video');
       }
     }
+  }
+
+  if (Array.isArray(obj.videos)) {
+    obj.videos.forEach((videoRaw, videoIndex) => {
+      if (!videoRaw || typeof videoRaw !== 'object') {
+        errors.push(`videos[${videoIndex}] must be an object`);
+        return;
+      }
+
+      const video = videoRaw as Record<string, unknown>;
+      if (!video.productVideoCode) errors.push(`videos[${videoIndex}] missing productVideoCode`);
+      if (!video.productCode) errors.push(`videos[${videoIndex}] missing productCode`);
+      if (!video.videoUrl) errors.push(`videos[${videoIndex}] missing videoUrl`);
+    });
   }
 
   if (Array.isArray(obj.cards)) {
