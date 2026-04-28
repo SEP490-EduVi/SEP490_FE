@@ -29,12 +29,11 @@ import AppHeader from '@/components/sidebar/AppHeader';
 import { notify, MSGS } from '@/components/common';
 import SecurityTab from '@/components/profile/SecurityTab';
 import PaymentTab from '@/components/profile/PaymentTab';
-import WithdrawalTab from '@/components/profile/WithdrawalTab';
 import CertificateTab from '@/components/profile/CertificateTab';
 import ProfileTab from '@/components/profile/ProfileTab';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type Tab = 'profile' | 'security' | 'payment' | 'withdrawal' | 'certificate' | 'slides' | 'videos' | 'library';
+type Tab = 'profile' | 'security' | 'payment' | 'certificate' | 'slides' | 'videos' | 'library';
 type ProfileRole = 'guest' | 'admin' | 'teacher' | 'staff' | 'expert';
 
 function resolveProfileRole(roleName?: string | null): ProfileRole {
@@ -90,7 +89,7 @@ function ProfilePageInner() {
     const t = searchParams.get('tab');
     if (t === 'security')    return 'security';
     if (t === 'payment' && !isStaff) return 'payment';
-    if (t === 'withdrawal' && isExpert) return 'withdrawal';
+
     if (t === 'slides' && isTeacher) return 'slides';
     if (t === 'videos' && isTeacher) return 'videos';
     if (t === 'library' && isTeacher) return 'library';
@@ -100,7 +99,7 @@ function ProfilePageInner() {
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
 
   useEffect(() => {
-    if (isStaff && (activeTab === 'payment' || activeTab === 'withdrawal')) {
+    if (isStaff && activeTab === 'payment') {
       setActiveTab('profile');
     }
   }, [isStaff, activeTab]);
@@ -216,7 +215,7 @@ function ProfilePageInner() {
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
     ...(!isStaff ? [{ key: 'payment' as Tab, label: 'Thanh toán', icon: Wallet }] : []),
-    ...(isExpert ? [{ key: 'withdrawal' as Tab, label: 'Rút tiền', icon: CreditCard }] : []),
+
     ...(isTeacher ? [
       { key: 'slides'  as Tab, label: 'Slide', icon: Layers  },
       { key: 'videos'  as Tab, label: 'Video', icon: Film    },
@@ -391,10 +390,7 @@ function ProfilePageInner() {
           {/* ════ Thanh toán ════ */}
           {!isStaff && activeTab === 'payment' && <PaymentTab isStaff={isStaff} />}
 
-          {/* ════ Rút tiền ════ */}
-          {isExpert && activeTab === 'withdrawal' && (
-            <WithdrawalTab isExpert={isExpert} expertIsVerified={expertIsVerified} />
-          )}
+
 
           {/* ════ Slide của tôi ════ */}
           {activeTab === 'slides' && isTeacher && (
