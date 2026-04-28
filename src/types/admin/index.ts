@@ -132,9 +132,11 @@ export interface AdminOrderResponse {
 
 export interface AdminWithdrawalResponse {
   withdrawalId: number;
-  expertId?: number | null;
-  expertName?: string | null;
+  userId?: number | null;
+  userFullName?: string | null;
+  userEmail?: string | null;
   amount: number;
+  lockedAmount?: number | null;
   bankAccountNumber: string;
   bankName: string;
   accountHolderName: string;
