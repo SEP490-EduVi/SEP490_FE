@@ -18,6 +18,7 @@ import {
   Wallet,
   ArrowLeftRight,
   BookOpen,
+  BookText,
   FileText,
   ChevronLeft,
   ChevronRight,
@@ -39,6 +40,8 @@ const NAV_ITEMS = [
   { href: '/admin/wallets', label: 'Ví', icon: Wallet },
   { href: '/admin/withdrawals', label: 'Rút tiền', icon: Wallet },
   { href: '/admin/curriculum', label: 'Chương trình học', icon: BookOpen },
+  { href: '/admin/curriculum-ingestion', label: 'CT Giáo dục ', icon: BookOpen },
+  { href: '/admin/textbook-ingestion', label: 'Sách giáo khoa ', icon: BookText },
   { href: '/admin/templates', label: 'Mẫu bố cục', icon: LayoutTemplate },
   { href: '/admin/materials', label: 'Tài liệu', icon: FileText },
 ];
@@ -66,7 +69,9 @@ export default function AdminLayout({
   };
 
   const isActive = (href: string) =>
-    href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+    href === '/admin'
+      ? pathname === '/admin'
+      : pathname === href || pathname.startsWith(href + '/');
 
   return (
     <AuthGuard>
