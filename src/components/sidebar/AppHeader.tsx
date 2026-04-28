@@ -69,15 +69,16 @@ export default function AppHeader() {
   const logoutService = useLogoutService();
   const queryClient = useQueryClient();
   const isTeacher = role === 'teacher';
+  const isExpert  = role === 'expert';
   const { data: userQuota, isLoading: quotaLoading } = useUserQuota({ enabled: isTeacher });
   const { data: walletInfo, isLoading: walletLoading } = useWalletInfo({
-    enabled: isTeacher,
+    enabled: isTeacher || isExpert,
     refetchIntervalMs: 7000,
     staleTimeMs: 5000,
     refetchInBackground: true,
   });
   const { data: txData, isLoading: txLoading } = useWalletTransactions(1, 10, {
-    enabled: isTeacher,
+    enabled: isTeacher || isExpert,
     refetchIntervalMs: 3000,
     staleTimeMs: 2000,
     refetchInBackground: true,
@@ -347,7 +348,7 @@ export default function AppHeader() {
             </div>
           )}
 
-          {isTeacher && (
+          {(isTeacher || isExpert) && (
             <div
               className="hidden lg:flex h-10 min-w-[164px] items-center justify-center gap-2 px-3 rounded-full border border-emerald-200 bg-emerald-50/70"
               title={`Số dư: ${formatBalance(walletInfo?.balance)}`}
@@ -363,7 +364,7 @@ export default function AppHeader() {
             </div>
           )}
 
-          {isTeacher && (
+          {(isTeacher || isExpert) && (
             <div className="relative hidden md:block" ref={notifRef}>
               <button
                 onClick={() => setNotifOpen((o) => !o)}
@@ -514,6 +515,19 @@ export default function AppHeader() {
                   >
                     <Library className="w-4 h-4 text-emerald-400" />
                     Thư viện
+                  </button>
+                </>
+              )}
+
+              {role === 'expert' && (
+                <>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/expert/withdrawal'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <Wallet className="w-4 h-4 text-emerald-500" />
+                    Rút tiền
                   </button>
                 </>
               )}
