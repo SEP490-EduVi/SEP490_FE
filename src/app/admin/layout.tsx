@@ -43,7 +43,7 @@ const NAV_ITEMS = [
   { href: '/admin/curriculum-ingestion', label: 'CT Giáo dục ', icon: BookOpen },
   { href: '/admin/textbook-ingestion', label: 'Sách giáo khoa ', icon: BookText },
   { href: '/admin/templates', label: 'Mẫu bố cục', icon: LayoutTemplate },
-  { href: '/admin/materials', label: 'Tài liệu', icon: FileText },
+  { href: '/admin/materials', label: 'Học liệu', icon: FileText },
 ];
 
 export default function AdminLayout({

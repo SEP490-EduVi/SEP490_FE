@@ -412,7 +412,7 @@ export default function ProjectDetailPage() {
         cards: [],
         activeCardId: '',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        updatedAt: video.completedAt ?? video.updatedAt ?? video.createdAt ?? new Date().toISOString(),
       };
       const videosForExport: EduViVideo[] = [{
         productVideoCode: video.productVideoCode,
@@ -424,6 +424,7 @@ export default function ProjectDetailPage() {
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
         completedAt: video.completedAt,
+        interactions: video.interactions,
       }];
       await exportToEduvi(minimalDoc, {
         requireOfflineReady: true,

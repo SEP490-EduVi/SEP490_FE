@@ -358,7 +358,7 @@ export default function AppHeader() {
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
               ) : (
                 <p className="text-xs font-semibold text-emerald-800 tabular-nums whitespace-nowrap">
-                  Ví EduCoin {formatCompactBalance(walletInfo?.balance)}
+                  EduCoin {formatCompactBalance(walletInfo?.balance)}
                 </p>
               )}
             </div>
@@ -459,7 +459,7 @@ export default function AppHeader() {
                 {initial}
               </div>
             )}
-            <p className="hidden 2xl:block text-sm font-semibold text-gray-900 leading-none">{displayName}</p>
+            <p className="hidden 2xl:block text-sm font-semibold text-gray-900 leading-none max-w-[70px] truncate">{displayName}</p>
             <ChevronDown
               className={`w-4 h-4 text-gray-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
             />
