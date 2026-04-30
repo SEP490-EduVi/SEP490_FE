@@ -540,7 +540,11 @@ export default function ExpertDashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={28} />
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value: number) => [value, 'Lượt bán']}
+                      labelFormatter={(label: string) => label}
+                      contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                    />
                     <Area type="monotone" dataKey="sold" stroke="#6366f1" strokeWidth={2} fill="url(#soldGradient)" />
                   </AreaChart>
                 </ResponsiveContainer>

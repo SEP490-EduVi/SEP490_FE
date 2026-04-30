@@ -174,7 +174,7 @@ export interface VideoProductDto {
   productName: string;
   productVideoCode: string;
   videoName: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'Pending' | 'Processing' | 'Completed' | 'Failed' | (string & {});
   slideDocumentUrl: string | null;
   videoUrl: string | null;
   duration: number | null;

@@ -235,7 +235,7 @@ export default function AppHeader() {
   /** Active check: exact match for root role page, prefix for sub-pages */
   const isActive = (href: string) => {
     const path = href.split('?')[0]; // strip query string for comparison
-    if (path === '/teacher' || path === '/expert' || path === '/admin' || path === '/') {
+    if (path === '/teacher' || path === '/expert' || path === '/admin' || path === '/' || path === '/staff') {
       return pathname === path;
     }
     return pathname.startsWith(path);

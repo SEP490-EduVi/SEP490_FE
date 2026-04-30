@@ -42,7 +42,9 @@ export default function TeacherDashboard() {
 
   const relativeTime = (iso?: string) => {
     if (!iso) return 'Cập nhật gần đây';
-    const diff = Date.now() - new Date(iso).getTime();
+    // Ensure UTC parsing: append 'Z' if no timezone info to avoid -7h shift from DB
+    const normalized = /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + 'Z';
+    const diff = Date.now() - new Date(normalized).getTime();
     if (Number.isNaN(diff) || diff < 0) return 'Cập nhật gần đây';
     const min = Math.floor(diff / 60000);
     if (min < 1) return 'Vừa xong';

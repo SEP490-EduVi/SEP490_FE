@@ -16,6 +16,7 @@ import {
   useWalletTransactions,
 } from '@/hooks/usePaymentApi';
 import { notify, MSGS } from '@/components/common';
+import Pagination from '@/components/paging/Pagination';
 
 function formatEduCoin(value: number | null | undefined): string {
   const amount = Number.isFinite(value) ? Number(value) : 0;
@@ -36,6 +37,7 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [verifyingOrder, setVerifyingOrder] = useState<number | null>(null);
+  const [txPage, setTxPage] = useState(1);
 
   const { data: wallet, isLoading: walletLoading, isError: walletError, refetch: refetchWallet } = useWalletInfo({
     enabled: !isStaff,
@@ -43,7 +45,7 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
     staleTimeMs: 5000,
     refetchInBackground: true,
   });
-  const { data: transactions, isLoading: txLoading } = useWalletTransactions(1, 10, {
+  const { data: transactions, isLoading: txLoading } = useWalletTransactions(txPage, 5, {
     enabled: !isStaff,
     refetchIntervalMs: 5000,
     staleTimeMs: 3000,
@@ -249,6 +251,15 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
                 ))}
               </tbody>
             </table>
+            {Math.ceil((transactions.totalCount ?? 0) / 5) > 1 && (
+              <div className="px-4 py-3 border-t border-gray-50">
+                <Pagination
+                  page={txPage}
+                  totalPages={Math.ceil((transactions.totalCount ?? 0) / 5)}
+                  onPageChange={setTxPage}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="px-6 py-10 text-sm text-gray-400 text-center">Chưa có giao dịch nào.</div>

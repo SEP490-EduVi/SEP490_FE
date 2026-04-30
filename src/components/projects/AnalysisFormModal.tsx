@@ -21,7 +21,7 @@ export default function AnalysisFormModal({ open, curricula, isPending, onClose,
   const uniqueCurricula = Array.from(
     new Map(
       curricula
-        .filter((c) => c.statusName === 'COMPLETED')
+        .filter((c) => c.status === 2)
         .map((c) => [c.curriculumYear, c])
     ).values()
   );

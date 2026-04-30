@@ -163,14 +163,6 @@ function MaterialDetailModal({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border border-gray-100 p-3">
-                  <p className="text-xs text-gray-500">Mã tài liệu</p>
-                  <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
-                </div>
-
-              </div>
-
               {/* Inline resource preview */}
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
                 <p className="text-xs text-gray-500 mb-1">Tài nguyên</p>

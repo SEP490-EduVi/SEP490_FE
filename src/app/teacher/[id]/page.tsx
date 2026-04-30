@@ -304,7 +304,11 @@ export default function ProjectDetailPage() {
       pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url, videoName: videoName || undefined },
-        { onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
+        {
+          onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); },
+          onError: () => notify.error(MSGS.video.generateError),
+          onSettled: () => setVideoLoadingCode(null),
+        },
       );
     } catch { setVideoLoadingCode(null); notify.error(MSGS.video.generateError); }
   };
