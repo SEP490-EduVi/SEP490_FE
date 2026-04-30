@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Library,
@@ -8,12 +8,10 @@ import {
   BookOpen,
   X,
   Loader2,
-  Download,
   ExternalLink,
   User,
   Tag,
   Layers,
-  Calendar,
   Grid3X3,
   List,
   AlertCircle,
@@ -25,12 +23,13 @@ import {
   ChevronDown,
   Clock,
   Eye,
+  Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import { usePurchasedMaterials, useMaterialDetail } from '@/hooks/useMaterialShopApi';
-import { GcsImage, resolveGcsUrl, notify, MSGS } from '@/components/common';
+import { GcsImage, resolveGcsUrl } from '@/components/common';
 import type { PurchasedMaterialDto } from '@/types/api';
 
 const TYPE_BADGE: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -64,42 +63,49 @@ function MaterialDetailModal({
 }) {
   const { data: material, isLoading, isError } = useMaterialDetail(materialCode);
   const typeBadge = material ? (TYPE_BADGE[material.type] ?? TYPE_BADGE['other']) : TYPE_BADGE['other'];
-  const TypeIcon = typeBadge.icon;
 
-  const handleDownload = async () => {
-    if (!material?.resourceUrl) return;
-    try {
-      const url = await resolveGcsUrl(material.resourceUrl);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      notify.error(MSGS.material.lib.downloadError);
-      window.open(material.resourceUrl, '_blank', 'noopener,noreferrer');
+  const [resolvedResourceUrl, setResolvedResourceUrl] = useState<string>('');
+  const [resolvingResource, setResolvingResource] = useState(false);
+  const [resourceError, setResourceError] = useState('');
+
+  useEffect(() => {
+    if (!material?.resourceUrl) {
+      setResolvedResourceUrl('');
+      setResourceError('');
+      return;
     }
+
+    let mounted = true;
+    setResolvingResource(true);
+    setResolvedResourceUrl('');
+    setResourceError('');
+
+    resolveGcsUrl(material.resourceUrl)
+      .then((resolved) => { if (mounted) setResolvedResourceUrl(resolved); })
+      .catch(() => { if (mounted) setResourceError('Không thể tải resource để xem trước.'); })
+      .finally(() => { if (mounted) setResolvingResource(false); });
+
+    return () => { mounted = false; };
+  }, [material?.resourceUrl]);
+
+  const getPreviewKind = () => {
+    const source = (resolvedResourceUrl || material?.resourceUrl || '').toLowerCase();
+    if (material?.type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/.test(source)) return 'video';
+    if (material?.type === 'image' || /\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?|$)/.test(source)) return 'image';
+    return 'other';
   };
+
+  const previewKind = getPreviewKind();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 12 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col"
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
         {isLoading ? (
           <div className="flex items-center justify-center p-16">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
@@ -111,88 +117,109 @@ function MaterialDetailModal({
           </div>
         ) : (
           <>
-            {/* Preview */}
-            <div className="relative h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0 overflow-hidden">
+            {/* Thumbnail header */}
+            <div className="relative h-56 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100">
               {material.previewUrl ? (
                 <GcsImage src={material.previewUrl} alt={material.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <TypeIcon className="w-16 h-16 text-blue-200" />
+                  <BookOpen className="w-12 h-12 text-blue-200" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-              <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-0.5 rounded-full ${typeBadge.color}`}>
-                {typeBadge.label}
-              </span>
+
+              <button
+                onClick={onClose}
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/55"
+                aria-label="Đóng chi tiết"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="absolute left-3 top-3">
+                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/90 ${typeBadge.color}`}>
+                  {typeBadge.label}
+                </span>
+              </div>
             </div>
 
             {/* Body */}
-            <div className="p-5 flex-1 overflow-y-auto space-y-4">
-              <h2 className="text-lg font-bold text-gray-900 leading-tight">{material.title}</h2>
-
-              {material.description && (
-                <p className="text-sm text-gray-600 leading-relaxed">{material.description}</p>
-              )}
-
-              {/* Meta grid - unified style */}
-              <div className="grid grid-cols-2 gap-3">
-                {material.subjectName && (
-                  <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-medium">Môn học</p>
-                      <p className="text-xs font-semibold text-gray-700">{material.subjectName}</p>
-                    </div>
-                  </div>
-                )}
-                {material.gradeName && (
-                  <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-medium">Khối lớp</p>
-                      <p className="text-xs font-semibold text-gray-700">{material.gradeName}</p>
-                    </div>
-                  </div>
-                )}
-                <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-gray-400 font-medium">Chuyên gia</p>
-                    <p className="text-xs font-semibold text-gray-700 truncate">{material.expertName}</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-gray-400 font-medium">Loại</p>
-                    <p className="text-xs font-semibold text-gray-700">{typeBadge.label}</p>
-                  </div>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{material.title}</h3>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5" />{material.expertName || 'Tài nguyên EduVi'}</span>
+                  <span>•</span>
+                  <span>{material.subjectName || '-'}</span>
+                  <span>•</span>
+                  <span>{material.gradeName || '-'}</span>
                 </div>
               </div>
 
-              {/* Actions: separate View + Download */}
-              {material.resourceUrl ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleDownload}
-                    className="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-blue-200"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Xem tài liệu
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {material.description && material.description.toLowerCase() !== 'string'
+                    ? material.description
+                    : 'Chưa có mô tả cho tài liệu này.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg border border-gray-100 p-3">
+                  <p className="text-xs text-gray-500">Mã tài liệu</p>
+                  <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
                 </div>
-              ) : (
-                <div className="w-full py-3 bg-gray-100 text-gray-400 text-sm font-medium rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
-                  <AlertCircle className="w-4 h-4" />
-                  Tài liệu chưa sẵn sàng
-                </div>
-              )}
+
+              </div>
+
+              {/* Inline resource preview */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500 mb-1">Tài nguyên</p>
+
+                {resolvingResource && (
+                  <p className="mt-2 text-xs text-slate-500 inline-flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Đang tải preview resource...
+                  </p>
+                )}
+
+                {resourceError && <p className="mt-2 text-xs text-red-600">{resourceError}</p>}
+
+                {!material.resourceUrl && !resolvingResource && !resourceError && (
+                  <p className="text-xs text-gray-400">Tài liệu chưa sẵn sàng</p>
+                )}
+
+                {!!resolvedResourceUrl && (
+                  <div className="mt-3">
+                    {previewKind === 'image' && (
+                      <img src={resolvedResourceUrl} alt={material.title} className="w-full max-h-[280px] object-contain rounded-lg bg-white" />
+                    )}
+
+                    {previewKind === 'video' && (
+                      <video controls className="w-full max-h-[280px] rounded-lg bg-black" src={resolvedResourceUrl} />
+                    )}
+
+                    {previewKind === 'other' && (
+                      <a
+                        href={resolvedResourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                      >
+                        Mở file resource
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end pt-1">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </>
         )}
@@ -269,7 +296,7 @@ function LibraryCard({
         <div className="flex items-center justify-between text-xs text-gray-400 pt-1 border-t border-gray-100">
           <span className="flex items-center gap-1 truncate">
             <User className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{material.expertName}</span>
+            <span className="truncate">{material.expertName || 'Tài nguyên EduVi'}</span>
           </span>
           <span className="flex items-center gap-1 flex-shrink-0 ml-2">
             <Clock className="w-3 h-3" />

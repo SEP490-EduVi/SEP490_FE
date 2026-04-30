@@ -426,7 +426,7 @@ export default function HomePage() {
                   Tải EduVi Desktop
                 </a>
                 <Link
-                  href="/teacher/guide"
+                  href="/public/guide"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 font-medium text-sm transition-all"
                 >
                   <BookOpen className="w-4 h-4" />

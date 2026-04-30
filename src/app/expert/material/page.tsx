@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign, X, Sparkles, ArrowRight } from 'lucide-react';
+import { BookOpen, Upload, Search, Loader2, AlertCircle, FolderOpen, Grid3X3, List, DollarSign, X, Sparkles, ArrowRight, ShieldAlert, BadgeCheck } from 'lucide-react';
 
 import { useMyMaterials, useUploadMaterial, useUpdateMaterial, useDeleteMaterial } from '@/hooks/useExpertApi';
 import { useSubjects, useGrades } from '@/hooks/useMetadataApi';
@@ -190,6 +190,8 @@ export default function MaterialPage() {
   const [detailTarget, setDetailTarget] = useState<MaterialDto | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  const is403 = isError && (error as { response?: { status?: number } })?.response?.status === 403;
+
   const filtered = materials.filter(
     (m) =>
       m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -245,7 +247,34 @@ export default function MaterialPage() {
           <div className="absolute -right-8 -bottom-14 w-64 h-64 bg-white/10 rounded-full" />
         </div>
 
-        {showForm && (
+        {/* 403 – certificate not verified banner */}
+        {is403 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5 shadow-sm"
+          >
+            <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center">
+              <ShieldAlert className="w-7 h-7 text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-amber-800 mb-1">Tài khoản chưa được xác thực bằng cấp</h3>
+              <p className="text-sm text-amber-700 leading-relaxed">
+                Bạn cần hoàn tất xác minh chứng chỉ / bằng cấp trước khi có thể tạo và quản lý học liệu.
+                Vui lòng tải lên hồ sơ bằng cấp của bạn và chờ quản trị viên phê duyệt.
+              </p>
+            </div>
+            <a
+              href="/expert/certificate"
+              className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shadow-amber-400/30"
+            >
+              <BadgeCheck className="w-4 h-4" />
+              Xác thực ngay
+            </a>
+          </motion.div>
+        )}
+
+        {showForm && !is403 && (
           <UploadMaterialForm
             subjects={subjects}
             grades={grades}
@@ -275,12 +304,14 @@ export default function MaterialPage() {
               className="w-full pl-10 pr-4 py-2.5 bg-white/90 border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
             />
           </div>
+          {!is403 && (
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-colors text-sm font-semibold whitespace-nowrap"
           >
             <Upload className="w-4 h-4" /> Tải lên tài liệu
           </button>
+          )}
           <div className="flex items-center bg-white/90 border border-blue-100 rounded-xl overflow-hidden">
             {(['grid', 'list'] as const).map((mode) => (
               <button key={mode} onClick={() => setViewMode(mode)} className={`p-2.5 transition-colors ${viewMode === mode ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
@@ -310,11 +341,11 @@ export default function MaterialPage() {
             <p className="text-sm text-gray-500">Đang tải danh sách tài liệu...</p>
           </div>
         )}
-        {isError && (
+        {isError && !is403 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4"><AlertCircle className="w-8 h-8 text-red-400" /></div>
             <h3 className="text-lg font-semibold text-gray-700 mb-1">Không thể tải dữ liệu</h3>
-            <p className="text-sm text-gray-500">{(error as Error)?.message || 'Đã xảy ra lỗi.'}</p>
+            <p className="text-sm text-gray-500">Đã xảy ra lỗi, vui lòng thử lại sau.</p>
           </div>
         )}
         {!isLoading && !isError && filtered.length === 0 && (
