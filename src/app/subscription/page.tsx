@@ -377,15 +377,15 @@ export default function SubscriptionPage() {
             {[
               {
                 q: 'EduCoin là gì?',
-                a: 'EduCoin là đơn vị tiêu dùng trên nền tảng EduVi. Mỗi lần sử dụng tính năng AI phân tích bài giảng sẽ tiêu tốn một số EduCoin nhất định.',
+                a: 'EduCoin là đơn vị tiêu dùng trên nền tảng EduVi. Mỗi lần thanh toán sẽ tiêu tốn EduCoin trong việc mua các gói dịch vụ để sử dụng tính năng AI.',
               },
               {
                 q: 'Tôi có thể nạp tiền vào ví không?',
-                a: 'Có, bạn có thể nạp tiền trực tiếp vào ví EduVi qua nhiều phương thức thanh toán khác nhau trong phần Quản lý tài khoản.',
+                a: 'Có, bạn có thể nạp tiền trực tiếp vào ví EduVi qua phương thức thanh toán trong phần Quản lý tài khoản.',
               },
               {
                 q: 'EduCoin có hết hạn không?',
-                a: 'EduCoin có hiệu lực theo thời hạn của gói bạn đã mua. Sau khi hết hạn, EduCoin chưa sử dụng sẽ không còn hiệu lực.',
+                a: 'EduCoin không có hiệu lực theo thời hạn của gói bạn đã mua.',
               },
               {
                 q: 'Tôi có thể đổi gói không?',
