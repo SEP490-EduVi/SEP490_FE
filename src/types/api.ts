@@ -363,6 +363,7 @@ export interface MaterialDto {
   gradeCode: string;
   gradeName: string;
   approvalStatus: number;
+  rejectionReason: string | null;
   expertCode: string;
   expertName: string;
   createdAt: string;
