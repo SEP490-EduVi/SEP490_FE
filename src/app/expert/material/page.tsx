@@ -109,10 +109,17 @@ function MaterialDetailModal({ material, onClose }: { material: MaterialDto; onC
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="rounded-lg border border-gray-100 p-3">
-              <p className="text-xs text-gray-500 mb-1">Mã tài liệu</p>
-              <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
-            </div>
+            {material.rejectionReason ? (
+              <div className="rounded-lg border border-red-100 bg-red-50 p-3 sm:col-span-2">
+                <p className="text-xs text-red-500 mb-1">Lý do từ chối / bị cấm</p>
+                <p className="font-medium text-red-700">{material.rejectionReason}</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-100 p-3">
+                <p className="text-xs text-gray-500 mb-1">Mã tài liệu</p>
+                <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
+              </div>
+            )}
             <div className="rounded-lg border border-gray-100 p-3">
               <p className="text-xs text-gray-500 mb-1">Ngày tạo</p>
               <p className="font-medium text-gray-800">{new Date(material.createdAt).toLocaleString('vi-VN')}</p>

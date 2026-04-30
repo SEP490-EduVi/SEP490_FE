@@ -74,6 +74,7 @@ const APPROVAL_STATUS_MAP: Record<number, { label: string; color: string }> = {
   0: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700' },
   1: { label: 'Đã duyệt',  color: 'bg-emerald-50 text-emerald-700' },
   2: { label: 'Từ chối',   color: 'bg-red-50 text-red-700' },
+  3: { label: 'Bị cấm',    color: 'bg-gray-100 text-gray-600' },
 };
 
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];

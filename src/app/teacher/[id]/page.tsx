@@ -424,7 +424,7 @@ export default function ProjectDetailPage() {
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
         completedAt: video.completedAt,
-        interactions: video.interactions,
+        interactions: video.interactions?.filter((i) => i.type !== 'index'),
       }];
       await exportToEduvi(minimalDoc, {
         requireOfflineReady: true,

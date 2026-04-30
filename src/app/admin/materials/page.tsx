@@ -25,6 +25,7 @@ const APPROVAL_OPTIONS = [
   { value: '0', label: 'Chờ duyệt' },
   { value: '1', label: 'Đã duyệt' },
   { value: '2', label: 'Từ chối' },
+  { value: '3', label: 'Bị cấm' },
 ];
 
 const TYPE_FILTER_OPTIONS = [
@@ -276,7 +277,7 @@ function MaterialFormModal({
         gradeCode: form.gradeCode?.trim() || undefined,
         expertCode: form.expertCode?.trim() || undefined,
         approvalStatus: form.approvalStatus,
-        rejectionReason: form.approvalStatus === 2 ? (form.rejectionReason?.trim() || undefined) : undefined,
+        rejectionReason: (form.approvalStatus === 2 || form.approvalStatus === 3) ? (form.rejectionReason?.trim() || undefined) : undefined,
       };
       if (mode === 'create') {
         await adminServices.createAdminMaterial({ ...base, resourceUrl, previewUrl: previewUrl || undefined } as AdminCreateMaterialRequest);
@@ -388,11 +389,14 @@ function MaterialFormModal({
                   <option value={0}>Chờ duyệt</option>
                   <option value={1}>Đã duyệt</option>
                   <option value={2}>Từ chối</option>
+                  <option value={3}>Bị cấm</option>
                 </select>
               </div>
-              {form.approvalStatus === 2 && (
+              {(form.approvalStatus === 2 || form.approvalStatus === 3) && (
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Lý do từ chối</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                    {form.approvalStatus === 3 ? 'Lý do bị cấm' : 'Lý do từ chối'}
+                  </label>
                   <input value={form.rejectionReason} onChange={e => set('rejectionReason')(e.target.value)}
                     placeholder="Nhập lý do..."
                     className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
@@ -440,13 +444,10 @@ export default function AdminMaterialsPage() {
 
   const [activeTab, setActiveTab] = useState<0 | 1>(0);
 
-  const [expertRows, setExpertRows]   = useState<AdminMaterialResponse[]>([]);
-  const [expertTotal, setExpertTotal] = useState(0);
-  const [expertPage, setExpertPage]   = useState(1);
-  const [adminRows, setAdminRows]     = useState<AdminMaterialResponse[]>([]);
-  const [adminTotal, setAdminTotal]   = useState(0);
-  const [adminPage, setAdminPage]     = useState(1);
-  const [loading, setLoading]         = useState(false);
+  const [allRows, setAllRows]   = useState<AdminMaterialResponse[]>([]);
+  const [expertPage, setExpertPage] = useState(1);
+  const [adminPage, setAdminPage]   = useState(1);
+  const [loading, setLoading]       = useState(false);
 
   const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -458,53 +459,42 @@ export default function AdminMaterialsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting]     = useState(false);
 
-  const fetchExpert = useCallback(async (page: number) => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminServices.listAdminMaterials({
-        search: search.trim() || undefined,
-        approvalStatus: filterStatus !== '' ? Number(filterStatus) : undefined,
-        type: filterType || undefined,
-        page, pageSize: PAGE_SIZE,
-      });
-      const result = res.result as Record<string, unknown>;
-      const items = (result?.items ?? result?.data ?? []) as AdminMaterialResponse[];
-      setExpertRows(items.filter(m => !!m.expertCode));
-      setExpertTotal((result?.totalCount ?? result?.total ?? result?.totalItems ?? items.length) as number);
-    } catch { notify.error('Không thể tải học liệu Expert.'); }
-    finally { setLoading(false); }
-  }, [search, filterStatus, filterType]);
-
-  const fetchAdmin = useCallback(async (page: number) => {
-    setLoading(true);
-    try {
-      const res = await adminServices.listAdminMaterials({
-        search: search.trim() || undefined,
-        approvalStatus: filterStatus !== '' ? Number(filterStatus) : undefined,
-        type: filterType || undefined,
-        page, pageSize: PAGE_SIZE,
-      });
-      const result = res.result as Record<string, unknown>;
-      const items = (result?.items ?? result?.data ?? []) as AdminMaterialResponse[];
-      setAdminRows(items.filter(m => !m.expertCode));
-      setAdminTotal((result?.totalCount ?? result?.total ?? result?.totalItems ?? items.length) as number);
-    } catch { notify.error('Không thể tải học liệu Admin.'); }
+      let accumulated: AdminMaterialResponse[] = [];
+      let page = 1;
+      const pageSize = 50;
+      while (true) {
+        const res = await adminServices.listAdminMaterials({
+          search: search.trim() || undefined,
+          approvalStatus: filterStatus !== '' ? Number(filterStatus) : undefined,
+          type: filterType || undefined,
+          page, pageSize,
+        });
+        const result = res.result as Record<string, unknown>;
+        const items = (result?.items ?? result?.data ?? []) as AdminMaterialResponse[];
+        accumulated = [...accumulated, ...items];
+        const total = (result?.totalCount ?? result?.total ?? result?.totalItems ?? 0) as number;
+        if (items.length < pageSize || accumulated.length >= total) break;
+        page++;
+      }
+      setAllRows(accumulated);
+    } catch { notify.error('Không thể tải học liệu.'); }
     finally { setLoading(false); }
   }, [search, filterStatus, filterType]);
 
   useEffect(() => { setExpertPage(1); setAdminPage(1); }, [search, filterStatus, filterType, activeTab]);
-  useEffect(() => { void fetchExpert(expertPage); }, [fetchExpert, expertPage]);
-  useEffect(() => { void fetchAdmin(adminPage);  }, [fetchAdmin, adminPage]);
+  useEffect(() => { void fetchAll(); }, [fetchAll]);
 
-  const currentRows    = activeTab === 0 ? expertRows  : adminRows;
-  const currentTotal   = activeTab === 0 ? expertTotal : adminTotal;
-  const currentPage    = activeTab === 0 ? expertPage  : adminPage;
+  const expertRows     = allRows.filter(m => !!m.expertCode);
+  const adminRows      = allRows.filter(m => !m.expertCode);
+  const currentRows    = activeTab === 0 ? expertRows : adminRows;
+  const currentPage    = activeTab === 0 ? expertPage : adminPage;
   const setCurrentPage = activeTab === 0 ? setExpertPage : setAdminPage;
+  const pagedRows      = currentRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const reload = useCallback(() => {
-    void fetchExpert(expertPage);
-    void fetchAdmin(adminPage);
-  }, [fetchExpert, fetchAdmin, expertPage, adminPage]);
+  const reload = useCallback(() => { void fetchAll(); }, [fetchAll]);
 
   const handleDelete = async () => {
     if (!deleteCode) return;
@@ -524,9 +514,6 @@ export default function AdminMaterialsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý Học liệu</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {activeTab === 0 ? expertTotal : adminTotal} học liệu · Trang {currentPage}
-          </p>
         </div>
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-purple-600/20 transition-colors">
@@ -561,8 +548,8 @@ export default function AdminMaterialsPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex border-b border-gray-100">
           {([
-            { label: 'Học liệu Expert', count: expertTotal, value: 0 },
-            { label: 'Học liệu Admin',  count: adminTotal,  value: 1 },
+            { label: 'Học liệu Expert', count: expertRows.length, value: 0 },
+            { label: 'Học liệu Admin',  count: adminRows.length,  value: 1 },
           ] as const).map(tab => (
             <button key={tab.value} onClick={() => setActiveTab(tab.value)}
               className={`px-6 py-4 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-2 ${
@@ -604,7 +591,7 @@ export default function AdminMaterialsPage() {
                         <p className="text-sm text-gray-400">Không có học liệu nào.</p>
                       </td>
                     </tr>
-                  ) : currentRows.map(m => (
+                  ) : pagedRows.map(m => (
                     <tr key={m.materialCode} className="hover:bg-purple-50/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -649,9 +636,9 @@ export default function AdminMaterialsPage() {
                 </tbody>
               </table>
             </div>
-            {currentTotal > PAGE_SIZE && (
+            {currentRows.length > PAGE_SIZE && (
               <div className="px-4 py-3 border-t border-gray-100">
-                <Pagination page={currentPage} pageSize={PAGE_SIZE} total={currentTotal} onChange={setCurrentPage} />
+                <Pagination page={currentPage} pageSize={PAGE_SIZE} total={currentRows.length} onChange={setCurrentPage} />
               </div>
             )}
           </>
@@ -667,7 +654,7 @@ export default function AdminMaterialsPage() {
         {showCreate && (
           <MaterialFormModal mode="create" initial={null} subjects={subjects} grades={grades}
             onClose={() => setShowCreate(false)}
-            onSaved={() => { setShowCreate(false); void fetchExpert(1); setExpertPage(1); void fetchAdmin(1); setAdminPage(1); }} />
+            onSaved={() => { setShowCreate(false); setExpertPage(1); setAdminPage(1); void fetchAll(); }} />
         )}
       </AnimatePresence>
 
