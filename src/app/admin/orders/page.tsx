@@ -122,8 +122,8 @@ export default function AdminOrdersPage() {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         >
           <option value="">Tất cả loại đơn</option>
-          <option value="subscription">Gói cước</option>
-          <option value="material">Học liệu</option>
+          <option value="1">Gói cước</option>
+          <option value="2">Học liệu</option>
         </select>
         <select
           value={status}
@@ -199,11 +199,14 @@ export default function AdminOrdersPage() {
                     <td className="px-5 py-3">
                       {order.orderTypeName || order.orderType
                         ? <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            (order.orderType || '').toLowerCase().includes('material')
+                            Number(order.orderType) === 2 || (order.orderType || '').toLowerCase().includes('material')
                               ? 'bg-violet-50 text-violet-700'
                               : 'bg-blue-50 text-blue-700'
                           }`}>
-                            {order.orderTypeName || order.orderType}
+                            {order.orderTypeName
+                              || (Number(order.orderType) === 1 ? 'Mua gói'
+                                : Number(order.orderType) === 2 ? 'Mua học liệu'
+                                : order.orderType)}
                           </span>
                         : <span className="text-gray-400">-</span>}
                     </td>

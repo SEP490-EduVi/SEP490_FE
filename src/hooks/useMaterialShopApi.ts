@@ -27,11 +27,12 @@ export function usePurchaseMaterial() {
   });
 }
 
-export function usePurchasedMaterials() {
+export function usePurchasedMaterials(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [PURCHASED_KEY],
     queryFn: materialService.getPurchasedMaterials,
     staleTime: 30_000,
+    enabled: options?.enabled ?? true,
   });
 }
 

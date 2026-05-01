@@ -32,6 +32,7 @@ import { useWalletInfo } from '@/hooks/usePaymentApi';
 import type { MaterialDto } from '@/types/api';
 import { notify, GcsImage, MSGS } from '@/components/common';
 import { resolveGcsUrl } from '@/components/common/GcsImage';
+import { useAuthStore } from '@/store/useAuthStore';
 
 function formatEduCoin(value: number | null | undefined): string {
   const amount = Number.isFinite(value) ? Number(value) : 0;
@@ -333,11 +334,13 @@ function ShopMaterialCard({
   owned,
   onViewDetail,
   onBuy,
+  hideBuy,
 }: {
   material: MaterialDto;
   owned: boolean;
   onViewDetail: () => void;
   onBuy: () => void;
+  hideBuy?: boolean;
 }) {
   const typeBadge = TYPE_BADGE[material.type] ?? TYPE_BADGE['other'];
 
@@ -404,6 +407,7 @@ function ShopMaterialCard({
         </div>
 
         {/* CTA */}
+        {!hideBuy && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -432,6 +436,7 @@ function ShopMaterialCard({
             </>
           )}
         </button>
+        )}
       </div>
     </motion.div>
   );
@@ -440,6 +445,9 @@ function ShopMaterialCard({
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function MaterialShopPage() {
+  const role = useAuthStore((s) => s.role);
+  const isStaff = role === 'staff';
+
   const [keyword, setKeyword] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [gradeCode, setGradeCode] = useState('');
@@ -472,9 +480,9 @@ export default function MaterialShopPage() {
   );
 
   const { data: materials = [], isLoading, isError } = useBrowseMaterials(browseParams);
-  const { data: purchased = [] } = usePurchasedMaterials();
+  const { data: purchased = [] } = usePurchasedMaterials({ enabled: !isStaff });
   const purchaseMutation = usePurchaseMaterial();
-  const { data: wallet } = useWalletInfo();
+  const { data: wallet } = useWalletInfo({ enabled: !isStaff });
 
   const { data: subjects = [] } = useSubjects();
   const { data: grades = [] } = useGrades();
@@ -524,7 +532,7 @@ export default function MaterialShopPage() {
             <div className="text-right space-y-1">
               <p className="text-3xl font-bold">{materials.length}</p>
               <p className="text-blue-200 text-sm">tài liệu khả dụng</p>
-              <p className="text-xs text-blue-100/90">Ví: {formatEduCoin(wallet?.balance)}</p>
+              {!isStaff && <p className="text-xs text-blue-100/90">Ví: {formatEduCoin(wallet?.balance)}</p>}
             </div>
           </div>
         </motion.div>
@@ -785,7 +793,8 @@ export default function MaterialShopPage() {
                   material={m}
                   owned={ownedCodes.has(m.materialCode)}
                   onViewDetail={() => setDetailTarget(m)}
-                  onBuy={() => setPurchaseTarget(m)}
+                  onBuy={() => !isStaff && setPurchaseTarget(m)}
+                  hideBuy={isStaff}
                 />
               ))}
             </AnimatePresence>
@@ -834,22 +843,24 @@ export default function MaterialShopPage() {
                       <span className={`text-base font-bold ${m.price > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
                         {m.price > 0 ? formatEduCoin(m.price) : 'Miễn phí'}
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPurchaseTarget(m);
-                        }}
-                        disabled={owned}
-                        className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${
-                          owned
-                            ? 'bg-emerald-50 text-emerald-600 cursor-default'
-                            : m.price > 0
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                        }`}
-                      >
-                        {owned ? 'Đã sở hữu' : m.price > 0 ? 'Mua ngay' : 'Nhận miễn phí'}
-                      </button>
+                      {!isStaff && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPurchaseTarget(m);
+                          }}
+                          disabled={owned}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                            owned
+                              ? 'bg-emerald-50 text-emerald-600 cursor-default'
+                              : m.price > 0
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                          }`}
+                        >
+                          {owned ? 'Đã sở hữu' : m.price > 0 ? 'Mua ngay' : 'Nhận miễn phí'}
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -867,6 +878,7 @@ export default function MaterialShopPage() {
             owned={ownedCodes.has(detailTarget.materialCode)}
             onClose={() => setDetailTarget(null)}
             onBuy={() => {
+              if (isStaff) return;
               setDetailTarget(null);
               setPurchaseTarget(detailTarget);
             }}
