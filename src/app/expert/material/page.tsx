@@ -114,27 +114,11 @@ function MaterialDetailModal({ material, onClose }: { material: MaterialDto; onC
                 <p className="text-xs text-red-500 mb-1">Lý do từ chối / bị cấm</p>
                 <p className="font-medium text-red-700">{material.rejectionReason}</p>
               </div>
-            ) : (
-              <div className="rounded-lg border border-gray-100 p-3">
-                <p className="text-xs text-gray-500 mb-1">Mã tài liệu</p>
-                <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
-              </div>
-            )}
+            ) : null}
             <div className="rounded-lg border border-gray-100 p-3">
               <p className="text-xs text-gray-500 mb-1">Ngày tạo</p>
               <p className="font-medium text-gray-800">{new Date(material.createdAt).toLocaleString('vi-VN')}</p>
             </div>
-            {/* <div className="rounded-lg border border-gray-100 p-3 sm:col-span-2">
-              <p className="text-xs text-gray-500 mb-1">Resource URL</p>
-              <p className="font-medium text-gray-800 break-all">{material.resourceUrl || '-'}</p>
-              {resolvingResource && (
-                <p className="mt-2 text-xs text-slate-500 inline-flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Đang tải preview resource...
-                </p>
-              )}
-              {resourceError && <p className="mt-2 text-xs text-red-600">{resourceError}</p>}
-            </div> */}
           </div>
 
           {!!resolvedResourceUrl && (
@@ -281,8 +265,9 @@ export default function MaterialPage() {
               onSuccess: () => { setShowForm(false); notify.success(MSGS.material.expert.uploadSuccess); },
               onError: (err) => {
                 const status = (err as { response?: { status?: number } })?.response?.status;
+                const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
                 if (status === 403) { notify.error(MSGS.material.expert.unauthorizedError); }
-                else { notify.error(MSGS.material.expert.uploadError); }
+                else { notify.error(msg ?? MSGS.material.expert.uploadError); }
               },
             })}
             onCancel={() => setShowForm(false)}

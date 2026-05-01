@@ -35,7 +35,6 @@ function normalizeVerificationStatus(status: number | string | null | undefined)
 const FILE_TYPE_OPTIONS = [
   { value: 'degree',      label: 'Bằng cấp'  },
   { value: 'certificate', label: 'Chứng chỉ' },
-  { value: 'cccd',        label: 'CCCD'      },
 ];
 
 function CertStatusBadge({ status }: { status: number | string }) {
@@ -64,21 +63,14 @@ export default function CertificateTab({
   const [certFileType,  setCertFileType]  = useState('degree');
   const [certDesc,      setCertDesc]      = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
   const [openingCertFile, setOpeningCertFile] = useState(false);
-  const [showResubmitForm, setShowResubmitForm] = useState(false);
   const [certPreviewUrl, setCertPreviewUrl] = useState<string | null>(null);
   const [certPreviewMime, setCertPreviewMime] = useState<string>('');
 
   const cert = verifications[0] ?? null;
   const certStatus = normalizeVerificationStatus(cert?.status);
 
-  const handleResubmit = () => {
-    setCertFileType(cert?.fileType ?? 'degree');
-    setCertDesc(cert?.description ?? '');
-    setCertFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    setShowResubmitForm(true);
-  };
 
   const handleCertSubmit = () => {
     if (!certFile) return;
@@ -93,7 +85,6 @@ export default function CertificateTab({
           notify.success(MSGS.cert.submitSuccess);
           setCertFile(null); setCertDesc(''); setCertFileType('degree');
           setShowCertForm(false);
-          setShowResubmitForm(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
         },
         onError: (err: unknown) => {
@@ -381,14 +372,6 @@ export default function CertificateTab({
                   </>
                 ) : (
                   <>
-                    {certStatus === 2 && !showResubmitForm && (
-                      <button onClick={handleResubmit}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Nộp lại
-                      </button>
-                    )}
                     <button onClick={() => setConfirmDelete(cert.verificationCode)}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -399,95 +382,6 @@ export default function CertificateTab({
                 )}
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {showResubmitForm && cert && (
-        <div className="bg-white/90 backdrop-blur rounded-3xl border border-blue-100 shadow-sm p-6 sm:p-7">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-              <RefreshCw className="w-4 h-4 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-gray-900">Nộp lại hồ sơ chứng chỉ</h3>
-              <p className="text-xs text-gray-500">Chọn file mới và cập nhật thông tin nếu cần, sau đó nhấn Nộp lại</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            <div className="lg:col-span-3">
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                Tệp chứng chỉ mới <span className="text-red-500">*</span>
-              </label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) setCertFile(f); }}
-                className={`border-2 border-dashed rounded-xl p-5 cursor-pointer transition-all ${
-                  certFile ? 'border-blue-300 bg-blue-50' : 'border-blue-100 hover:border-blue-300 hover:bg-blue-50/40'
-                }`}
-              >
-                {certFile ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-blue-700 truncate">{certFile.name}</p>
-                      <p className="text-xs text-blue-400">{(certFile.size / 1024).toFixed(0)} KB</p>
-                    </div>
-                    <button type="button"
-                      onClick={(e) => { e.stopPropagation(); setCertFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors flex-shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600">Kéo thả hoặc nhấn để chọn file mới</p>
-                    <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG · Tối đa 10 MB</p>
-                  </div>
-                )}
-                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setCertFile(f); }}
-                  className="hidden" />
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 space-y-4">
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                Loại chứng chỉ <span className="text-red-500">*</span>
-              </label>
-              <select value={certFileType} onChange={(e) => setCertFileType(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
-              >
-                {FILE_TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </div>
-
-            <div className="lg:col-span-5">
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Mô tả</label>
-              <textarea value={certDesc} onChange={(e) => setCertDesc(e.target.value)}
-                placeholder="Mô tả ngắn về chứng chỉ..." rows={3}
-                className="w-full px-3.5 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all resize-none" />
-            </div>
-
-            <div className="lg:col-span-5 flex items-center gap-3 pt-1">
-              <button onClick={handleCertSubmit} disabled={!certFile || submitVerification.isPending}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-semibold shadow-lg shadow-blue-600/20"
-              >
-                {submitVerification.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                {submitVerification.isPending ? 'Đang tải lên...' : 'Nộp lại'}
-              </button>
-              <button onClick={() => { setShowResubmitForm(false); setCertFile(null); }}
-                className="px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                Huỷ
-              </button>
-            </div>
           </div>
         </div>
       )}

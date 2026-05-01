@@ -52,7 +52,6 @@ function ExpertAvatar({ name }: { name: string }) {
 const FILE_TYPE_LABEL: Record<string, string> = {
   degree: 'Bằng cấp',
   certificate: 'Chứng chỉ',
-  id_card: 'CMND / CCCD',
   transcript: 'Bảng điểm',
 };
 
