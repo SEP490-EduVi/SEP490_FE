@@ -729,10 +729,10 @@ function StudioToolbar({
   const latestSlide   = docProducts.filter((p) => p.hasSlide || p.hasEditedSlide).at(-1) ?? null;
 
   const docVideos = videos.filter((v) =>
-    docProducts.some((p) => p.productCode === v.productCode) && v.status === 'completed'
+    docProducts.some((p) => p.productCode === v.productCode) && v.status?.toLowerCase() === 'completed'
   );
   const docGames = games.filter((g) =>
-    docProducts.some((p) => p.productCode === g.productCode) && g.status === 'completed'
+    docProducts.some((p) => p.productCode === g.productCode) && g.status?.toLowerCase() === 'completed'
   );
   const slideProducts = docProducts.filter((p) => p.hasSlide || p.hasEditedSlide);
   const hasExport = slideProducts.length > 0 || docVideos.length > 0 || docGames.length > 0;

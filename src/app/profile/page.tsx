@@ -189,7 +189,7 @@ function ProfilePageInner() {
   const { data: allVideos = [], isLoading: videosLoading } = useAllVideos();
   const { data: purchasedMaterials = [], isLoading: libLoading } = usePurchasedMaterials();
   const mySlides = allProducts.filter((p) => p.hasSlide);
-  const myVideos = allVideos.filter((v) => v.status === 'completed');
+  const myVideos = allVideos.filter((v) => v.status?.toLowerCase() === 'completed');
 
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
   const [playingVideo, setPlayingVideo] = useState<VideoProductDto | null>(null);

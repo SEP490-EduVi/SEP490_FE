@@ -65,7 +65,7 @@ export default function TeacherDashboard() {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length,
     slides: allProducts.filter((p) => p.hasSlide).length,
-    videos: allVideos.filter((v) => v.status === 'completed').length,
+    videos: allVideos.filter((v) => v.status?.toLowerCase() === 'completed').length,
   };
 
   const statCards = [
