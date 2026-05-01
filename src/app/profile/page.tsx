@@ -566,7 +566,7 @@ function ProfilePageInner() {
 
           {/* ════ Rút tiền ════ */}
           {activeTab === 'withdrawal' && isExpert && (
-            <WithdrawalTab />
+            <WithdrawalTab isExpert={isExpert} expertIsVerified={expertIsVerified} />
           )}
 
         </AnimatePresence>
