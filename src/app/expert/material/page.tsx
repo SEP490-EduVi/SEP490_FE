@@ -234,10 +234,6 @@ export default function MaterialPage() {
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 p-6 sm:p-8 text-white shadow-xl shadow-blue-900/20 mb-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.24),transparent_42%)]" />
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-medium mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              Expert Material Studio
-            </div>
             <h1 className="text-2xl sm:text-3xl font-bold">Không gian quản lý học liệu</h1>
             <p className="text-blue-100 mt-2 max-w-2xl text-sm sm:text-base">
               Tải lên, theo dõi trạng thái duyệt và tối ưu chất lượng tài liệu của bạn trong một giao diện trực quan, nhất quán.

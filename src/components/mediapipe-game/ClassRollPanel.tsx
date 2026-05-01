@@ -98,12 +98,12 @@ function SlotDrum({ sequence, translateY, spinning }: { sequence: Student[]; tra
 }
 
 export function ClassRollPanel({ onClose }: Props) {
-  // â”€â”€ Setup view state
+  // ── Setup view state
   const [students,   setStudents]   = React.useState<Student[]>([]);
 
   const [selectedClassroomCode, setSelectedClassroomCode] = React.useState<string | null>(null);
   const { data: classrooms = [], isLoading: classroomsLoading } = useClassrooms();
-  // â”€â”€ Spin view state
+  // ── Spin view state
   const [view,        setView]        = React.useState<View>('setup');
   const [sequence,    setSequence]    = React.useState<Student[]>([]);
   const [translateY,  setTranslateY]  = React.useState(0);
@@ -121,7 +121,7 @@ export function ClassRollPanel({ onClose }: Props) {
     setStudents(mapped);
     setSelectedClassroomCode(cls.studentListCode);
   };
-  // â”€â”€ Start spinning
+  // ── Start spinning
   const startRoll = () => {
     if (students.length === 0) return;
 
@@ -172,7 +172,6 @@ export function ClassRollPanel({ onClose }: Props) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* â”€â”€ Header â”€â”€ */}
         <div
           className="shrink-0 flex items-center gap-3 px-5 py-4 border-b"
           style={{ borderColor: '#e5e7eb' }}
@@ -336,7 +335,7 @@ export function ClassRollPanel({ onClose }: Props) {
                     }}
                   >
                     <p className="text-purple-300 text-xs font-semibold tracking-wider uppercase mb-2">
-                      🎯 Học sinh được chọn
+                      Học sinh được chọn
                     </p>
                     <p
                       className="font-black tabular-nums"

@@ -214,10 +214,6 @@ export default function ExpertDashboard() {
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.24),transparent_45%)]" />
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-blue-50 text-xs font-medium mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              Expert Control Center
-            </div>
             <h2 className="text-2xl sm:text-3xl font-bold leading-tight">Xin chào {formattedName}</h2>
             <p className="text-blue-100 text-sm sm:text-base mt-2 max-w-2xl">
               Theo dõi trạng thái duyệt hồ sơ, quản lý học liệu và tối ưu chất lượng nội dung của bạn.

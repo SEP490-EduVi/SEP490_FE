@@ -64,10 +64,6 @@ export default function StaffDashboardPage() {
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-700 via-violet-600 to-purple-700 p-7 text-white shadow-xl shadow-indigo-900/20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_25%,rgba(255,255,255,0.18),transparent_50%)]" />
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-indigo-100 text-xs font-medium mb-4">
-              <ClipboardList className="w-3.5 h-3.5" />
-              Staff Control Panel
-            </div>
             <h1 className="text-2xl sm:text-3xl font-bold">Xin chào, {shortName}</h1>
             <p className="text-indigo-100 text-sm mt-1.5 max-w-md">
               {total > 0

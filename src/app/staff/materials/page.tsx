@@ -177,17 +177,13 @@ export default function StaffMaterialsPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <Link href="/staff" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors mb-4">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Quay lại bảng điều khiển
-          </Link>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
               <FileText className="w-5 h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold text-gray-900">Duyệt học liệu</h1>
-              <p className="text-sm text-gray-500">Danh sách material đang chờ phê duyệt.</p>
+              <p className="text-sm text-gray-500">Danh sách học liệu đang chờ phê duyệt.</p>
             </div>
             {data.length > 0 && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-blue-600">

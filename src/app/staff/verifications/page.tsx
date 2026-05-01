@@ -140,16 +140,12 @@ export default function StaffVerificationsPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <Link href="/staff" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-violet-600 transition-colors mb-4">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Quay lại bảng điều khiển
-          </Link>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="w-5 h-5 text-violet-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-gray-900">Duyệt hồ sơ xác minh Expert</h1>
+              <h1 className="text-xl font-bold text-gray-900">Duyệt hồ sơ xác minh chuyên gia</h1>
               <p className="text-sm text-gray-500">Hồ sơ đang chờ duyệt từ chuyên gia.</p>
             </div>
             {data.length > 0 && (

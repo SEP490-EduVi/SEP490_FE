@@ -178,7 +178,7 @@ export default function AdminDashboardPage() {
   ];
 
   const materialChartData = materialSales.slice(0, 8).map((m) => ({
-    name: m.title.length > 16 ? `${m.title.slice(0, 16)}…` : m.title,
+    name: m.title,
     revenue: m.grossRevenue,
     sold: m.soldCount,
   }));
@@ -361,7 +361,7 @@ export default function AdminDashboardPage() {
             <BarChart data={materialChartData} barSize={32} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
               <XAxis type="number" tickFormatter={formatVNDShort} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={120} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={220} />
               <Tooltip content={<RevenueTooltip />} cursor={{ fill: '#f8fafc' }} />
               <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 6, 6, 0]}>
                 {materialChartData.map((_, index) => (
