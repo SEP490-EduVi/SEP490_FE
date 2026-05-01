@@ -44,8 +44,8 @@ export default function PublicFooter() {
           <div>
             <h4 className="text-sm font-semibold text-[#173b7a] uppercase tracking-wider mb-4">Liên hệ</h4>
             <ul className="space-y-2.5 text-sm">
-              <li>Email: pdat1746@gmail.com</li>
-              <li>Hotline: 1900-xxxx</li>
+              <li>Email: eduvi@gmail.com</li>
+              <li>Hotline: 091 234 5678</li>
               <li>Địa chỉ: TP. Hồ Chí Minh, Việt Nam</li>
             </ul>
           </div>

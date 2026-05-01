@@ -55,9 +55,10 @@ interface ProductResultPanelProps {
 
 // ── Video status chip ─────────────────────────────────────────────────────────
 function VideoStatusChip({ status, isCreating = false }: { status: VideoProductDto['status']; isCreating?: boolean }) {
-  if (status === 'completed')
+  const s = (status ?? '').toLowerCase();
+  if (s === 'completed')
     return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-medium">Hoàn thành</span>;
-  if (status === 'processing' || status === 'pending' || isCreating)
+  if (s === 'processing' || s === 'pending' || isCreating)
     return (
       <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 font-medium flex items-center gap-1">
         <Loader2 className="w-3 h-3 animate-spin" /> Đang tạo
@@ -281,9 +282,9 @@ export default function ProductResultPanel({
                         {productVideos.map((video) => (
                           <div key={video.productVideoCode} className="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50/80 transition-colors">
                             <div className="flex items-center gap-2 min-w-0">
-                              {video.status === 'processing' || video.status === 'pending' || (isPipelineRunning && activePipelineType === 'video') ? (
+                              {(video.status ?? '').toLowerCase() === 'processing' || (video.status ?? '').toLowerCase() === 'pending' || (isPipelineRunning && activePipelineType === 'video') ? (
                                 <Clock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 animate-pulse" />
-                              ) : video.status === 'failed' ? (
+                              ) : (video.status ?? '').toLowerCase() === 'failed' ? (
                                 <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                               ) : (
                                 <Video className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
@@ -292,7 +293,7 @@ export default function ProductResultPanel({
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               <VideoStatusChip status={video.status} isCreating={isPipelineRunning && activePipelineType === 'video'} />
-                              {video.status === 'completed' && video.videoUrl && (
+                              {(video.status ?? '').toLowerCase() === 'completed' && video.videoUrl && (
                                 <button
                                   type="button"
                                   onClick={() => onWatchVideo(video)}
@@ -337,9 +338,9 @@ export default function ProductResultPanel({
                         {productGames.map((game) => (
                           <div key={game.gameCode} className="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50/80 transition-colors">
                             <div className="flex items-center gap-2 min-w-0">
-                              {game.status === 'processing' || game.status === 'pending' ? (
+                              {(game.status ?? '').toLowerCase() === 'processing' || (game.status ?? '').toLowerCase() === 'pending' ? (
                                 <Clock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 animate-pulse" />
-                              ) : game.status === 'failed' ? (
+                              ) : (game.status ?? '').toLowerCase() === 'failed' ? (
                                 <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                               ) : (
                                 <Gamepad2 className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />
@@ -347,16 +348,16 @@ export default function ProductResultPanel({
                               <span className="text-xs text-gray-600 truncate">{game.productGameName}</span>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {game.status === 'completed' ? (
+                              {(game.status ?? '').toLowerCase() === 'completed' ? (
                                 <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-medium">Hoàn thành</span>
-                              ) : game.status === 'processing' || game.status === 'pending' ? (
+                              ) : (game.status ?? '').toLowerCase() === 'processing' || (game.status ?? '').toLowerCase() === 'pending' ? (
                                 <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 font-medium flex items-center gap-1">
                                   <Loader2 className="w-2.5 h-2.5 animate-spin" /> Đang tạo
                                 </span>
-                              ) : game.status === 'failed' ? (
+                              ) : (game.status ?? '').toLowerCase() === 'failed' ? (
                                 <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 font-medium">Lỗi</span>
                               ) : null}
-                              {game.status === 'completed' && (
+                              {(game.status ?? '').toLowerCase() === 'completed' && (
                                 <button
                                   type="button"
                                   onClick={() => handlePlayGame(game.gameCode, game.productGameName)}

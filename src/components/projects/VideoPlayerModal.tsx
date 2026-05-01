@@ -499,7 +499,7 @@ export default function VideoPlayerModal({ video, documentCode, inline = false, 
   const currentChapter = [...indexItems].reverse().find((i) => i.start_time <= currentTime) ?? null;
 
   const playerPanel = (
-    <div className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full flex">
+    <div className="relative bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full flex max-h-[77vh]">
 
           {/* Table of Contents sidebar */}
           {indexItems.length > 0 && (

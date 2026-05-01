@@ -118,7 +118,7 @@ export default function ProjectCard({
             <button
               type="button"
               onClick={onMenuToggle}
-              className="p-1 rounded-md text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+              className="p-1 rounded-md text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
             >
               <MoreVertical className="w-4 h-4" />
             </button>

@@ -29,12 +29,12 @@ import AppHeader from '@/components/sidebar/AppHeader';
 import { notify, MSGS } from '@/components/common';
 import SecurityTab from '@/components/profile/SecurityTab';
 import PaymentTab from '@/components/profile/PaymentTab';
-import WithdrawalTab from '@/components/profile/WithdrawalTab';
 import CertificateTab from '@/components/profile/CertificateTab';
 import ProfileTab from '@/components/profile/ProfileTab';
+import WithdrawalTab from '@/components/profile/WithdrawalTab';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type Tab = 'profile' | 'security' | 'payment' | 'withdrawal' | 'certificate' | 'slides' | 'videos' | 'library';
+type Tab = 'profile' | 'security' | 'payment' | 'certificate' | 'slides' | 'videos' | 'library' | 'withdrawal';
 type ProfileRole = 'guest' | 'admin' | 'teacher' | 'staff' | 'expert';
 
 function resolveProfileRole(roleName?: string | null): ProfileRole {
@@ -90,7 +90,7 @@ function ProfilePageInner() {
     const t = searchParams.get('tab');
     if (t === 'security')    return 'security';
     if (t === 'payment' && !isStaff) return 'payment';
-    if (t === 'withdrawal' && isExpert) return 'withdrawal';
+
     if (t === 'slides' && isTeacher) return 'slides';
     if (t === 'videos' && isTeacher) return 'videos';
     if (t === 'library' && isTeacher) return 'library';
@@ -100,7 +100,7 @@ function ProfilePageInner() {
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
 
   useEffect(() => {
-    if (isStaff && (activeTab === 'payment' || activeTab === 'withdrawal')) {
+    if (isStaff && activeTab === 'payment') {
       setActiveTab('profile');
     }
   }, [isStaff, activeTab]);
@@ -190,7 +190,7 @@ function ProfilePageInner() {
   const { data: allVideos = [], isLoading: videosLoading } = useAllVideos();
   const { data: purchasedMaterials = [], isLoading: libLoading } = usePurchasedMaterials();
   const mySlides = allProducts.filter((p) => p.hasSlide);
-  const myVideos = allVideos.filter((v) => v.status === 'completed');
+  const myVideos = allVideos.filter((v) => v.status?.toLowerCase() === 'completed');
 
   const [viewSlideLoading, setViewSlideLoading] = useState<string | null>(null);
   const [playingVideo, setPlayingVideo] = useState<VideoProductDto | null>(null);
@@ -215,13 +215,8 @@ function ProfilePageInner() {
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
-<<<<<<< Updated upstream
-    ...(!isStaff ? [{ key: 'payment' as Tab, label: 'Thanh toán', icon: Wallet }] : []),
-    ...(isExpert ? [{ key: 'withdrawal' as Tab, label: 'Rút tiền', icon: CreditCard }] : []),
-=======
     ...(!isStaff ? [{ key: 'payment' as Tab, label: isExpert ? 'Ví tiền' : 'Thanh toán', icon: Wallet }] : []),
-
->>>>>>> Stashed changes
+    ...(isExpert ? [{ key: 'withdrawal' as Tab, label: 'Rút tiền', icon: CreditCard }] : []),
     ...(isTeacher ? [
       { key: 'slides'  as Tab, label: 'Slide', icon: Layers  },
       { key: 'videos'  as Tab, label: 'Video', icon: Film    },
@@ -396,10 +391,7 @@ function ProfilePageInner() {
           {/* ════ Thanh toán ════ */}
           {!isStaff && activeTab === 'payment' && <PaymentTab isStaff={isStaff} isExpert={isExpert} />}
 
-          {/* ════ Rút tiền ════ */}
-          {isExpert && activeTab === 'withdrawal' && (
-            <WithdrawalTab isExpert={isExpert} expertIsVerified={expertIsVerified} />
-          )}
+
 
           {/* ════ Slide của tôi ════ */}
           {activeTab === 'slides' && isTeacher && (
@@ -570,6 +562,11 @@ function ProfilePageInner() {
           {/* ════ Chứng chỉ ════ */}
           {activeTab === 'certificate' && isExpert && (
             <CertificateTab expertId={(info as { expertId?: number | null } | null)?.expertId ?? null} />
+          )}
+
+          {/* ════ Rút tiền ════ */}
+          {activeTab === 'withdrawal' && isExpert && (
+            <WithdrawalTab />
           )}
 
         </AnimatePresence>

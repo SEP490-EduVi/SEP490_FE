@@ -55,7 +55,10 @@ export default function TeacherVideosPage() {
   const [page, setPage]                 = useState(1);
   const [playingVideo, setPlayingVideo] = useState<VideoProductDto | null>(null);
 
-  const completed = allVideos.filter((v) => v.status === 'completed');
+  const completed = allVideos.filter((v) => {
+    const s = (v.status ?? '').toLowerCase();
+    return s === 'completed';
+  });
 
   const filtered = completed.filter(
     (v) => v.productName.toLowerCase().includes(searchQuery.toLowerCase()),

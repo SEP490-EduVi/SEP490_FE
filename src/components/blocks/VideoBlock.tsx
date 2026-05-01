@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { IVideoContent, BlockType } from '@/types';
 import { useDocumentStore } from '@/store';
 import { VideoIcon as VideoPlus, Loader2 } from 'lucide-react';
+import { uploadMaterialFilesToGcs } from '@/services/gcsServices';
 
 interface VideoBlockProps {
   id: string;
@@ -79,6 +80,7 @@ export function VideoBlock({
     content.src && !needsResolve ? content.src : null
   );
   const [gcsLoading, setGcsLoading] = useState(needsResolve);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!content.src) return;
@@ -104,12 +106,24 @@ export function VideoBlock({
   }, [content.src]);
 
   // ── Handle local file upload ──────────────────────────────────────────────
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const src = URL.createObjectURL(file);
-    updateBlockContent(id, { type: BlockType.VIDEO, src, provider: 'direct' });
     e.target.value = '';
+    setUploading(true);
+    try {
+      const { resourceUrl } = await uploadMaterialFilesToGcs({
+        file,
+        prefix: 'slide-video',
+      });
+      updateBlockContent(id, { type: BlockType.VIDEO, src: resourceUrl, provider: 'direct' });
+    } catch {
+      // Fallback to blob URL so the user can at least preview (won't work in pipeline)
+      const src = URL.createObjectURL(file);
+      updateBlockContent(id, { type: BlockType.VIDEO, src, provider: 'direct' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   // ── Handle URL submit ─────────────────────────────────────────────────────
@@ -135,17 +149,18 @@ export function VideoBlock({
 
         <div className="w-full h-96 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm flex-shrink-0">
-            <VideoPlus className="w-5 h-5 text-gray-400" />
+            {uploading ? <Loader2 className="w-5 h-5 text-primary-500 animate-spin" /> : <VideoPlus className="w-5 h-5 text-gray-400" />}
           </div>
 
           <div className="flex flex-col items-start gap-1">
             <button
               type="button"
+              disabled={uploading}
               onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-sm"
             >
               <VideoPlus className="w-4 h-4" />
-              Tải video lên
+              {uploading ? 'Đang tải lên...' : 'Tải video lên'}
             </button>
             <p className="text-xs text-gray-400">Hỗ trợ: MP4, WebM, OGV</p>
           </div>
@@ -154,8 +169,8 @@ export function VideoBlock({
     );
   }
 
-  // ── Loading state (resolving gs:// URL) ────────────────────────────────
-  if (content.src && gcsLoading) {
+  // ── Loading state (resolving gs:// URL or uploading) ────────────────────
+  if (content.src && (gcsLoading || uploading)) {
     return (
       <div
         className={cn(

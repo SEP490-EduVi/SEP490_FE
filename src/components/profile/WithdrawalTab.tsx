@@ -18,20 +18,15 @@ function formatEduCoin(value: number | null | undefined): string {
   return `${amount.toLocaleString('vi-VN')} EduCoin`;
 }
 
-function getWithdrawalStatusLabel(status?: number | string, statusName?: string | null): string {
-  if (typeof status === 'number') {
-    if (status === 0) return 'Đang chờ duyệt';
-    if (status === 1) return 'Đã duyệt';
-    if (status === 2) return 'Đã từ chối';
-  }
-  if (typeof status === 'string' && status.trim()) {
-    const s = status.trim().toUpperCase();
-    if (s === 'CONFIRMED') return 'Đang chờ duyệt';
-    if (s === 'SUCCESS') return 'Đã duyệt';
-    if (s === 'REJECTED') return 'Đã từ chối';
-    return status;
-  }
-  return statusName || 'Không xác định';
+// Status: 1=CONFIRMED (amber), 2=SUCCESS (green), 3=REJECTED (red)
+function mapWithdrawalStatus(status?: number | string | null) {
+  if (status === 1 || status === 'CONFIRMED')
+    return { label: 'Chờ xử lý', cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' };
+  if (status === 2 || status === 'SUCCESS')
+    return { label: 'Thành công', cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' };
+  if (status === 3 || status === 'REJECTED')
+    return { label: 'Từ chối', cls: 'bg-red-50 text-red-700 ring-1 ring-red-200' };
+  return { label: 'Không xác định', cls: 'bg-gray-100 text-gray-500' };
 }
 
 export default function WithdrawalTab({
@@ -257,7 +252,11 @@ export default function WithdrawalTab({
                   <tr key={wd.withdrawalId} className="border-t border-gray-100">
                     <td className="px-5 py-3 text-gray-900 font-medium">{formatEduCoin(wd.amount)}</td>
                     <td className="px-5 py-3 text-gray-700">{wd.bankName} · {wd.bankAccountNumber}</td>
-                    <td className="px-5 py-3 text-gray-600">{getWithdrawalStatusLabel(wd.status, wd.statusName)}</td>
+                    <td className="px-5 py-3">
+                      {(() => { const s = mapWithdrawalStatus(wd.status); return (
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>
+                      ); })()}
+                    </td>
                     <td className="px-5 py-3 text-gray-500">{wd.createdAt ? new Date(wd.createdAt).toLocaleString('vi-VN') : '-'}</td>
                   </tr>
                 ))}

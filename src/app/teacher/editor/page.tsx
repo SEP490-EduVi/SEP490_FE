@@ -49,7 +49,7 @@ import { Sidebar, Toolbar, MainStage } from '@/components/layout';
 import { MaterialSidebar } from '@/components/sidebar/MaterialSidebar';
 import { PresentationLayer } from '@/components/presentation';
 import SlideGenerationOverlay from '@/components/editor/SlideGenerationOverlay';
-import { IMaterial, BlockType } from '@/types';
+import { IMaterial, BlockType, WidgetType } from '@/types';
 import type { PurchasedMaterialDto } from '@/types/api';
 import { Package } from 'lucide-react';
 
@@ -186,6 +186,12 @@ export default function EditorPage() {
       if (targetCardId) {
         useDocumentStore.getState().addBlockToCard(targetCardId, dragData.blockType as BlockType);
       }
+      return;
+    }
+
+    // ── Handle video widget drop (creates new slide, no drop target needed) ─────
+    if (dragData?.type === 'MATERIAL' && (dragData.material as IMaterial)?.widgetType === WidgetType.MATERIAL_VIDEO) {
+      useDocumentStore.getState().addVideoSlide((dragData.material as IMaterial).name);
       return;
     }
 

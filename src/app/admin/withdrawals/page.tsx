@@ -10,11 +10,12 @@ const PAGE_SIZE = 10;
 
 const formatVND = (value?: number | null) => `${Number(value ?? 0).toLocaleString('vi-VN')} đ`;
 
+// Status (theo guide): 1=CONFIRMED (chờ xử lý), 2=SUCCESS (đã duyệt), 3=REJECTED (từ chối)
 const mapWithdrawalStatus = (status?: number | string, statusName?: string | null) => {
   if (typeof status === 'number') {
-    if (status === 0) return 'CONFIRMED';
-    if (status === 1) return 'SUCCESS';
-    if (status === 2) return 'REJECTED';
+    if (status === 1) return 'CONFIRMED';
+    if (status === 2) return 'SUCCESS';
+    if (status === 3) return 'REJECTED';
   }
 
   if (typeof status === 'string' && status.trim()) {
@@ -25,10 +26,17 @@ const mapWithdrawalStatus = (status?: number | string, statusName?: string | nul
 };
 
 const statusClassName = (status: string) => {
-  if (status === 'SUCCESS') return 'bg-emerald-50 text-emerald-700';
-  if (status === 'REJECTED') return 'bg-red-50 text-red-700';
-  if (status === 'CONFIRMED') return 'bg-amber-50 text-amber-700';
-  return 'bg-gray-100 text-gray-600';
+  if (status === 'CONFIRMED') return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200';
+  if (status === 'SUCCESS')   return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
+  if (status === 'REJECTED')  return 'bg-red-50 text-red-700 ring-1 ring-red-200';
+  return 'bg-gray-100 text-gray-500';
+};
+
+const statusLabel = (status: string) => {
+  if (status === 'CONFIRMED') return 'Chờ xử lý';
+  if (status === 'SUCCESS')   return 'Thành công';
+  if (status === 'REJECTED')  return 'Từ chối';
+  return status;
 };
 
 export default function AdminWithdrawalsPage() {
@@ -47,9 +55,9 @@ export default function AdminWithdrawalsPage() {
   const [adminNote, setAdminNote] = useState('');
 
   const normalizedStatus = useMemo(() => {
-    if (status === 'CONFIRMED') return 0;
-    if (status === 'SUCCESS') return 1;
-    if (status === 'REJECTED') return 2;
+    if (status === 'CONFIRMED') return 1;
+    if (status === 'SUCCESS')   return 2;
+    if (status === 'REJECTED')  return 3;
     return undefined;
   }, [status]);
 
@@ -65,12 +73,12 @@ export default function AdminWithdrawalsPage() {
       });
 
       const result = res.result;
-      const rows = result.data ?? result.items ?? [];
+      const rows = result.items ?? [];
 
       setItems(rows);
-      setTotal(result.total ?? result.totalItems ?? result.totalCount ?? rows.length);
-      setPage(result.page ?? result.currentPage ?? targetPage);
-      setPageSize(result.pageSize ?? result.size ?? PAGE_SIZE);
+      setTotal(result.totalCount ?? rows.length);
+      setPage(result.page ?? targetPage);
+      setPageSize(result.pageSize ?? PAGE_SIZE);
     } catch (err) {
       setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể tải danh sách rút tiền.');
     } finally {
@@ -109,7 +117,7 @@ export default function AdminWithdrawalsPage() {
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? MSGS.withdrawal.processError;
       setError(msg);
-      notify.error(MSGS.withdrawal.processError);
+      notify.error(msg);
     } finally {
       setProcessingId(null);
     }
@@ -129,9 +137,9 @@ export default function AdminWithdrawalsPage() {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         >
           <option value="">Tất cả trạng thái</option>
-          <option value="CONFIRMED">CONFIRMED</option>
-          <option value="SUCCESS">SUCCESS</option>
-          <option value="REJECTED">REJECTED</option>
+          <option value="CONFIRMED">Chờ xử lý (CONFIRMED)</option>
+          <option value="SUCCESS">Thành công (SUCCESS)</option>
+          <option value="REJECTED">Từ chối (REJECTED)</option>
         </select>
         <button
           type="button"
@@ -175,7 +183,7 @@ export default function AdminWithdrawalsPage() {
                   return (
                     <tr key={w.withdrawalId} className="hover:bg-gray-50">
                       <td className="px-5 py-3 font-medium text-gray-900">#{w.withdrawalId}</td>
-                      <td className="px-5 py-3 text-gray-700">{w.expertName || (w.expertId ? `Expert ${w.expertId}` : '-')}</td>
+                      <td className="px-5 py-3 text-gray-700">{w.userFullName || (w.userId ? `User ${w.userId}` : '-')}</td>
                       <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(w.amount)}</td>
                       <td className="px-5 py-3 text-gray-600">
                         <p className="font-medium">{w.bankName}</p>
@@ -183,7 +191,7 @@ export default function AdminWithdrawalsPage() {
                       </td>
                       <td className="px-5 py-3">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClassName(mappedStatus)}`}>
-                          {mappedStatus}
+                          {statusLabel(mappedStatus)}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-gray-500">{w.createdAt ? new Date(new Date(w.createdAt).getTime() + 7 * 60 * 60 * 1000).toLocaleString('vi-VN') : '-'}</td>
@@ -223,7 +231,7 @@ export default function AdminWithdrawalsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <h3 className="text-lg font-semibold text-gray-900">Xử lý yêu cầu rút tiền #{selected.withdrawalId}</h3>
-            <p className="mt-1 text-sm text-gray-500">{selected.expertName || 'Chuyên gia'} - {formatVND(selected.amount)}</p>
+            <p className="mt-1 text-sm text-gray-500">{selected.userFullName || 'Chuyên gia'} - {formatVND(selected.amount)}</p>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button

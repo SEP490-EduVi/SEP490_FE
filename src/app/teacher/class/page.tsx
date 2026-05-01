@@ -95,7 +95,7 @@ function ClassroomCard({
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-700 hover:text-gray-900 transition-colors"
             >
               <MoreVertical className="w-4 h-4" />
             </button>

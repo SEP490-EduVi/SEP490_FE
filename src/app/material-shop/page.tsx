@@ -94,7 +94,7 @@ function PurchaseModal({
           <p className="text-sm font-semibold text-gray-800 line-clamp-2">{material.title}</p>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <User className="w-3.5 h-3.5" />
-            <span>{material.expertName}</span>
+            <span>{material.expertName || 'Tài nguyên EduVi'}</span>
           </div>
           <div className="flex items-center justify-between pt-1">
             <span className="text-xs text-gray-500">Chi phí</span>
@@ -236,7 +236,7 @@ function MaterialDetailModal({
             <div>
               <h3 className="text-xl font-bold text-gray-900">{material.title}</h3>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5" />{material.expertName || 'Không rõ tác giả'}</span>
+                <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5" />{material.expertName || 'Tài nguyên EduVi'}</span>
                 <span>•</span>
                 <span>{material.subjectName || '-'}</span>
                 <span>•</span>
@@ -257,10 +257,6 @@ function MaterialDetailModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="rounded-lg border border-gray-100 p-3">
-              <p className="text-xs text-gray-500">Mã tài liệu</p>
-              <p className="font-medium text-gray-800 break-all">{material.materialCode}</p>
-            </div>
             <div className="rounded-lg border border-gray-100 p-3">
               <p className="text-xs text-gray-500">Ngày tạo</p>
               <p className="font-medium text-gray-800">{material.createdAt ? new Date(material.createdAt).toLocaleString('vi-VN') : '-'}</p>
@@ -400,7 +396,7 @@ function ShopMaterialCard({
         <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-gray-100">
           <span className="flex items-center gap-1 truncate max-w-[55%]">
             <User className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{material.expertName}</span>
+            <span className="truncate">{material.expertName || 'Tài nguyên EduVi'}</span>
           </span>
           <span className={`font-bold text-sm ${material.price > 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
             {material.price > 0 ? formatEduCoin(material.price) : 'Miễn phí'}
@@ -828,7 +824,7 @@ export default function MaterialShopPage() {
                         {m.subjectName && <span className="text-[10px] font-medium px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700">{m.subjectName}</span>}
                         {m.gradeName && <span className="text-[10px] font-medium px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700">{m.gradeName}</span>}
                         <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
-                          <User className="w-2.5 h-2.5" /> {m.expertName}
+                          <User className="w-2.5 h-2.5" /> {m.expertName || 'Tài nguyên EduVi'}
                         </span>
                       </div>
                     </div>

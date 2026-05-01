@@ -200,7 +200,17 @@ export default function TeacherProjectsPage() {
   const handleDelete = (projectCode: string) => {
     deleteProject.mutate(projectCode, {
       onSuccess: () => notify.success(MSGS.project.deleteSuccess),
-      onError:   () => notify.error(MSGS.project.deleteError),
+      onError:   (err: unknown) => {
+        const msg: string = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '';
+        const lower = msg.toLowerCase();
+        if (lower.includes('product') || lower.includes('sản phẩm')) {
+          notify.error(MSGS.project.deleteHasProducts);
+        } else if (lower.includes('document') || lower.includes('tài liệu') || lower.includes('input')) {
+          notify.error(MSGS.project.deleteHasDocuments);
+        } else {
+          notify.error(MSGS.project.deleteError);
+        }
+      },
     });
     setMenuOpen(null);
   };

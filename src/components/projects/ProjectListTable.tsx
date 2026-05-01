@@ -79,7 +79,7 @@ export default function ProjectListTable({
                   <button
                     type="button"
                     onClick={() => setOpenMenu(openMenu === project.projectCode ? null : project.projectCode)}
-                    className="p-1.5 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    className="p-1.5 rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>

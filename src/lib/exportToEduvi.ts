@@ -87,7 +87,11 @@ export interface EduViFileSchema {
   assets?: Record<string, EduViAsset>;
 
   /** Raw source document preserved for exact round-trip rendering/import */
-  sourceDocument?: IDocument;
+  sourceDocument?: {
+    cards: ICard[];
+    activeCardId: string;
+    updatedAt: string;
+  };
 
   /** Export quality details for diagnostics */
   integrity?: EduViIntegrity;
@@ -1068,7 +1072,11 @@ function transformDocument(
           })),
         }
       : {}),
-    sourceDocument: cloneDocument(document),
+    sourceDocument: {
+      cards: document.cards,
+      activeCardId: document.activeCardId,
+      updatedAt: document.updatedAt || fallbackTimestamp,
+    },
   };
 }
 

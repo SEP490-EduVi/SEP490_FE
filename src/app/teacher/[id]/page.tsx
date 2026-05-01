@@ -20,6 +20,7 @@ import AnalysisFormModal from '@/components/projects/AnalysisFormModal';
 import CreateVideoModal from '@/components/projects/CreateVideoModal';
 import { useGames } from '@/hooks/useGamesApi';
 import { useGameHub } from '@/hooks/useGameHub';
+import { getGameResultJson } from '@/services/gamesServices';
 import GameConfigModal from '@/components/teacher/project/GameConfigModal';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { usePipelineTaskStore, PipelineTaskType } from '@/store/usePipelineTaskStore';
@@ -27,7 +28,9 @@ import { usePipelineProgressStore } from '@/store/usePipelineProgressStore';
 import * as productService from '@/services/productServices';
 import { getEditedSlideGcsUrl, getProductEvaluation } from '@/services/productServices';
 import { notify, MSGS } from '@/components/common';
-import type { PipelineProgress, VideoProductDto, InputDocumentDto, ProductEvaluationResponse } from '@/types/api';
+import { exportToEduvi } from '@/lib/exportToEduvi';
+import type { EduViGame, EduViVideo } from '@/lib/exportToEduvi';
+import type { PipelineProgress, VideoProductDto, GameDto, InputDocumentDto, ProductEvaluationResponse } from '@/types/api';
 import type { IDocument } from '@/types';
 
 export default function ProjectDetailPage() {
@@ -301,7 +304,11 @@ export default function ProjectDetailPage() {
       pendingTaskRef.current = { type: 'video', productCode };
       generateVideo.mutate(
         { productCode, slideEditedDocumentUrl: url, videoName: videoName || undefined },
-        { onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); }, onSettled: () => setVideoLoadingCode(null) },
+        {
+          onSuccess: () => { notify.info(MSGS.video.requestInfo); setPipelineType('video'); setShowPipelineModal(true); },
+          onError: () => notify.error(MSGS.video.generateError),
+          onSettled: () => setVideoLoadingCode(null),
+        },
       );
     } catch { setVideoLoadingCode(null); notify.error(MSGS.video.generateError); }
   };
@@ -351,10 +358,6 @@ export default function ProjectDetailPage() {
     await openProductInEditor(productCode);
   };
 
-<<<<<<< Updated upstream
-  const handleExportEduvi = async (productCode: string) => {
-    await openProductInEditor(productCode, { openEduviExport: true });
-=======
   const handleExportSlide = async (productCode: string) => {
     try {
       notify.info('Đang xuất file slide .eduvi...');
@@ -493,7 +496,6 @@ export default function ProjectDetailPage() {
       const msg = error instanceof Error ? error.message : 'Xuất file game .eduvi thất bại';
       notify.error(msg);
     }
->>>>>>> Stashed changes
   };
 
   const handlePreviewSlide = async (productCode: string) => {
@@ -662,7 +664,9 @@ export default function ProjectDetailPage() {
             onGenerateSlides={handleGenerateSlides}
             onGenerateVideo={handleGenerateVideo}
             onGenerateGame={handleGenerateGame}
-            onExportEduvi={handleExportEduvi}
+            onExportSlide={handleExportSlide}
+            onExportVideo={handleExportVideo}
+            onExportGame={handleExportGame}
             videoLoadingCode={videoLoadingCode}
             activePipelineType={isPipelineRunning ? pipelineType : null}
           />
