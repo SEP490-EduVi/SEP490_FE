@@ -48,6 +48,7 @@ const ROLE_NAV: Record<AppRole, NavItem[]> = {
   { href: '/staff', label: 'Bảng điều khiển', icon: LayoutDashboard },
   { href: '/staff/verifications', label: 'Duyệt hồ sơ', icon: ShieldCheck },
   { href: '/staff/materials', label: 'Duyệt học liệu', icon: FileText },
+  { href: '/material-shop', label: 'Cửa hàng', icon: Store },
 ],
   guest: [],
 };

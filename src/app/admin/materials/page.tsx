@@ -34,7 +34,7 @@ const TYPE_FILTER_OPTIONS = [
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
+  s ? new Date(new Date(s).getTime() + 7 * 60 * 60 * 1000).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
 
 const fmtPrice = (n: number) =>
   n === 0 ? 'Miễn phí' : n.toLocaleString('vi-VN') + ' EduCoin';

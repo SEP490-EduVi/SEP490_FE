@@ -75,7 +75,7 @@ export default function AdminWalletsPage() {
                     <td className="px-5 py-3 text-gray-700">{wallet.fullName || wallet.username || wallet.userCode || `Người dùng ${wallet.userId}`}</td>
                     <td className="px-5 py-3 text-gray-500">{wallet.email || '-'}</td>
                     <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(wallet.balance)}</td>
-                    <td className="px-5 py-3 text-gray-500">{(wallet.lastUpdated || wallet.updatedAt) ? new Date(wallet.lastUpdated || wallet.updatedAt || '').toLocaleString('vi-VN') : '-'}</td>
+                    <td className="px-5 py-3 text-gray-500">{(wallet.lastUpdated || wallet.updatedAt) ? new Date(new Date(wallet.lastUpdated || wallet.updatedAt || '').getTime() + 7 * 60 * 60 * 1000).toLocaleString('vi-VN') : '-'}</td>
                   </tr>
                 ))
               )}

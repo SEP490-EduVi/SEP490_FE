@@ -115,7 +115,7 @@ function formatVND(amount: number) {
 }
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('vi-VN', {
+  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toLocaleString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

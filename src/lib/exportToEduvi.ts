@@ -141,6 +141,8 @@ export interface EduViExportOptions {
   packageType?: EduViPackageType;
   /** Optional suffix appended to generated file name (e.g. slide/game) */
   fileNameSuffix?: string;
+  /** Override the entire file name (without extension). Takes priority over all other naming options. */
+  customFileName?: string;
   /** Timeout per asset fetch in milliseconds */
   mediaFetchTimeoutMs?: number;
 }
@@ -1104,7 +1106,9 @@ export async function exportToEduvi(
   // Create download link
   const url = URL.createObjectURL(blob);
   const link = window.document.createElement('a');
-  const fileName = createExportFileName(document, options.projectName, options.fileNameSuffix);
+  const fileName = options.customFileName
+    ? `${sanitizeFileTitle(options.customFileName)}${EDUVI_FILE_EXTENSION}`
+    : createExportFileName(document, options.projectName, options.fileNameSuffix);
   
   // Generate filename from resolved export title
   link.download = fileName;
@@ -1161,7 +1165,9 @@ export async function serializeToEduviAdvanced(
   }
 
   return {
-    fileName: createExportFileName(document, options.projectName, options.fileNameSuffix),
+    fileName: options.customFileName
+      ? `${sanitizeFileTitle(options.customFileName)}${EDUVI_FILE_EXTENSION}`
+      : createExportFileName(document, options.projectName, options.fileNameSuffix),
     schema,
     validation,
   };

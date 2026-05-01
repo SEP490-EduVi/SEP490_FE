@@ -62,6 +62,7 @@ interface ListTransactionsParams {
 
 interface ListOrdersParams {
   teacherId?: number;
+  orderType?: string;
   status?: number;
   paymentMethod?: string;
   fromDate?: string;
@@ -239,12 +240,13 @@ export const adminServices = {
   },
 
   listOrders: async (params: ListOrdersParams) => {
-    const { teacherId, status, paymentMethod, fromDate, toDate, page, pageSize } = params;
+    const { teacherId, orderType, status, paymentMethod, fromDate, toDate, page, pageSize } = params;
     const res = await api.get<ApiResponse<PagedResponse<AdminOrderResponse>>>(
       API_ENDPOINTS.ADMIN.FINANCIAL_ORDERS,
       {
         params: normalizeParams({
           TeacherId: teacherId,
+          OrderType: orderType,
           Status: status,
           PaymentMethod: paymentMethod,
           FromDate: fromDate,

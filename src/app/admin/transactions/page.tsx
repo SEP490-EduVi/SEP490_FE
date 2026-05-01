@@ -174,7 +174,7 @@ export default function AdminTransactionsPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(tx.amount ?? 0)}</td>
-                    <td className="px-5 py-3 text-gray-500">{tx.createdAt ? new Date(tx.createdAt).toLocaleString('vi-VN') : '-'}</td>
+                    <td className="px-5 py-3 text-gray-500">{tx.createdAt ? new Date(new Date(tx.createdAt).getTime() + 7 * 60 * 60 * 1000).toLocaleString('vi-VN') : '-'}</td>
                   </tr>
                 ))
               )}

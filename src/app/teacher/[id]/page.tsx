@@ -351,8 +351,149 @@ export default function ProjectDetailPage() {
     await openProductInEditor(productCode);
   };
 
+<<<<<<< Updated upstream
   const handleExportEduvi = async (productCode: string) => {
     await openProductInEditor(productCode, { openEduviExport: true });
+=======
+  const handleExportSlide = async (productCode: string) => {
+    try {
+      notify.info('Đang xuất file slide .eduvi...');
+      const product = products.find((p) => p.productCode === productCode);
+      let slideDoc: IDocument;
+      if (product?.hasEditedSlide) {
+        const result = await productService.getProductEditedSlide(productCode);
+        slideDoc = result.slideEditedDocument;
+      } else {
+        const result = await productService.getProductSlide(productCode);
+        slideDoc = result.slideDocument;
+      }
+      const academicContext = project ? {
+        projectCode: project.projectCode,
+        projectName: project.projectName,
+        subjectCode: project.subjectCode,
+        subjectName: project.subjectName,
+        gradeCode: project.gradeCode,
+        gradeName: project.gradeName,
+      } : undefined;
+      const folderName = ((project?.projectName ?? slideDoc.title ?? '').trim()) || 'eduvi-folder';
+      const slideTitle = product?.productName?.trim() || slideDoc.title?.trim() || 'slide';
+      await exportToEduvi(slideDoc, {
+        requireOfflineReady: false,
+        academicContext,
+        projectName: project?.projectName || undefined,
+        folderName,
+        packageType: 'slide',
+        customFileName: slideTitle,
+      });
+      notify.success('Đã xuất file slide .eduvi thành công.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Xuất file slide .eduvi thất bại';
+      notify.error(msg);
+    }
+  };
+
+  const handleExportVideo = async (video: VideoProductDto) => {
+    if (!video.videoUrl) {
+      notify.error('Video chưa hoàn thành hoặc không có URL.');
+      return;
+    }
+    try {
+      notify.info('Đang xuất file video .eduvi...');
+      const academicContext = project ? {
+        projectCode: project.projectCode,
+        projectName: project.projectName,
+        subjectCode: project.subjectCode,
+        subjectName: project.subjectName,
+        gradeCode: project.gradeCode,
+        gradeName: project.gradeName,
+      } : undefined;
+      const folderName = ((project?.projectName ?? '').trim()) || 'eduvi-folder';
+      const minimalDoc: IDocument = {
+        id: projectCode,
+        title: project?.projectName ?? 'EduVi',
+        cards: [],
+        activeCardId: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: video.completedAt ?? video.updatedAt ?? video.createdAt ?? new Date().toISOString(),
+      };
+      const videosForExport: EduViVideo[] = [{
+        productVideoCode: video.productVideoCode,
+        productCode: video.productCode,
+        productName: video.productName,
+        status: video.status,
+        duration: video.duration,
+        videoUrl: video.videoUrl,
+        createdAt: video.createdAt,
+        updatedAt: video.updatedAt,
+        completedAt: video.completedAt,
+        interactions: video.interactions?.filter((i) => i.type !== 'index'),
+      }];
+      const videoTitle = video.videoName?.trim() || video.productName?.trim() || 'video';
+      await exportToEduvi(minimalDoc, {
+        requireOfflineReady: true,
+        academicContext,
+        projectName: project?.projectName || undefined,
+        folderName,
+        packageType: 'video',
+        customFileName: videoTitle,
+        videos: videosForExport,
+        mediaFetchTimeoutMs: 120000,
+      });
+      notify.success('Đã xuất file video .eduvi thành công.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Xuất file video .eduvi thất bại';
+      notify.error(msg);
+    }
+  };
+
+  const handleExportGame = async (game: GameDto) => {
+    try {
+      notify.info('Đang xuất file game .eduvi...');
+      const resultJson = await getGameResultJson(game.productGameCode);
+      const gamePayload: EduViGame = {
+        gameCode: game.gameCode,
+        productGameCode: game.productGameCode,
+        productCode: game.productCode,
+        productGameName: game.productGameName,
+        templateCode: game.templateCode || 'UNKNOWN',
+        roundCount: game.roundCount,
+        status: game.status || 'completed',
+        resultJson,
+      };
+      const academicContext = project ? {
+        projectCode: project.projectCode,
+        projectName: project.projectName,
+        subjectCode: project.subjectCode,
+        subjectName: project.subjectName,
+        gradeCode: project.gradeCode,
+        gradeName: project.gradeName,
+      } : undefined;
+      const folderName = ((project?.projectName ?? '').trim()) || 'eduvi-folder';
+      const minimalDoc: IDocument = {
+        id: projectCode,
+        title: project?.projectName ?? 'EduVi',
+        cards: [],
+        activeCardId: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const gameTitle = game.productGameName?.trim() || 'game';
+      await exportToEduvi(minimalDoc, {
+        requireOfflineReady: false,
+        academicContext,
+        projectName: project?.projectName || undefined,
+        games: [gamePayload],
+        folderName,
+        packageType: 'game',
+        customFileName: gameTitle,
+        embedAssets: false,
+      });
+      notify.success('Đã xuất file game .eduvi thành công.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Xuất file game .eduvi thất bại';
+      notify.error(msg);
+    }
+>>>>>>> Stashed changes
   };
 
   const handlePreviewSlide = async (productCode: string) => {

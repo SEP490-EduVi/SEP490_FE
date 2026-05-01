@@ -30,7 +30,7 @@ function formatVnDateTime(value?: string | null): string {
   return vnDate.toLocaleString('vi-VN');
 }
 
-export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
+export default function PaymentTab({ isStaff, isExpert }: { isStaff: boolean; isExpert?: boolean }) {
   const searchParams = useSearchParams();
   const [topUpAmount, setTopUpAmount] = useState('10000');
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
@@ -149,29 +149,31 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:col-span-2">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Nạp tiền vào ví</h3>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="number"
-              min={10000}
-              step={1000}
-              value={topUpAmount}
-              onChange={(e) => setTopUpAmount(e.target.value)}
-              className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-              placeholder="Nhập số EduCoin muốn nạp"
-            />
-            <button
-              onClick={handleTopUp}
-              disabled={topUpWallet.isPending}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-medium"
-            >
-              {topUpWallet.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-              {topUpWallet.isPending ? 'Đang tạo link...' : 'Nạp tiền'}
-            </button>
+        {!isExpert && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:col-span-2">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Nạp tiền vào ví</h3>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="number"
+                min={10000}
+                step={1000}
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+                className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                placeholder="Nhập số EduCoin muốn nạp"
+              />
+              <button
+                onClick={handleTopUp}
+                disabled={topUpWallet.isPending}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              >
+                {topUpWallet.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {topUpWallet.isPending ? 'Đang tạo link...' : 'Nạp tiền'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Tối thiểu 10.000 EduCoin mỗi lần nạp.</p>
           </div>
-          <p className="text-xs text-gray-400 mt-2">Tối thiểu 10.000 EduCoin mỗi lần nạp.</p>
-        </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -196,19 +198,21 @@ export default function PaymentTab({ isStaff }: { isStaff: boolean }) {
         )}
       </AnimatePresence>
 
-      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 p-6 flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Gói subscription</h3>
-          <p className="text-xs text-gray-500 mt-1">Xem và mua các gói EduCoin để sử dụng tính năng AI.</p>
+      {!isExpert && (
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 p-6 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Gói subscription</h3>
+            <p className="text-xs text-gray-500 mt-1">Xem và mua các gói EduCoin để sử dụng tính năng AI.</p>
+          </div>
+          <Link
+            href="/subscription"
+            className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          >
+            Xem bảng giá
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-        <Link
-          href="/subscription"
-          className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center gap-2"
-        >
-          Xem bảng giá
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-50">

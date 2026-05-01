@@ -10,6 +10,16 @@ const formatVND = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
 const toStartOfDayIso = (date: string) => (date ? new Date(`${date}T00:00:00`).toISOString() : undefined);
 const toEndOfDayIso = (date: string) => (date ? new Date(`${date}T23:59:59`).toISOString() : undefined);
 
+const addVnTz = (dateStr?: string | null) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return new Date(d.getTime() + 7 * 60 * 60 * 1000);
+};
+const fmtVnDateTime = (dateStr?: string | null) => {
+  const d = addVnTz(dateStr);
+  return d ? d.toLocaleString('vi-VN') : '-';
+};
+
 const getOrderStatusLabel = (status?: number | string, statusName?: string | null) => {
   if (typeof status === 'number') {
     if (status === 1) return 'Hoàn tất';
@@ -49,6 +59,7 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState('');
 
   const [teacherId, setTeacherId] = useState('');
+  const [orderType, setOrderType] = useState('');
   const [status, setStatus] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -64,6 +75,7 @@ export default function AdminOrdersPage() {
     try {
       const res = await adminServices.listOrders({
         teacherId: teacherId ? Number(teacherId) : undefined,
+        orderType: orderType || undefined,
         status: status ? Number(status) : undefined,
         paymentMethod: paymentMethod || undefined,
         fromDate: toStartOfDayIso(fromDate),
@@ -96,7 +108,7 @@ export default function AdminOrdersPage() {
         <p className="mt-1 text-sm text-gray-500">Bộ lọc: Giáo viên, trạng thái, phương thức thanh toán, khoảng thời gian</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
         <input
           type="number"
           value={teacherId}
@@ -104,6 +116,15 @@ export default function AdminOrdersPage() {
           placeholder="Mã giáo viên"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
+        <select
+          value={orderType}
+          onChange={(e) => setOrderType(e.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        >
+          <option value="">Tất cả loại đơn</option>
+          <option value="subscription">Gói cước</option>
+          <option value="material">Học liệu</option>
+        </select>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -154,6 +175,7 @@ export default function AdminOrdersPage() {
               <tr className="border-b border-gray-100 bg-gray-50/70">
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Mã đơn</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Giáo viên</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-500">Loại đơn</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Thanh toán</th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Số tiền</th>
@@ -163,17 +185,28 @@ export default function AdminOrdersPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-gray-500">Đang tải dữ liệu...</td>
+                  <td colSpan={7} className="px-5 py-16 text-center text-gray-500">Đang tải dữ liệu...</td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
+                  <td colSpan={7} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
                 items.map((order) => (
                   <tr key={order.orderId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">{order.orderCode || `#${order.orderId}`}</td>
                     <td className="px-5 py-3 text-gray-700">{order.teacherName || (order.teacherId ? `GV ${order.teacherId}` : '-')}</td>
+                    <td className="px-5 py-3">
+                      {order.orderTypeName || order.orderType
+                        ? <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            (order.orderType || '').toLowerCase().includes('material')
+                              ? 'bg-violet-50 text-violet-700'
+                              : 'bg-blue-50 text-blue-700'
+                          }`}>
+                            {order.orderTypeName || order.orderType}
+                          </span>
+                        : <span className="text-gray-400">-</span>}
+                    </td>
                     <td className="px-5 py-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${getOrderStatusClass(order.status, order.statusName)}`}
@@ -185,7 +218,7 @@ export default function AdminOrdersPage() {
                     <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(order.totalAmount ?? order.amount ?? 0)}</td>
                     <td className="px-5 py-3 text-gray-500">
                       {(order.orderDate || order.createdAt)
-                        ? new Date(order.orderDate || order.createdAt || '').toLocaleString('vi-VN')
+                        ? fmtVnDateTime(order.orderDate || order.createdAt)
                         : '-'}
                     </td>
                   </tr>

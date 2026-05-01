@@ -215,8 +215,13 @@ function ProfilePageInner() {
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
+<<<<<<< Updated upstream
     ...(!isStaff ? [{ key: 'payment' as Tab, label: 'Thanh toán', icon: Wallet }] : []),
     ...(isExpert ? [{ key: 'withdrawal' as Tab, label: 'Rút tiền', icon: CreditCard }] : []),
+=======
+    ...(!isStaff ? [{ key: 'payment' as Tab, label: isExpert ? 'Ví tiền' : 'Thanh toán', icon: Wallet }] : []),
+
+>>>>>>> Stashed changes
     ...(isTeacher ? [
       { key: 'slides'  as Tab, label: 'Slide', icon: Layers  },
       { key: 'videos'  as Tab, label: 'Video', icon: Film    },
@@ -389,7 +394,7 @@ function ProfilePageInner() {
           {activeTab === 'security' && <SecurityTab />}
 
           {/* ════ Thanh toán ════ */}
-          {!isStaff && activeTab === 'payment' && <PaymentTab isStaff={isStaff} />}
+          {!isStaff && activeTab === 'payment' && <PaymentTab isStaff={isStaff} isExpert={isExpert} />}
 
           {/* ════ Rút tiền ════ */}
           {isExpert && activeTab === 'withdrawal' && (

@@ -13,6 +13,32 @@ const PAGE_SIZE = 10;
 const toStartOfDayIso = (date: string) => (date ? new Date(`${date}T00:00:00`).toISOString() : undefined);
 const toEndOfDayIso = (date: string) => (date ? new Date(`${date}T23:59:59`).toISOString() : undefined);
 
+const ROLE_VI: Record<string, string> = {
+  teacher: 'Giáo viên',
+  expert: 'Chuyên gia',
+  admin: 'Quản trị viên',
+  staff: 'Nhân viên',
+  student: 'Học sinh',
+};
+const toRoleVi = (name?: string | null) => {
+  if (!name) return '-';
+  return ROLE_VI[name.toLowerCase()] ?? name;
+};
+
+const addVnTz = (dateStr?: string | null) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return new Date(d.getTime() + 7 * 60 * 60 * 1000);
+};
+const fmtVnDate = (dateStr?: string | null) => {
+  const d = addVnTz(dateStr);
+  return d ? d.toLocaleDateString('vi-VN') : '-';
+};
+const fmtVnDateTime = (dateStr?: string | null) => {
+  const d = addVnTz(dateStr);
+  return d ? d.toLocaleString('vi-VN') : '-';
+};
+
 const getStatusLabel = (status: number, statusName?: string | null) => {
   if (status === 1) return 'Hoạt động';
   if (status === 0) return 'Đã khóa';
@@ -523,7 +549,7 @@ export default function AdminUsersPage() {
                       <p className="font-medium text-gray-900">{user.fullName || user.username}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </td>
-                    <td className="px-5 py-3 text-gray-600">{user.roleName || user.role?.roleName || '-'}</td>
+                    <td className="px-5 py-3 text-gray-600">{toRoleVi(user.roleName || user.role?.roleName)}</td>
                     <td className="px-5 py-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -538,7 +564,7 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-gray-500">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '-'}
+                      {fmtVnDate(user.createdAt)}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <div className="relative inline-block text-left" data-action-menu>
@@ -648,7 +674,7 @@ export default function AdminUsersPage() {
             <p><strong>Số điện thoại:</strong> {detailUser.phoneNumber || '-'}</p>
             <p><strong>Vai trò:</strong> {detailUser.roleName || detailUser.role?.roleName || '-'}</p>
             <p><strong>Trạng thái:</strong> {getStatusLabel(detailUser.status, detailUser.statusName)}</p>
-            <p><strong>Ngày tạo:</strong> {detailUser.createdAt ? new Date(detailUser.createdAt).toLocaleString('vi-VN') : '-'}</p>
+            <p><strong>Ngày tạo:</strong> {fmtVnDateTime(detailUser.createdAt)}</p>
           </div>
         ) : (
           <p className="text-sm text-gray-500">Không có dữ liệu.</p>
