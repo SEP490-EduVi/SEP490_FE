@@ -194,7 +194,7 @@ export default function AdminWithdrawalsPage() {
                           {statusLabel(mappedStatus)}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-gray-500">{w.createdAt ? new Date(w.createdAt).toLocaleString('vi-VN') : '-'}</td>
+                      <td className="px-5 py-3 text-gray-500">{w.createdAt ? new Date(new Date(w.createdAt).getTime() + 7 * 60 * 60 * 1000).toLocaleString('vi-VN') : '-'}</td>
                       <td className="px-5 py-3">
                         <button
                           type="button"

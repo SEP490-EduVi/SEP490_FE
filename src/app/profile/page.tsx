@@ -31,9 +31,10 @@ import SecurityTab from '@/components/profile/SecurityTab';
 import PaymentTab from '@/components/profile/PaymentTab';
 import CertificateTab from '@/components/profile/CertificateTab';
 import ProfileTab from '@/components/profile/ProfileTab';
+import WithdrawalTab from '@/components/profile/WithdrawalTab';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type Tab = 'profile' | 'security' | 'payment' | 'certificate' | 'slides' | 'videos' | 'library';
+type Tab = 'profile' | 'security' | 'payment' | 'certificate' | 'slides' | 'videos' | 'library' | 'withdrawal';
 type ProfileRole = 'guest' | 'admin' | 'teacher' | 'staff' | 'expert';
 
 function resolveProfileRole(roleName?: string | null): ProfileRole {
@@ -214,8 +215,8 @@ function ProfilePageInner() {
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profile',  label: 'Hồ sơ',    icon: User       },
     { key: 'security', label: 'Bảo mật',  icon: LockKeyhole},
-    ...(!isStaff ? [{ key: 'payment' as Tab, label: 'Thanh toán', icon: Wallet }] : []),
-
+    ...(!isStaff ? [{ key: 'payment' as Tab, label: isExpert ? 'Ví tiền' : 'Thanh toán', icon: Wallet }] : []),
+    ...(isExpert ? [{ key: 'withdrawal' as Tab, label: 'Rút tiền', icon: CreditCard }] : []),
     ...(isTeacher ? [
       { key: 'slides'  as Tab, label: 'Slide', icon: Layers  },
       { key: 'videos'  as Tab, label: 'Video', icon: Film    },
@@ -388,7 +389,7 @@ function ProfilePageInner() {
           {activeTab === 'security' && <SecurityTab />}
 
           {/* ════ Thanh toán ════ */}
-          {!isStaff && activeTab === 'payment' && <PaymentTab isStaff={isStaff} />}
+          {!isStaff && activeTab === 'payment' && <PaymentTab isStaff={isStaff} isExpert={isExpert} />}
 
 
 
@@ -561,6 +562,11 @@ function ProfilePageInner() {
           {/* ════ Chứng chỉ ════ */}
           {activeTab === 'certificate' && isExpert && (
             <CertificateTab expertId={(info as { expertId?: number | null } | null)?.expertId ?? null} />
+          )}
+
+          {/* ════ Rút tiền ════ */}
+          {activeTab === 'withdrawal' && isExpert && (
+            <WithdrawalTab />
           )}
 
         </AnimatePresence>

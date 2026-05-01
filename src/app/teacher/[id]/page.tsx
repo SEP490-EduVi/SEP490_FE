@@ -379,13 +379,14 @@ export default function ProjectDetailPage() {
         gradeName: project.gradeName,
       } : undefined;
       const folderName = ((project?.projectName ?? slideDoc.title ?? '').trim()) || 'eduvi-folder';
+      const slideTitle = product?.productName?.trim() || slideDoc.title?.trim() || 'slide';
       await exportToEduvi(slideDoc, {
         requireOfflineReady: false,
         academicContext,
         projectName: project?.projectName || undefined,
         folderName,
         packageType: 'slide',
-        fileNameSuffix: 'slide',
+        customFileName: slideTitle,
       });
       notify.success('Đã xuất file slide .eduvi thành công.');
     } catch (error) {
@@ -430,13 +431,14 @@ export default function ProjectDetailPage() {
         completedAt: video.completedAt,
         interactions: video.interactions?.filter((i) => i.type !== 'index'),
       }];
+      const videoTitle = video.videoName?.trim() || video.productName?.trim() || 'video';
       await exportToEduvi(minimalDoc, {
         requireOfflineReady: true,
         academicContext,
         projectName: project?.projectName || undefined,
         folderName,
         packageType: 'video',
-        fileNameSuffix: 'video',
+        customFileName: videoTitle,
         videos: videosForExport,
         mediaFetchTimeoutMs: 120000,
       });
@@ -478,6 +480,7 @@ export default function ProjectDetailPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      const gameTitle = game.productGameName?.trim() || 'game';
       await exportToEduvi(minimalDoc, {
         requireOfflineReady: false,
         academicContext,
@@ -485,7 +488,7 @@ export default function ProjectDetailPage() {
         games: [gamePayload],
         folderName,
         packageType: 'game',
-        fileNameSuffix: 'game',
+        customFileName: gameTitle,
         embedAssets: false,
       });
       notify.success('Đã xuất file game .eduvi thành công.');

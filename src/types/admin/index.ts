@@ -124,6 +124,8 @@ export interface AdminOrderResponse {
   status?: number | string;
   statusName?: string | null;
   paymentMethod?: string | null;
+  orderType?: string | null;
+  orderTypeName?: string | null;
   amount?: number;
   totalAmount?: number;
   createdAt?: string | null;

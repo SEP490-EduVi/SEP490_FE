@@ -75,7 +75,7 @@ const labelInput = 'block text-xs font-semibold uppercase tracking-wide text-gra
 const baseInput = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-teal-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100';
 
 const fmtDate = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+  s ? new Date(new Date(s).getTime() + 7 * 60 * 60 * 1000).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 export default function TextbookIngestionPage() {
   const [docs, setDocs] = useState<TextbookDto[]>([]);

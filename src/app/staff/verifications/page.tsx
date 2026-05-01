@@ -127,7 +127,10 @@ export default function StaffVerificationsPage() {
       },
       {
         onSuccess: () => notify.success(approved ? MSGS.staff.approveSuccess : MSGS.staff.rejectSuccess),
-        onError: () => notify.error(MSGS.staff.processError),
+        onError: (err) => {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+          notify.error(msg ?? MSGS.staff.processError);
+        },
       },
     );
   };

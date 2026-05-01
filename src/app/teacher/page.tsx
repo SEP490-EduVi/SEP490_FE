@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus, Clock3, ChevronRight, ChevronDown, BookOpen, GraduationCap, HelpCircle } from 'lucide-react';
+import { FolderKanban, Layers, Film, ArrowRight, Loader2, Plus, Clock3, ChevronRight, ChevronDown, BookOpen, GraduationCap, HelpCircle, Download } from 'lucide-react';
 
 import AppHeader from '@/components/sidebar/AppHeader';
 import Modal from '@/components/common/Modal';
@@ -159,7 +159,7 @@ export default function TeacherDashboard() {
           transition={{ duration: 0.35 }}
           className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl px-5 py-3.5 sm:px-6 sm:py-4 text-white shadow-lg shadow-blue-600/20"
         >
-          <div className="relative z-10 min-h-[84px] flex items-center gap-3">
+          <div className="relative z-10 min-h-[84px] flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-blue-100 text-xs sm:text-sm mb-0.5">Chào mừng trở lại</p>
               <h2 className="text-[24px] leading-tight font-bold tracking-tight">{displayName}</h2>
@@ -167,6 +167,13 @@ export default function TeacherDashboard() {
                 Tiếp tục bài giảng đang dở hoặc tạo dự án mới trong 1 bước.
               </p>
             </div>
+            <a
+              href="https://github.com/SEP490-EduVi/SEP490_FE/releases/download/v1.0.0/EduViViewer-Setup-1.2.0.exe"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white text-sm font-semibold transition-colors flex-shrink-0"
+            >
+              <Download className="w-4 h-4" />
+              Tải EduVi Desktop
+            </a>
           </div>
           <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
           <div className="absolute right-12 bottom-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 pointer-events-none" />
