@@ -74,6 +74,7 @@ const APPROVAL_STATUS_MAP: Record<number, { label: string; color: string }> = {
   0: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700' },
   1: { label: 'Đã duyệt',  color: 'bg-emerald-50 text-emerald-700' },
   2: { label: 'Từ chối',   color: 'bg-red-50 text-red-700' },
+  3: { label: 'Bị cấm',    color: 'bg-gray-100 text-gray-600' },
 };
 
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
@@ -539,7 +540,10 @@ export default function ExpertDashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={28} />
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value) => [value, 'Lượt bán']}
+                      contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                    />
                     <Area type="monotone" dataKey="sold" stroke="#6366f1" strokeWidth={2} fill="url(#soldGradient)" />
                   </AreaChart>
                 </ResponsiveContainer>

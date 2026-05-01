@@ -19,6 +19,8 @@ export const MSGS = {
     updateError:   'Cập nhật dự án thất bại. Vui lòng thử lại.',
     deleteSuccess: 'Đã xóa dự án thành công',
     deleteError:   'Xóa dự án thất bại. Vui lòng thử lại.',
+    deleteHasProducts: 'Không thể xóa dự án vì bên trong còn sản phẩm số. Vui lòng xóa các sản phẩm trước.',
+    deleteHasDocuments: 'Không thể xóa dự án vì còn tài nguyên đầu vào. Vui lòng xóa các tài liệu trước.',
   },
 
   // ── Slides ────────────────────────────────────────────────────────────────
@@ -135,8 +137,8 @@ export const MSGS = {
 
   // ── Subscription purchase ─────────────────────────────────────────────────
   subscription: {
-    buySuccess: (name: string, quota: number) =>
-      `Mua gói ${name} thành công! +${quota} EduCoin`,
+    buySuccess: (name: string, _quota: number) =>
+      `Mua gói ${name} thành công!`,
     buyError: 'Mua gói thất bại. Vui lòng kiểm tra số dư ví.',
   },
 

@@ -161,7 +161,7 @@ export default function PipelineProgressModal({
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
                       {pipelineType === 'evaluation' ? 'Đánh giá bài giảng'
-                       : pipelineType === 'video'    ? 'Tạo video AI'
+                       : pipelineType === 'video'    ? 'Tạo video'
                        : 'Tạo slide AI'}
                     </h3>
                     <p className="text-xs text-gray-500">

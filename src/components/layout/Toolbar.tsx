@@ -261,7 +261,7 @@ export function Toolbar() {
           createdAt: latestVideo.createdAt,
           updatedAt: latestVideo.updatedAt,
           completedAt: latestVideo.completedAt,
-          interactions: latestVideo.interactions,
+          interactions: latestVideo.interactions?.filter((i) => i.type !== 'index'),
         },
       ];
 

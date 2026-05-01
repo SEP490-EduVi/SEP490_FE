@@ -66,6 +66,8 @@ export default function CertificateTab({
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [openingCertFile, setOpeningCertFile] = useState(false);
   const [showResubmitForm, setShowResubmitForm] = useState(false);
+  const [certPreviewUrl, setCertPreviewUrl] = useState<string | null>(null);
+  const [certPreviewMime, setCertPreviewMime] = useState<string>('');
 
   const cert = verifications[0] ?? null;
   const certStatus = normalizeVerificationStatus(cert?.status);
@@ -120,22 +122,20 @@ export default function CertificateTab({
 
   const handleOpenCertFile = async () => {
     if (!cert) return;
+    // Toggle off if already showing
+    if (certPreviewUrl) {
+      URL.revokeObjectURL(certPreviewUrl);
+      setCertPreviewUrl(null);
+      setCertPreviewMime('');
+      return;
+    }
     try {
       setOpeningCertFile(true);
       const { blob } = await getVerificationFile(cert.verificationCode, cert.fileUrl);
       const url = URL.createObjectURL(blob);
-      const opened = window.open(url, '_blank', 'noopener,noreferrer');
-      if (!opened) {
-        const fallbackLink = document.createElement('a');
-        fallbackLink.href = url;
-        fallbackLink.download = `${cert.verificationCode}`;
-        document.body.appendChild(fallbackLink);
-        fallbackLink.click();
-        fallbackLink.remove();
-      }
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setCertPreviewUrl(url);
+      setCertPreviewMime(blob.type);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       notify.error(MSGS.cert.previewError);
     } finally {
       setOpeningCertFile(false);
@@ -332,8 +332,17 @@ export default function CertificateTab({
                 className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
                 {openingCertFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-                {openingCertFile ? 'Đang mở file...' : 'Xem file đã nộp'}
+                {openingCertFile ? 'Đang mở file...' : certPreviewUrl ? 'Ẩn file' : 'Xem file đã nộp'}
               </button>
+              {certPreviewUrl && (
+                <div className="mt-3 rounded-xl overflow-hidden border border-blue-100 bg-blue-50/30">
+                  {certPreviewMime.includes('pdf') ? (
+                    <iframe src={certPreviewUrl} className="w-full h-[480px] border-0" title="Xem chứng chỉ" />
+                  ) : (
+                    <img src={certPreviewUrl} alt="Xem chứng chỉ" className="max-w-full max-h-96 mx-auto block p-2" />
+                  )}
+                </div>
+              )}
             </div>
 
             {cert.rejectionReason && (

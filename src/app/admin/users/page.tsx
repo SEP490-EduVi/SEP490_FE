@@ -174,7 +174,8 @@ export default function AdminUsersPage() {
       notify.success(MSGS.admin.user.updateSuccess);
       await loadUsers(page);
     } catch (err) {
-      notify.error(MSGS.admin.user.updateError);
+      const apiMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      notify.error(apiMsg || MSGS.admin.user.updateError);
     } finally {
       setBusy(false);
     }
@@ -211,7 +212,8 @@ export default function AdminUsersPage() {
       notify.success(MSGS.admin.user.addSuccess);
       await loadUsers(1);
     } catch (err) {
-      notify.error(MSGS.admin.user.addError);
+      const apiMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      notify.error(apiMsg || MSGS.admin.user.addError);
     } finally {
       setBusy(false);
     }

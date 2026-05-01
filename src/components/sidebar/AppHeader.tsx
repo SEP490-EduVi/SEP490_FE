@@ -69,15 +69,16 @@ export default function AppHeader() {
   const logoutService = useLogoutService();
   const queryClient = useQueryClient();
   const isTeacher = role === 'teacher';
+  const isExpert  = role === 'expert';
   const { data: userQuota, isLoading: quotaLoading } = useUserQuota({ enabled: isTeacher });
   const { data: walletInfo, isLoading: walletLoading } = useWalletInfo({
-    enabled: isTeacher,
+    enabled: isTeacher || isExpert,
     refetchIntervalMs: 7000,
     staleTimeMs: 5000,
     refetchInBackground: true,
   });
   const { data: txData, isLoading: txLoading } = useWalletTransactions(1, 10, {
-    enabled: isTeacher,
+    enabled: isTeacher || isExpert,
     refetchIntervalMs: 3000,
     staleTimeMs: 2000,
     refetchInBackground: true,
@@ -234,7 +235,7 @@ export default function AppHeader() {
   /** Active check: exact match for root role page, prefix for sub-pages */
   const isActive = (href: string) => {
     const path = href.split('?')[0]; // strip query string for comparison
-    if (path === '/teacher' || path === '/expert' || path === '/admin' || path === '/') {
+    if (path === '/teacher' || path === '/expert' || path === '/admin' || path === '/' || path === '/staff') {
       return pathname === path;
     }
     return pathname.startsWith(path);
@@ -347,7 +348,7 @@ export default function AppHeader() {
             </div>
           )}
 
-          {isTeacher && (
+          {(isTeacher || isExpert) && (
             <div
               className="hidden lg:flex h-10 min-w-[164px] items-center justify-center gap-2 px-3 rounded-full border border-emerald-200 bg-emerald-50/70"
               title={`Số dư: ${formatBalance(walletInfo?.balance)}`}
@@ -357,13 +358,13 @@ export default function AppHeader() {
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
               ) : (
                 <p className="text-xs font-semibold text-emerald-800 tabular-nums whitespace-nowrap">
-                  Ví EduCoin {formatCompactBalance(walletInfo?.balance)}
+                  EduCoin {formatCompactBalance(walletInfo?.balance)}
                 </p>
               )}
             </div>
           )}
 
-          {isTeacher && (
+          {(isTeacher || isExpert) && (
             <div className="relative hidden md:block" ref={notifRef}>
               <button
                 onClick={() => setNotifOpen((o) => !o)}
@@ -458,7 +459,7 @@ export default function AppHeader() {
                 {initial}
               </div>
             )}
-            <p className="hidden 2xl:block text-sm font-semibold text-gray-900 leading-none">{displayName}</p>
+            <p className="hidden 2xl:block text-sm font-semibold text-gray-900 leading-none max-w-[70px] truncate">{displayName}</p>
             <ChevronDown
               className={`w-4 h-4 text-gray-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
             />
@@ -514,6 +515,19 @@ export default function AppHeader() {
                   >
                     <Library className="w-4 h-4 text-emerald-400" />
                     Thư viện
+                  </button>
+                </>
+              )}
+
+              {role === 'expert' && (
+                <>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); router.push('/expert/withdrawal'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:bg-gray-50"
+                  >
+                    <Wallet className="w-4 h-4 text-emerald-500" />
+                    Rút tiền
                   </button>
                 </>
               )}

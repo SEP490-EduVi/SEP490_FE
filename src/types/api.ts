@@ -174,7 +174,7 @@ export interface VideoProductDto {
   productName: string;
   productVideoCode: string;
   videoName: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'Pending' | 'Processing' | 'Completed' | 'Failed' | (string & {});
   slideDocumentUrl: string | null;
   videoUrl: string | null;
   duration: number | null;
@@ -363,6 +363,7 @@ export interface MaterialDto {
   gradeCode: string;
   gradeName: string;
   approvalStatus: number;
+  rejectionReason: string | null;
   expertCode: string;
   expertName: string;
   createdAt: string;

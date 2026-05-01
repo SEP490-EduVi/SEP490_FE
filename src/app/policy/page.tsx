@@ -141,11 +141,11 @@ export default function PolicyPage() {
                 vui lòng liên hệ:
               </p>
               <a
-                href="mailto:pdat1746@gmail.com"
+                href="mailto:eduvi@gmail.com"
                 className="inline-flex items-center gap-2 px-7 py-3 text-sm font-semibold text-blue-600 bg-white rounded-2xl border border-blue-200/60 hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
               >
                 <Mail className="w-4 h-4" />
-                pdat1746@gmail.com
+                eduvi@gmail.com
               </a>
             </div>
           </div>
