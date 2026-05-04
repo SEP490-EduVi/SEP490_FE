@@ -26,17 +26,22 @@ const DIR = { UP: 'UP', DOWN: 'DOWN', LEFT: 'LEFT', RIGHT: 'RIGHT' };
 
 // ── Player configs ─────────────────────────────────────────────────────────────
 const PLAYER_CFGS = [
-  { label: 'P1', headColor: '#22c55e', bodyColor: '#16a34a', glowColor: '#4ade80', nameColor: '#86efac', startCol: 5,  startRow: 10, startDir: DIR.RIGHT, ansHint: 'Z X C V / 1 2 3 4' },
-  { label: 'P2', headColor: '#06b6d4', bodyColor: '#0891b2', glowColor: '#67e8f9', nameColor: '#a5f3fc', startCol: 14, startRow: 10, startDir: DIR.LEFT,  ansHint: '1 2 3 4' },
+  { label: 'P1', headColor: '#4ade80', bodyColor: '#16a34a', glowColor: '#86efac', nameColor: '#86efac', startCol: 5,  startRow: 10, startDir: DIR.RIGHT, ansHint: 'Z X C V' },
+  { label: 'P2', headColor: '#f472b6', bodyColor: '#be185d', glowColor: '#fbcfe8', nameColor: '#f9a8d4', startCol: 14, startRow: 10, startDir: DIR.LEFT,  ansHint: '1 2 3 4' },
 ];
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const THEME = {
-  bg:        '#0f172a',
-  gridLine:  'rgba(255,255,255,0.04)',
-  food:      '#f59e0b',
-  foodGlow:  '#fbbf24',
-  text:      '#e2e8f0',
+  bgTop:      '#0d0b2e',
+  bgMid:      '#130d3a',
+  bgBot:      '#180a40',
+  gridLine:   'rgba(139,92,246,0.10)',
+  gridBorder: 'rgba(139,92,246,0.55)',
+  food:       '#fbbf24',
+  foodGlow:   '#f59e0b',
+  text:       '#e2e8f0',
+  purple:     '#8b5cf6',
+  blue:       '#3b82f6',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -371,8 +376,18 @@ export class SnakeDuelGame {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Background
-    ctx.fillStyle = THEME.bg;
+    // Background — deep purple-indigo gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, W * 0.5, H);
+    bgGrad.addColorStop(0, THEME.bgTop);
+    bgGrad.addColorStop(0.5, THEME.bgMid);
+    bgGrad.addColorStop(1, THEME.bgBot);
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+    // Radial vignette
+    const vign = ctx.createRadialGradient(W / 2, H / 2, H * 0.12, W / 2, H / 2, H * 0.85);
+    vign.addColorStop(0, 'rgba(0,0,0,0)');
+    vign.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vign;
     ctx.fillRect(0, 0, W, H);
 
     // Compute grid layout (centered square)
@@ -408,14 +423,33 @@ export class SnakeDuelGame {
   _drawGrid(ctx, { cellSize, gridX, gridY }, W, H) {
     const gW = cellSize * this.gridSize;
     const gH = cellSize * this.gridSize;
+
+    // Inner background tint
+    const innerGrad = ctx.createLinearGradient(gridX, gridY, gridX + gW, gridY + gH);
+    innerGrad.addColorStop(0, 'rgba(139,92,246,0.05)');
+    innerGrad.addColorStop(1, 'rgba(59,130,246,0.04)');
+    ctx.fillStyle = innerGrad;
+    ctx.fillRect(gridX, gridY, gW, gH);
+
+    // Grid lines
     ctx.strokeStyle = THEME.gridLine;
-    ctx.lineWidth   = 1;
+    ctx.lineWidth   = 0.5;
     for (let c = 0; c <= this.gridSize; c++) {
       ctx.beginPath(); ctx.moveTo(gridX + c * cellSize, gridY); ctx.lineTo(gridX + c * cellSize, gridY + gH); ctx.stroke();
     }
     for (let r = 0; r <= this.gridSize; r++) {
       ctx.beginPath(); ctx.moveTo(gridX, gridY + r * cellSize); ctx.lineTo(gridX + gW, gridY + r * cellSize); ctx.stroke();
     }
+
+    // Glowing border
+    ctx.save();
+    ctx.shadowColor = THEME.purple;
+    ctx.shadowBlur  = 22;
+    ctx.strokeStyle = THEME.gridBorder;
+    ctx.lineWidth   = 2;
+    roundRect(ctx, gridX, gridY, gW, gH, 3);
+    ctx.stroke();
+    ctx.restore();
   }
 
   _drawFlashes(ctx, { cellSize, gridX, gridY }, nowMs) {
@@ -452,109 +486,244 @@ export class SnakeDuelGame {
   }
 
   _drawSnake(ctx, { cellSize, gridX, gridY }, pi) {
-    const sn  = this.snakes[pi];
-    const cfg = PLAYER_CFGS[pi];
-    const r   = Math.max(2, cellSize * 0.13);
+    const sn    = this.snakes[pi];
+    const cfg   = PLAYER_CFGS[pi];
+    const r     = Math.max(2, cellSize * 0.14);
+    const total = sn.body.length;
 
     for (let i = sn.body.length - 1; i >= 0; i--) {
-      const seg = sn.body[i];
-      const sx  = gridX + seg.col * cellSize;
-      const sy  = gridY + seg.row * cellSize;
-      const pad = cellSize * 0.08;
+      const seg    = sn.body[i];
+      const sx     = gridX + seg.col * cellSize;
+      const sy     = gridY + seg.row * cellSize;
+      const pad    = cellSize * 0.07;
       const isHead = i === 0;
+      const t      = total > 1 ? i / (total - 1) : 0; // 0=head, 1=tail
 
       ctx.save();
+      ctx.globalAlpha = isHead ? 1 : Math.max(0.50, 1 - t * 0.50);
       if (isHead) {
         ctx.shadowColor = cfg.glowColor;
-        ctx.shadowBlur  = 10;
+        ctx.shadowBlur  = 16;
       }
       ctx.fillStyle = isHead ? cfg.headColor : cfg.bodyColor;
       roundRect(ctx, sx + pad, sy + pad, cellSize - pad * 2, cellSize - pad * 2, r);
       ctx.fill();
 
-      // Eyes on head
+      // Sheen highlight on every segment
+      ctx.globalAlpha *= 0.30;
+      ctx.fillStyle = '#ffffff';
+      roundRect(ctx, sx + pad, sy + pad, cellSize - pad * 2, (cellSize - pad * 2) * 0.40, r);
+      ctx.fill();
+
       if (isHead) {
-        ctx.shadowBlur = 0;
-        const eyeR = cellSize * 0.08;
-        const eyeOffX = cellSize * 0.22, eyeOffY = cellSize * 0.28;
-        const hcX = sx + cellSize / 2, hcY = sy + cellSize / 2;
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur  = 0;
+        // Eyes
+        const eyeR   = cellSize * 0.09;
+        const eyeOX  = cellSize * 0.22, eyeOY = cellSize * 0.26;
+        const hcX    = sx + cellSize / 2, hcY = sy + cellSize / 2;
         ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(hcX - eyeOffX, hcY - eyeOffY + cellSize * 0.05, eyeR, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(hcX + eyeOffX, hcY - eyeOffY + cellSize * 0.05, eyeR, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.arc(hcX - eyeOffX + 1, hcY - eyeOffY + cellSize * 0.05, eyeR * 0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(hcX + eyeOffX + 1, hcY - eyeOffY + cellSize * 0.05, eyeR * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hcX - eyeOX, hcY - eyeOY + cellSize * 0.06, eyeR, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hcX + eyeOX, hcY - eyeOY + cellSize * 0.06, eyeR, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(hcX - eyeOX + 1, hcY - eyeOY + cellSize * 0.06, eyeR * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hcX + eyeOX + 1, hcY - eyeOY + cellSize * 0.06, eyeR * 0.5, 0, Math.PI * 2); ctx.fill();
       }
       ctx.restore();
     }
   }
 
   _drawHUD(ctx, W, H) {
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, 0, W, H * 0.10);
+    const hudH = H * 0.10;
 
-    // P1 (left)
-    ctx.fillStyle = PLAYER_CFGS[0].nameColor;
-    ctx.font      = `700 ${W * 0.022}px system-ui`;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(`P1 🐍 ${this.snakes[0].score}pt`, W * 0.025, H * 0.05);
+    // Background
+    const hudGrad = ctx.createLinearGradient(0, 0, 0, hudH);
+    hudGrad.addColorStop(0, 'rgba(13,11,46,0.98)');
+    hudGrad.addColorStop(1, 'rgba(13,11,46,0.82)');
+    ctx.fillStyle = hudGrad;
+    ctx.fillRect(0, 0, W, hudH);
 
-    // P2 (right)
-    ctx.fillStyle = PLAYER_CFGS[1].nameColor;
+    // Bottom separator gradient line
+    const sep = ctx.createLinearGradient(0, 0, W, 0);
+    sep.addColorStop(0,    'rgba(139,92,246,0)');
+    sep.addColorStop(0.25, 'rgba(139,92,246,0.9)');
+    sep.addColorStop(0.75, 'rgba(59,130,246,0.9)');
+    sep.addColorStop(1,    'rgba(59,130,246,0)');
+    ctx.fillStyle = sep;
+    ctx.fillRect(0, hudH - 2, W, 2);
+
+    const cardW = W * 0.26, cardH = hudH * 0.74, cardY = hudH * 0.13, cr = 10;
+    const barY  = cardY + cardH * 0.32, barH2 = cardH * 0.18, barMaxW = cardW * 0.38;
+
+    // ── P1 card ────────────────────────────────────────────
+    const p1X = W * 0.012;
+    ctx.save();
+    ctx.fillStyle   = 'rgba(74,222,128,0.10)';
+    roundRect(ctx, p1X, cardY, cardW, cardH, cr); ctx.fill();
+    ctx.strokeStyle = 'rgba(74,222,128,0.50)';
+    ctx.lineWidth   = 1.5;
+    roundRect(ctx, p1X, cardY, cardW, cardH, cr); ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle    = PLAYER_CFGS[0].nameColor;
+    ctx.font         = `700 ${W * 0.015}px system-ui`;
+    ctx.textAlign    = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('🐍 P1  WASD', p1X + cardW * 0.06, cardY + cardH * 0.32);
+    ctx.fillStyle = '#fff';
+    ctx.font      = `800 ${W * 0.030}px system-ui`;
+    ctx.fillText(`${this.snakes[0].score}`, p1X + cardW * 0.06, cardY + cardH * 0.70);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font      = `400 ${W * 0.012}px system-ui`;
+    ctx.fillText('điểm', p1X + cardW * 0.06 + W * 0.022, cardY + cardH * 0.72);
+
+    const p1Fr  = Math.min(this.snakes[0].body.length / 25, 1);
+    const barX1 = p1X + cardW * 0.56;
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    roundRect(ctx, barX1, barY - barH2 / 2, barMaxW, barH2, barH2 / 2); ctx.fill();
+    if (p1Fr > 0) {
+      ctx.fillStyle = PLAYER_CFGS[0].headColor;
+      roundRect(ctx, barX1, barY - barH2 / 2, barMaxW * p1Fr, barH2, barH2 / 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = `400 ${W * 0.010}px system-ui`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`${this.snakes[0].body.length} ô`, barX1, cardY + cardH * 0.76);
+
+    // ── P2 card ────────────────────────────────────────────
+    const p2X = W - W * 0.012 - cardW;
+    ctx.save();
+    ctx.fillStyle   = 'rgba(244,114,182,0.10)';
+    roundRect(ctx, p2X, cardY, cardW, cardH, cr); ctx.fill();
+    ctx.strokeStyle = 'rgba(244,114,182,0.50)';
+    ctx.lineWidth   = 1.5;
+    roundRect(ctx, p2X, cardY, cardW, cardH, cr); ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle    = PLAYER_CFGS[1].nameColor;
+    ctx.font         = `700 ${W * 0.015}px system-ui`;
+    ctx.textAlign    = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('Arrows  P2 🐍', p2X + cardW * 0.94, cardY + cardH * 0.32);
+    ctx.fillStyle = '#fff';
+    ctx.font      = `800 ${W * 0.030}px system-ui`;
+    ctx.fillText(`${this.snakes[1].score}`, p2X + cardW * 0.94, cardY + cardH * 0.70);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font      = `400 ${W * 0.012}px system-ui`;
+    ctx.fillText('điểm', p2X + cardW * 0.94 - W * 0.022, cardY + cardH * 0.72);
+
+    const p2Fr  = Math.min(this.snakes[1].body.length / 25, 1);
+    const barX2 = p2X + cardW * 0.06;
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    roundRect(ctx, barX2, barY - barH2 / 2, barMaxW, barH2, barH2 / 2); ctx.fill();
+    if (p2Fr > 0) {
+      ctx.fillStyle = PLAYER_CFGS[1].headColor;
+      roundRect(ctx, barX2 + barMaxW * (1 - p2Fr), barY - barH2 / 2, barMaxW * p2Fr, barH2, barH2 / 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = `400 ${W * 0.010}px system-ui`;
     ctx.textAlign = 'right';
-    ctx.fillText(`P2 🐍 ${this.snakes[1].score}pt`, W * 0.975, H * 0.05);
+    ctx.fillText(`${this.snakes[1].body.length} ô`, barX2 + barMaxW, cardY + cardH * 0.76);
 
-    // Progress (center)
-    const tot = this.questions.length;
-    const dotR = W * 0.010, dotY = H * 0.05, dotSp = dotR * 2.8;
+    // ── Progress dots (center) ─────────────────────────────
+    const tot    = this.questions.length;
+    const dotR   = Math.min(W * 0.008, 7);
+    const dotY   = hudH * 0.44;
+    const dotSp  = dotR * 3.2;
     const startX = W / 2 - (tot - 1) * dotSp / 2;
     for (let i = 0; i < tot; i++) {
-      ctx.beginPath(); ctx.arc(startX + i * dotSp, dotY, dotR, 0, Math.PI * 2);
+      ctx.save();
+      const isCur = i === this.questionIndex;
+      if (isCur) { ctx.shadowColor = THEME.food; ctx.shadowBlur = 10; }
+      ctx.beginPath();
+      ctx.arc(startX + i * dotSp, dotY, isCur ? dotR * 1.4 : dotR, 0, Math.PI * 2);
       ctx.fillStyle = i < this.questionIndex ? '#10b981'
         : i === this.questionIndex ? THEME.food
-        : 'rgba(255,255,255,0.3)';
+        : 'rgba(255,255,255,0.22)';
       ctx.fill();
+      ctx.restore();
     }
-
-    // Snake length indicators
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font      = `400 ${W * 0.015}px system-ui`;
-    ctx.textAlign = 'left';
-    ctx.fillText(`len: ${this.snakes[0].body.length}`, W * 0.025, H * 0.082);
-    ctx.textAlign = 'right';
-    ctx.fillText(`len: ${this.snakes[1].body.length}`, W * 0.975, H * 0.082);
+    ctx.fillStyle    = 'rgba(255,255,255,0.40)';
+    ctx.font         = `400 ${W * 0.011}px system-ui`;
+    ctx.textAlign    = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(`Câu ${Math.min(this.questionIndex + 1, tot)} / ${tot}`, W / 2, hudH * 0.68);
   }
 
   _drawControlsHint(ctx, W, H, bottomY) {
-    ctx.fillStyle    = 'rgba(255,255,255,0.28)';
-    ctx.font         = `400 ${W * 0.013}px system-ui`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'top';
     const isQuestion = this.state === 'QUESTION';
     const eatCfg     = this.whichAte >= 0 ? PLAYER_CFGS[this.whichAte] : null;
+
+    const hintH = H * 0.040;
+    const hintY = bottomY + (H - bottomY - hintH) / 2;
+    const pillW = W * 0.72, pillX = (W - pillW) / 2;
+
+    ctx.save();
+    ctx.fillStyle   = 'rgba(255,255,255,0.06)';
+    roundRect(ctx, pillX, hintY, pillW, hintH, hintH / 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth   = 1;
+    roundRect(ctx, pillX, hintY, pillW, hintH, hintH / 2); ctx.stroke();
+    ctx.restore();
+
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font         = `500 ${W * 0.013}px system-ui`;
     if (isQuestion && eatCfg) {
       ctx.fillStyle = eatCfg.nameColor;
-      ctx.fillText(`${eatCfg.label} trả lời bằng [${eatCfg.ansHint}]  |  Rắn kia vẫn di chuyển!`, W / 2, bottomY + H * 0.012);
+      ctx.fillText(`🐍 ${eatCfg.label} trả lời bằng [${eatCfg.ansHint}]  •  Rắn kia vẫn đang di chuyển!`, W / 2, hintY + hintH / 2);
     } else {
-      ctx.fillText('P1: WASD di chuyển   P2: Arrows di chuyển  |  Ai ăn ❓ trước được hỏi!', W / 2, bottomY + H * 0.012);
+      ctx.fillStyle = 'rgba(255,255,255,0.48)';
+      ctx.fillText('P1: WASD di chuyển   •   P2: Arrows di chuyển   •   Ai ăn ❓ trước được quyền trả lời!', W / 2, hintY + hintH / 2);
     }
   }
 
   _drawIntro(ctx, W, H, nowMs) {
     const progress = clamp((nowMs - this.stateAtMs) / 2800, 0, 1);
-    ctx.fillStyle = `rgba(0,0,0,${0.75 * (1 - easeOut(progress))})`;
+    const fadeOut  = 1 - easeOut(Math.max(0, (progress - 0.82) / 0.18));
+    const overlayA = progress < 0.82 ? 1 : fadeOut;
+    ctx.fillStyle = `rgba(0,0,0,${0.75 * overlayA})`;
     ctx.fillRect(0, 0, W, H);
-    const a   = Math.min(1, progress * 3);
+
+    const a = Math.min(1, progress * 2.5) * overlayA;
+
+    // Title with glow
+    ctx.save();
+    ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 35;
+    ctx.fillStyle   = `rgba(255,255,255,${a})`;
+    ctx.font        = `800 ${W * 0.054}px system-ui`;
+    ctx.textAlign   = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🐍 Snake Duel', W / 2, H * 0.24);
+    ctx.restore();
+
+    ctx.fillStyle = `rgba(139,92,246,${a})`;
+    ctx.font      = `600 ${W * 0.021}px system-ui`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = `rgba(255,255,255,${a})`;
-    ctx.font = `bold ${W * 0.046}px system-ui`;
-    ctx.fillText('🐍 Snake Duel — 2 Người! 🐍', W / 2, H * 0.30);
-    ctx.font = `${W * 0.019}px system-ui`;
-    ctx.fillStyle = `rgba(255,255,255,${a * 0.85})`;
-    ctx.fillText('P1 (xanh lá): WASD di chuyển  |  P2 (cyan): Arrows di chuyển', W / 2, H * 0.44);
-    ctx.fillText('Rắn nào ăn ❓ trước sẽ được trả lời câu hỏi', W / 2, H * 0.52);
-    ctx.fillText('Trả lời đúng → rắn dài thêm 2 ô & +1 điểm', W / 2, H * 0.60);
-    ctx.fillText('Rắn đi xuyên nhau — không chết khi va nhau!', W / 2, H * 0.68);
+    ctx.fillText('2 NGƯỜI CHƠI', W / 2, H * 0.34);
+
+    // Divider line
+    const dg = ctx.createLinearGradient(W * 0.20, 0, W * 0.80, 0);
+    dg.addColorStop(0, 'rgba(139,92,246,0)');
+    dg.addColorStop(0.5, `rgba(139,92,246,${a * 0.9})`);
+    dg.addColorStop(1, 'rgba(139,92,246,0)');
+    ctx.fillStyle = dg;
+    ctx.fillRect(W * 0.20, H * 0.39, W * 0.60, 1.5);
+
+    // Info rows
+    const rows = [
+      { label: 'P1 (xanh lá)', desc: 'WASD di chuyển',             color: PLAYER_CFGS[0].nameColor },
+      { label: 'P2 (hồng)',    desc: 'Arrows di chuyển',            color: PLAYER_CFGS[1].nameColor },
+      { label: 'Rắn ăn ❓',   desc: 'Được quyền trả lời',          color: '#fbbf24' },
+      { label: 'Trả lời đúng', desc: 'Rắn dài +2 ô & +1 điểm',      color: '#4ade80' },
+    ];
+    rows.forEach(({ label, desc, color }, idx) => {
+      const ly = H * 0.455 + idx * H * 0.072;
+      ctx.globalAlpha = a;
+      ctx.font = `400 ${W * 0.016}px system-ui`;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillText(label, W / 2 - W * 0.018, ly);
+      ctx.font = `600 ${W * 0.016}px system-ui`;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = color;
+      ctx.fillText(desc, W / 2 + W * 0.018, ly);
+    });
+    ctx.globalAlpha = 1;
   }
 
   _drawQuestion(ctx, W, H) {
@@ -570,137 +739,289 @@ export class SnakeDuelGame {
   }
 
   _drawQuestionCard(ctx, W, H, q, selectedId, isCorrect) {
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    // Overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
     ctx.fillRect(0, 0, W, H);
 
-    const cW = W * 0.82, cH = H * 0.76, cX = (W - cW) / 2, cY = (H - cH) / 2;
-    ctx.fillStyle = '#1e1b4b'; roundRect(ctx, cX, cY, cW, cH, 20); ctx.fill();
-    ctx.strokeStyle = 'rgba(139,92,246,0.7)'; ctx.lineWidth = 2.5;
-    roundRect(ctx, cX, cY, cW, cH, 20); ctx.stroke();
+    const cW = W * 0.84, cH = H * 0.82, cX = (W - cW) / 2, cY = (H - cH) / 2;
+    const cr = 22;
 
-    // Who ate badge
-    if (this.whichAte >= 0) {
-      const eatCfg = PLAYER_CFGS[this.whichAte];
+    // Card shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(139,92,246,0.55)'; ctx.shadowBlur = 55;
+    ctx.fillStyle   = '#130d3a';
+    roundRect(ctx, cX, cY, cW, cH, cr); ctx.fill();
+    ctx.restore();
+
+    // Card body
+    const cardGrad = ctx.createLinearGradient(cX, cY, cX + cW, cY + cH);
+    cardGrad.addColorStop(0, '#130d3a'); cardGrad.addColorStop(1, '#0d1848');
+    ctx.fillStyle = cardGrad;
+    roundRect(ctx, cX, cY, cW, cH, cr); ctx.fill();
+
+    // Card border
+    const brdGrad = ctx.createLinearGradient(cX, cY, cX + cW, cY + cH);
+    brdGrad.addColorStop(0, 'rgba(139,92,246,0.75)'); brdGrad.addColorStop(1, 'rgba(59,130,246,0.75)');
+    ctx.strokeStyle = brdGrad; ctx.lineWidth = 2;
+    roundRect(ctx, cX, cY, cW, cH, cr); ctx.stroke();
+
+    // Header band
+    const headerH = cH * 0.13;
+    const eatCfg  = this.whichAte >= 0 ? PLAYER_CFGS[this.whichAte] : null;
+    if (eatCfg) {
+      const hGrad = ctx.createLinearGradient(cX, cY, cX + cW * 0.6, cY);
+      hGrad.addColorStop(0, `rgba(${this.whichAte === 0 ? '74,222,128' : '244,114,182'},0.28)`);
+      hGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cX + cr, cY); ctx.lineTo(cX + cW - cr, cY);
+      ctx.arcTo(cX + cW, cY, cX + cW, cY + cr, cr);
+      ctx.lineTo(cX + cW, cY + headerH); ctx.lineTo(cX, cY + headerH);
+      ctx.arcTo(cX, cY, cX + cr, cY, cr); ctx.closePath();
+      ctx.fillStyle = hGrad; ctx.fill();
+      ctx.restore();
+
       ctx.fillStyle = eatCfg.nameColor;
-      ctx.font = `700 ${W * 0.015}px system-ui`;
+      ctx.font      = `700 ${W * 0.016}px system-ui`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(`🐍 ${eatCfg.label} ăn được food! Trả lời bằng [${eatCfg.ansHint}]`, W / 2, cY + cH * 0.052);
+      ctx.fillText(`🐍 ${eatCfg.label} ăn được food!   Trả lời bằng [${eatCfg.ansHint}]`, W / 2, cY + headerH * 0.5);
     }
 
-    // Prompt
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = `600 ${W * 0.020}px system-ui`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const lines = this._wrapText(ctx, q.prompt, cW * 0.86), lineH = W * 0.025;
-    const ptY = cY + cH * 0.16;
-    for (let i = 0; i < Math.min(lines.length, 4); i++) ctx.fillText(lines[i], W / 2, ptY + i * lineH);
+    // Question number pill
+    const qNumText  = `Câu ${this.questionIndex + 1} / ${this.questions.length}`;
+    const pillFs    = W * 0.013;
+    ctx.font        = `600 ${pillFs}px system-ui`;
+    const pillTW    = ctx.measureText(qNumText).width + 22;
+    const pillH     = pillFs * 1.8;
+    const pillX     = W / 2 - pillTW / 2, pillY = cY + headerH + cH * 0.035;
+    ctx.fillStyle   = 'rgba(139,92,246,0.22)';
+    roundRect(ctx, pillX, pillY, pillTW, pillH, pillH / 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(139,92,246,0.55)'; ctx.lineWidth = 1;
+    roundRect(ctx, pillX, pillY, pillTW, pillH, pillH / 2); ctx.stroke();
+    ctx.fillStyle   = '#a5b4fc'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(qNumText, W / 2, pillY + pillH / 2);
 
-    // Choices
-    const cols = 2, choW = cW * 0.44, choH = cH * 0.15, gX = cW * 0.04, gY = cH * 0.025;
-    const sX = cX + (cW - cols * choW - (cols - 1) * gX) / 2;
-    const sY = cY + cH * 0.36;
-    const labels = ['1', '2', '3', '4'];
-    const choiceFontSize = W * 0.014;
+    // Question text
+    const qFs    = W * 0.022;
+    ctx.font     = `600 ${qFs}px system-ui`;
+    ctx.fillStyle = '#f1f5f9'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const qLines = this._wrapText(ctx, q.prompt, cW * 0.84);
+    const qLineH = qFs * 1.55;
+    const qTextY = cY + headerH + cH * 0.15;
+    for (let i = 0; i < Math.min(qLines.length, 3); i++) {
+      ctx.fillText(qLines[i], W / 2, qTextY + i * qLineH);
+    }
+
+    // Timer bar (only when waiting for answer)
+    if (selectedId == null) {
+      const elapsed    = Math.min(performance.now() - this.stateAtMs, 8000);
+      const timerFrac  = 1 - elapsed / 8000;
+      const tbW = cW * 0.78, tbH = 5, tbX = cX + (cW - tbW) / 2;
+      const tbY = cY + headerH + cH * 0.35;
+      ctx.fillStyle = 'rgba(255,255,255,0.11)';
+      roundRect(ctx, tbX, tbY, tbW, tbH, tbH / 2); ctx.fill();
+      const tc = timerFrac > 0.5 ? '#10b981' : timerFrac > 0.25 ? '#f59e0b' : '#ef4444';
+      ctx.save();
+      ctx.shadowColor = tc; ctx.shadowBlur = 7;
+      ctx.fillStyle   = tc;
+      roundRect(ctx, tbX, tbY, tbW * timerFrac, tbH, tbH / 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Choice buttons
+    const cols = 2;
+    const choW = cW * 0.44, choH = cH * 0.135;
+    const gapX = cW * 0.04, gapY = cH * 0.024;
+    const sX   = cX + (cW - cols * choW - (cols - 1) * gapX) / 2;
+    const sY   = cY + headerH + cH * 0.39;
+    const p1Keys = ['Z', 'X', 'C', 'V'];
+    const p2Keys = ['1', '2', '3', '4'];
+    const cFs    = W * 0.015;
 
     q.choices.forEach((c, idx) => {
       const col = idx % cols, row = Math.floor(idx / cols);
-      const cx = sX + col * (choW + gX), cy = sY + row * (choH + gY);
+      const cx  = sX + col * (choW + gapX);
+      const cy  = sY + row * (choH + gapY);
 
-      let bg = 'rgba(255,255,255,0.08)', border = 'rgba(255,255,255,0.25)';
+      let bgColor = 'rgba(255,255,255,0.06)', borderColor = 'rgba(255,255,255,0.18)', textColor = '#cbd5e1';
       if (selectedId != null) {
-        if (c.id === q.correctChoiceId) { bg = 'rgba(16,185,129,0.30)'; border = '#10b981'; }
-        if (c.id === selectedId && !isCorrect) { bg = 'rgba(239,68,68,0.30)'; border = '#ef4444'; }
+        if (c.id === q.correctChoiceId)             { bgColor = 'rgba(16,185,129,0.22)'; borderColor = '#10b981'; textColor = '#d1fae5'; }
+        if (c.id === selectedId && !isCorrect)      { bgColor = 'rgba(239,68,68,0.22)';  borderColor = '#ef4444'; textColor = '#fee2e2'; }
       }
 
-      ctx.fillStyle = bg; roundRect(ctx, cx, cy, choW, choH, 10); ctx.fill();
-      ctx.strokeStyle = border; ctx.lineWidth = 1.5; roundRect(ctx, cx, cy, choW, choH, 10); ctx.stroke();
+      ctx.save();
+      if (selectedId == null) { ctx.shadowColor = 'rgba(139,92,246,0.25)'; ctx.shadowBlur = 8; }
+      ctx.fillStyle = bgColor;
+      roundRect(ctx, cx, cy, choW, choH, 12); ctx.fill();
+      ctx.shadowBlur  = 0;
+      ctx.strokeStyle = borderColor; ctx.lineWidth = 1.5;
+      roundRect(ctx, cx, cy, choW, choH, 12); ctx.stroke();
+      ctx.restore();
 
-      // Number badge
-      const lS = Math.min(choH * 0.46, choW * 0.12);
-      const badgeX = cx + 8, badgeY = cy + (choH - lS) / 2;
-      ctx.fillStyle = 'rgba(139,92,246,0.8)'; roundRect(ctx, badgeX, badgeY, lS, lS, 5); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = `700 ${lS * 0.52}px system-ui`;
+      // Key badge
+      const bSz  = Math.min(choH * 0.52, W * 0.027);
+      const bX   = cx + 10, bY = cy + (choH - bSz) / 2;
+      const bGrd = ctx.createLinearGradient(bX, bY, bX, bY + bSz);
+      bGrd.addColorStop(0, '#7c3aed'); bGrd.addColorStop(1, '#5b21b6');
+      ctx.fillStyle = bGrd;
+      roundRect(ctx, bX, bY, bSz, bSz, 6); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `700 ${bSz * 0.5}px system-ui`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(labels[idx], badgeX + lS / 2, badgeY + lS / 2);
+      const keyLabel = this.whichAte === 1 ? p2Keys[idx] : p1Keys[idx];
+      ctx.fillText(keyLabel, bX + bSz / 2, bY + bSz / 2);
 
-      // Choice text — wrapped to fit inside the box
-      const textX = cx + lS + 14;
-      const textAreaW = choW - lS - 22;
-      ctx.fillStyle = '#e2e8f0'; ctx.font = `500 ${choiceFontSize}px system-ui`;
+      // Choice text
+      const tX     = cx + bSz + 16;
+      const tAreaW = choW - bSz - 24;
+      ctx.fillStyle = textColor; ctx.font = `500 ${cFs}px system-ui`;
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      const cLines = this._wrapText(ctx, c.text, textAreaW);
-      const cLineH = choiceFontSize * 1.35;
-      const totalTH = Math.min(cLines.length, 2) * cLineH;
-      const startTY = cy + choH / 2 - totalTH / 2 + cLineH / 2;
-      for (let li = 0; li < Math.min(cLines.length, 2); li++) {
-        ctx.fillText(cLines[li], textX, startTY + li * cLineH);
+      const cLines = this._wrapText(ctx, c.text, tAreaW);
+      const cLH    = cFs * 1.4;
+      const totTH  = Math.min(cLines.length, 2) * cLH;
+      const stY    = cy + choH / 2 - totTH / 2 + cLH / 2;
+      for (let li = 0; li < Math.min(cLines.length, 2); li++) ctx.fillText(cLines[li], tX, stY + li * cLH);
+
+      // Correct tick
+      if (selectedId != null && c.id === q.correctChoiceId) {
+        ctx.fillStyle = '#10b981'; ctx.font = `bold ${choH * 0.44}px system-ui`;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText('✓', cx + choW - 12, cy + choH / 2);
       }
     });
 
-    // Bottom feedback
+    // Feedback banner at bottom of card
     if (selectedId != null) {
-      const msg = isCorrect ? '✓ Đúng rồi! Rắn dài thêm!' : '✗ Chưa đúng. Food respawn!';
-      const color = isCorrect ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)';
-      ctx.fillStyle = color; roundRect(ctx, cX, cY + cH - 46, cW, 46, 16); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = `700 ${W * 0.018}px system-ui`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(msg, W / 2, cY + cH - 23);
+      const banH = cH * 0.095, banY = cY + cH - banH;
+      const banGrd = ctx.createLinearGradient(cX, banY, cX + cW, banY);
+      if (isCorrect) {
+        banGrd.addColorStop(0, 'rgba(16,185,129,0)'); banGrd.addColorStop(0.35, 'rgba(16,185,129,0.32)'); banGrd.addColorStop(1, 'rgba(16,185,129,0)');
+      } else {
+        banGrd.addColorStop(0, 'rgba(239,68,68,0)'); banGrd.addColorStop(0.35, 'rgba(239,68,68,0.32)'); banGrd.addColorStop(1, 'rgba(239,68,68,0)');
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cX, banY); ctx.lineTo(cX + cW, banY);
+      ctx.lineTo(cX + cW, banY + banH - cr);
+      ctx.arcTo(cX + cW, banY + banH, cX + cW - cr, banY + banH, cr);
+      ctx.lineTo(cX + cr, banY + banH);
+      ctx.arcTo(cX, banY + banH, cX, banY + banH - cr, cr);
+      ctx.lineTo(cX, banY); ctx.closePath();
+      ctx.fillStyle = banGrd; ctx.fill();
+      ctx.restore();
+
+      const mColor = isCorrect ? '#6ee7b7' : '#fca5a5';
+      const msg    = isCorrect ? '✓  Chính xác! Rắn dài thêm 2 ô 🎉' : '✗  Chưa đúng — Food sẽ respawn ngay!';
+      ctx.save();
+      ctx.shadowColor = mColor; ctx.shadowBlur = 10;
+      ctx.fillStyle   = mColor; ctx.font = `700 ${W * 0.019}px system-ui`;
+      ctx.textAlign   = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(msg, W / 2, banY + banH / 2);
+      ctx.restore();
     } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = `${W * 0.013}px system-ui`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('Rắn còn lại vẫn di chuyển trong lúc này!', W / 2, cY + cH - 23);
+      ctx.fillStyle    = 'rgba(255,255,255,0.28)';
+      ctx.font         = `400 ${W * 0.012}px system-ui`;
+      ctx.textAlign    = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('Rắn còn lại vẫn di chuyển trong lúc này!', W / 2, cY + cH - cH * 0.048);
     }
   }
 
   _drawComplete(ctx, W, H, nowMs) {
     const elapsed = nowMs - this.stateAtMs;
     const alpha   = clamp(elapsed / 500, 0, 1);
-    ctx.fillStyle = `rgba(0,0,0,${0.5 * alpha})`; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = `rgba(0,0,0,${0.55 * alpha})`; ctx.fillRect(0, 0, W, H);
 
+    // Confetti
     for (const pt of this.particles) {
       ctx.save(); ctx.translate(pt.x * W, pt.y * H); ctx.rotate(pt.rot);
-      const s = pt.size * W; ctx.fillStyle = pt.color; ctx.fillRect(-s / 2, -s / 2, s, s * 0.6); ctx.restore();
+      const s = pt.size * W; ctx.globalAlpha = clamp(pt.life / 1000, 0, 1);
+      ctx.fillStyle = pt.color; ctx.fillRect(-s / 2, -s / 2, s, s * 0.6); ctx.restore();
     }
 
-    const t = easeOut(clamp(elapsed / 600, 0, 1));
-    const vW = W * 0.68, vH = H * 0.58, vX = (W - vW) / 2;
+    const t  = easeOut(clamp(elapsed / 600, 0, 1));
+    const vW = W * 0.72, vH = H * 0.72, vX = (W - vW) / 2;
     const vY = lerp(H, (H - vH) / 2, t);
+    const vcr = 24;
 
-    ctx.fillStyle = '#1e1b4b'; roundRect(ctx, vX, vY, vW, vH, 24); ctx.fill();
-    ctx.strokeStyle = THEME.food; ctx.lineWidth = 3; roundRect(ctx, vX, vY, vW, vH, 24); ctx.stroke();
+    // Card shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(139,92,246,0.65)'; ctx.shadowBlur = 65;
+    ctx.fillStyle = '#0d0b2e'; roundRect(ctx, vX, vY, vW, vH, vcr); ctx.fill();
+    ctx.restore();
 
-    ctx.fillStyle = '#f59e0b'; ctx.font = `bold ${W * 0.042}px system-ui`;
+    // Card body gradient
+    const cGrd = ctx.createLinearGradient(vX, vY, vX + vW, vY + vH);
+    cGrd.addColorStop(0, '#130d3a'); cGrd.addColorStop(1, '#0d1848');
+    ctx.fillStyle = cGrd; roundRect(ctx, vX, vY, vW, vH, vcr); ctx.fill();
+
+    // Card border gold → purple
+    const bGrd = ctx.createLinearGradient(vX, vY, vX + vW, vY + vH);
+    bGrd.addColorStop(0, 'rgba(251,191,36,0.85)'); bGrd.addColorStop(1, 'rgba(139,92,246,0.85)');
+    ctx.strokeStyle = bGrd; ctx.lineWidth = 2.5; roundRect(ctx, vX, vY, vW, vH, vcr); ctx.stroke();
+
+    // Title
+    ctx.save();
+    ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 22;
+    ctx.fillStyle = '#fbbf24'; ctx.font = `800 ${W * 0.038}px system-ui`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('🐍 Kết quả Snake Duel! 🐍', W / 2, vY + vH * 0.14);
+    ctx.fillText('🏆 Kết quả Snake Duel', W / 2, vY + vH * 0.13);
+    ctx.restore();
 
-    const drawScore = (x, pi) => {
+    // Divider
+    const dg = ctx.createLinearGradient(vX + vW * 0.1, 0, vX + vW * 0.9, 0);
+    dg.addColorStop(0, 'rgba(255,255,255,0)'); dg.addColorStop(0.5, 'rgba(255,255,255,0.2)'); dg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = dg; ctx.fillRect(vX + vW * 0.1, vY + vH * 0.215, vW * 0.8, 1.2);
+
+    // Player score cards
+    const drawScore = (cx, pi) => {
       const sn  = this.snakes[pi];
       const cfg = PLAYER_CFGS[pi];
-      ctx.fillStyle = cfg.nameColor; ctx.font = `700 ${W * 0.028}px system-ui`;
+      const scW = vW * 0.36, scH = vH * 0.47;
+      const scX = cx - scW / 2, scY = vY + vH * 0.265;
+      const isWinner = pi === 0 ? sn.score > this.snakes[1].score : sn.score > this.snakes[0].score;
+
+      ctx.save();
+      if (isWinner) { ctx.shadowColor = cfg.glowColor; ctx.shadowBlur = 20; }
+      ctx.fillStyle = pi === 0 ? 'rgba(74,222,128,0.11)' : 'rgba(244,114,182,0.11)';
+      roundRect(ctx, scX, scY, scW, scH, 16); ctx.fill();
+      ctx.strokeStyle = isWinner
+        ? (pi === 0 ? 'rgba(74,222,128,0.80)' : 'rgba(244,114,182,0.80)')
+        : (pi === 0 ? 'rgba(74,222,128,0.40)' : 'rgba(244,114,182,0.40)');
+      ctx.lineWidth = isWinner ? 2 : 1.5; roundRect(ctx, scX, scY, scW, scH, 16); ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = cfg.nameColor; ctx.font = `700 ${W * 0.022}px system-ui`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(cfg.label, x, vY + vH * 0.30);
-      ctx.fillStyle = '#e2e8f0'; ctx.font = `700 ${W * 0.054}px system-ui`;
-      ctx.fillText(`${sn.score}`, x, vY + vH * 0.47);
-      ctx.fillStyle = '#a5b4fc'; ctx.font = `${W * 0.020}px system-ui`;
-      ctx.fillText(`/ ${this.questions.length} điểm`, x, vY + vH * 0.59);
-      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = `${W * 0.016}px system-ui`;
-      ctx.fillText(`len: ${sn.body.length}`, x, vY + vH * 0.68);
+      ctx.fillText(`🐍 ${cfg.label}`, cx, scY + scH * 0.22);
+
+      ctx.save();
+      ctx.shadowColor = cfg.glowColor; ctx.shadowBlur = 14;
+      ctx.fillStyle = '#fff'; ctx.font = `800 ${W * 0.058}px system-ui`;
+      ctx.fillText(`${sn.score}`, cx, scY + scH * 0.50);
+      ctx.restore();
+
+      ctx.fillStyle = '#a5b4fc'; ctx.font = `${W * 0.016}px system-ui`;
+      ctx.fillText(`/ ${this.questions.length} điểm`, cx, scY + scH * 0.67);
+      ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = `${W * 0.012}px system-ui`;
+      ctx.fillText(`Độ dài: ${sn.body.length} ô`, cx, scY + scH * 0.82);
     };
     drawScore(vX + vW * 0.27, 0);
     drawScore(vX + vW * 0.73, 1);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(W / 2, vY + vH * 0.22); ctx.lineTo(W / 2, vY + vH * 0.76); ctx.stroke();
+    // VS divider
+    ctx.fillStyle = 'rgba(255,255,255,0.20)'; ctx.font = `700 ${W * 0.020}px system-ui`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('VS', W / 2, vY + vH * 0.49);
 
+    // Winner text
     const p1s = this.snakes[0].score, p2s = this.snakes[1].score;
-    const winner = p1s > p2s ? 'P1 chiến thắng! 🏆'
-      : p2s > p1s ? 'P2 chiến thắng! 🏆'
-      : 'Hòa nhau! 🤝';
-    const wColor = p1s > p2s ? PLAYER_CFGS[0].nameColor
-      : p2s > p1s ? PLAYER_CFGS[1].nameColor : '#fbbf24';
-    ctx.fillStyle = wColor; ctx.font = `700 ${W * 0.030}px system-ui`;
+    const winner = p1s > p2s ? '🥇 P1 Chiến Thắng!' : p2s > p1s ? '🥇 P2 Chiến Thắng!' : '🤝 Hòa Nhau!';
+    const wColor = p1s > p2s ? PLAYER_CFGS[0].nameColor : p2s > p1s ? PLAYER_CFGS[1].nameColor : '#fbbf24';
+    ctx.save();
+    ctx.shadowColor = wColor; ctx.shadowBlur = 18;
+    ctx.fillStyle = wColor; ctx.font = `800 ${W * 0.030}px system-ui`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(winner, W / 2, vY + vH * 0.88);
+    ctx.restore();
   }
 
   // ── Util ──────────────────────────────────────────────────────────────────
