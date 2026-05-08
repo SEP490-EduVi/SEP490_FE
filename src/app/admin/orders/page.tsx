@@ -21,7 +21,7 @@ const fmtVnDateTime = (dateStr?: string | null) => {
   return d ? d.toLocaleString('vi-VN') : '-';
 };
 
-const getOrderStatusLabel = (status?: number | string, statusName?: string | null) => {
+const getOrderStatusLabel = (status?: number | string | null, statusName?: string | null) => {
   if (typeof status === 'number') {
     if (status === 1) return 'Hoàn tất';
     if (status === 0) return 'Đang xử lý';
@@ -46,7 +46,7 @@ const getOrderStatusLabel = (status?: number | string, statusName?: string | nul
   return 'Không xác định';
 };
 
-const getOrderStatusClass = (status?: number | string, statusName?: string | null) => {
+const getOrderStatusClass = (status?: number | string | null, statusName?: string | null) => {
   const label = getOrderStatusLabel(status, statusName);
   if (label === 'Hoàn tất') return 'bg-emerald-50 text-emerald-700';
   if (label === 'Đang xử lý') return 'bg-amber-50 text-amber-700';
