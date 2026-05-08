@@ -100,12 +100,12 @@ export interface AdminTransactionResponse {
   walletId?: number | null;
   userId?: number | null;
   username?: string | null;
-  userCode?: string | null;
   fullName?: string | null;
-  transactionType: string;
-  status?: number | string;
+  transactionType?: string | null;
+  transactionTypeCode?: string | null;
+  status?: number | string | null;
   statusName?: string | null;
-  amount: number | null;
+  amount?: number | null;
   balanceBefore?: number | null;
   balanceAfter?: number | null;
   description?: string | null;
@@ -113,37 +113,29 @@ export interface AdminTransactionResponse {
   planName?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
-  referenceCode?: string | null;
 }
 
 export interface AdminOrderResponse {
   orderId: number;
-  orderCode?: string | null;
   teacherId?: number | null;
   teacherName?: string | null;
-  status?: number | string;
+  status?: number | string | null;
   statusName?: string | null;
   paymentMethod?: string | null;
   orderType?: string | null;
   orderTypeName?: string | null;
-  amount?: number;
-  totalAmount?: number;
-  createdAt?: string | null;
+  totalAmount?: number | null;
   orderDate?: string | null;
 }
 
 export interface AdminWithdrawalResponse {
   withdrawalId: number;
-  userId?: number | null;
-  userFullName?: string | null;
-  userEmail?: string | null;
   amount: number;
   lockedAmount?: number | null;
   bankAccountNumber: string;
   bankName: string;
   accountHolderName: string;
-  status?: number | string;
-  statusName?: string | null;
+  status?: number | string | null;
   adminNote?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;

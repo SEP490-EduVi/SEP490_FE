@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import Pagination from '@/components/admin/Pagination';
 import { adminServices } from '@/services/adminServices';
 import { AdminTransactionResponse } from '@/types/admin';
@@ -36,6 +37,41 @@ const getTxStatusClass = (status?: number | string, statusName?: string | null) 
   return 'bg-gray-100 text-gray-500';
 };
 
+const TX_TYPE_VI: Record<string, string> = {
+  // transactionTypeCode values (actual from API)
+  TOP_UP: 'Nạp EduCoin',
+  WITHDRAWAL: 'Rút tiền',
+  BUY_SUBSCRIPTION: 'Mua gói cước',
+  BUY_MATERIAL: 'Mua học liệu',
+  CLAIM_FREE_MATERIAL: 'Nhận học liệu miễn phí',
+  MATERIAL_REVENUE: 'Doanh thu học liệu chuyên gia',
+  MATERIAL_PLATFORM_FEE: 'Phí nền tảng học liệu',
+  // lowercase fallback
+  deposit: 'Nạp tiền',
+  withdrawal: 'Rút tiền',
+  withdraw: 'Rút tiền',
+  payment: 'Thanh toán',
+  purchase: 'Mua hàng',
+  refund: 'Hoàn tiền',
+  commission: 'Hoa hồng',
+  bonus: 'Thưởng',
+  transfer: 'Chuyển tiền',
+  topup: 'Nạp tiền',
+  'top-up': 'Nạp tiền',
+  lock: 'Khóa tiền',
+  unlock: 'Mở khóa',
+};
+
+const toTxTypeVi = (code?: string | null, type?: string | null) => {
+  if (code) {
+    const mapped = TX_TYPE_VI[code.trim()] ?? TX_TYPE_VI[code.trim().toLowerCase()];
+    if (mapped) return mapped;
+  }
+  if (!type) return '-';
+  const key = type.trim().toLowerCase();
+  return TX_TYPE_VI[key] ?? type;
+};
+
 export default function AdminTransactionsPage() {
   const [items, setItems] = useState<AdminTransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +86,45 @@ export default function AdminTransactionsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [total, setTotal] = useState(0);
+
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ChevronsUpDown className="inline ml-1 h-3 w-3 text-gray-400" />;
+    return sortDir === 'asc'
+      ? <ChevronUp className="inline ml-1 h-3 w-3 text-blue-500" />
+      : <ChevronDown className="inline ml-1 h-3 w-3 text-blue-500" />;
+  };
+
+  const sortedItems = useMemo(() => {
+    if (!sortKey) return items;
+    return [...items].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortKey === 'transactionId') { av = a.transactionId; bv = b.transactionId; }
+      else if (sortKey === 'fullName') { av = a.fullName ?? a.username ?? ''; bv = b.fullName ?? b.username ?? ''; }
+      else if (sortKey === 'transactionType') { av = a.transactionType ?? ''; bv = b.transactionType ?? ''; }
+      else if (sortKey === 'status') { av = Number(a.status ?? 0); bv = Number(b.status ?? 0); }
+      else if (sortKey === 'amount') { av = a.amount ?? 0; bv = b.amount ?? 0; }
+      else if (sortKey === 'createdAt') { av = a.createdAt ?? ''; bv = b.createdAt ?? ''; }
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv), 'vi')
+        : String(bv).localeCompare(String(av), 'vi');
+    });
+  }, [items, sortKey, sortDir]);
 
   const loadTransactions = async (targetPage = page) => {
     setLoading(true);
@@ -97,13 +172,20 @@ export default function AdminTransactionsPage() {
           placeholder="Mã người dùng"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         />
-        <input
-          type="text"
+        <select
           value={transactionType}
           onChange={(e) => setTransactionType(e.target.value)}
-          placeholder="Loại giao dịch"
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-        />
+        >
+          <option value="">Tất cả loại giao dịch</option>
+          <option value="TOP_UP">Nạp EduCoin</option>
+          <option value="WITHDRAWAL">Rút tiền</option>
+          <option value="BUY_SUBSCRIPTION">Mua gói cước</option>
+          <option value="BUY_MATERIAL">Mua học liệu</option>
+          <option value="CLAIM_FREE_MATERIAL">Nhận học liệu miễn phí</option>
+          <option value="MATERIAL_REVENUE">Doanh thu học liệu chuyên gia</option>
+          <option value="MATERIAL_PLATFORM_FEE">Phí nền tảng học liệu</option>
+        </select>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -145,12 +227,12 @@ export default function AdminTransactionsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Mã giao dịch</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Người dùng</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Loại</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Số tiền</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Thời gian</th>
+                <th onClick={() => toggleSort('transactionId')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Mã giao dịch<SortIcon col="transactionId" /></th>
+                <th onClick={() => toggleSort('fullName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Người dùng<SortIcon col="fullName" /></th>
+                <th onClick={() => toggleSort('transactionType')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Loại<SortIcon col="transactionType" /></th>
+                <th onClick={() => toggleSort('status')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Trạng thái<SortIcon col="status" /></th>
+                <th onClick={() => toggleSort('amount')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Số tiền<SortIcon col="amount" /></th>
+                <th onClick={() => toggleSort('createdAt')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Thời gian<SortIcon col="createdAt" /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -163,11 +245,11 @@ export default function AdminTransactionsPage() {
                   <td colSpan={6} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
-                items.map((tx) => (
+                sortedItems.map((tx) => (
                   <tr key={tx.transactionId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{tx.transactionId}</td>
                     <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.username || tx.userCode || (tx.userId ? `Người dùng ${tx.userId}` : '-')}</td>
-                    <td className="px-5 py-3 text-gray-600">{tx.transactionType}</td>
+                    <td className="px-5 py-3 text-gray-600">{toTxTypeVi(tx.transactionTypeCode, tx.transactionType)}</td>
                     <td className="px-5 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getTxStatusClass(tx.status, tx.statusName)}`}>
                         {getTxStatusLabel(tx.status, tx.statusName)}

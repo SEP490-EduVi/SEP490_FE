@@ -122,7 +122,7 @@ function MaterialDetailModal({ material, onClose }: { material: MaterialDto; onC
             )}
             <div className="rounded-lg border border-gray-100 p-3">
               <p className="text-xs text-gray-500 mb-1">Ngày tạo</p>
-              <p className="font-medium text-gray-800">{new Date(material.createdAt).toLocaleString('vi-VN')}</p>
+              <p className="font-medium text-gray-800">{new Date(new Date(material.createdAt).getTime() + 7 * 60 * 60 * 1000).toLocaleString('vi-VN')}</p>
             </div>
             {/* <div className="rounded-lg border border-gray-100 p-3 sm:col-span-2">
               <p className="text-xs text-gray-500 mb-1">Resource URL</p>

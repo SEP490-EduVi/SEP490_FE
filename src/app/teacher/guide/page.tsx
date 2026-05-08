@@ -212,13 +212,13 @@ export default function TeacherGuidePage() {
                   offline. Hỗ trợ Windows 10/11 và macOS 12+.
                 </p>
                 <a
-                  href="https://github.com/SEP490-EduVi/SEP490_FE/releases/download/v1.0.0/Eduvi-App.zip"
+                  href="https://github.com/SEP490-EduVi/SEP490_FE/releases/download/v1.0.0/EduViViewer-Setup-1.2.0.exe"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-0.5"
                 >
                   <Download className="w-4 h-4" />
-                  Tải EduVi Desktop (.zip)
+                  Tải EduVi Desktop (.exe)
                 </a>
               </div>
 
@@ -349,7 +349,7 @@ export default function TeacherGuidePage() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <a
-                href="https://github.com/SEP490-EduVi/SEP490_FE/releases/download/v1.0.0/Eduvi-App.zip"
+                href="https://github.com/SEP490-EduVi/SEP490_FE/releases/download/v1.0.0/EduViViewer-Setup-1.2.0.exe"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-0.5"

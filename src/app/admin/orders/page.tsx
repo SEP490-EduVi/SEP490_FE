@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import Pagination from '@/components/admin/Pagination';
 import { adminServices } from '@/services/adminServices';
 import { AdminOrderResponse } from '@/types/admin';
@@ -69,6 +70,46 @@ export default function AdminOrdersPage() {
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [total, setTotal] = useState(0);
 
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ChevronsUpDown className="inline ml-1 h-3 w-3 text-gray-400" />;
+    return sortDir === 'asc'
+      ? <ChevronUp className="inline ml-1 h-3 w-3 text-blue-500" />
+      : <ChevronDown className="inline ml-1 h-3 w-3 text-blue-500" />;
+  };
+
+  const sortedItems = useMemo(() => {
+    if (!sortKey) return items;
+    return [...items].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortKey === 'orderId') { av = a.orderId; bv = b.orderId; }
+      else if (sortKey === 'teacherName') { av = a.teacherName ?? ''; bv = b.teacherName ?? ''; }
+      else if (sortKey === 'orderType') { av = a.orderType ?? ''; bv = b.orderType ?? ''; }
+      else if (sortKey === 'status') { av = Number(a.status ?? 0); bv = Number(b.status ?? 0); }
+      else if (sortKey === 'paymentMethod') { av = a.paymentMethod ?? ''; bv = b.paymentMethod ?? ''; }
+      else if (sortKey === 'totalAmount') { av = a.totalAmount ?? 0; bv = b.totalAmount ?? 0; }
+      else if (sortKey === 'createdAt') { av = a.orderDate ?? ''; bv = b.orderDate ?? ''; }
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv), 'vi')
+        : String(bv).localeCompare(String(av), 'vi');
+    });
+  }, [items, sortKey, sortDir]);
+
   const loadOrders = async (targetPage = page) => {
     setLoading(true);
     setError('');
@@ -105,7 +146,7 @@ export default function AdminOrdersPage() {
     <div className="mx-auto max-w-7xl space-y-6 px-8 py-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Quản lý đơn hàng</h1>
-        <p className="mt-1 text-sm text-gray-500">Bộ lọc: Giáo viên, trạng thái, phương thức thanh toán, khoảng thời gian</p>
+        <p className="mt-1 text-sm text-gray-500">Bộ lọc: Giáo viên, loại đơn, trạng thái, phương thức thanh toán, khoảng thời gian</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
@@ -122,8 +163,8 @@ export default function AdminOrdersPage() {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         >
           <option value="">Tất cả loại đơn</option>
-          <option value="1">Gói cước</option>
-          <option value="2">Học liệu</option>
+          <option value="PLAN">Mua gói</option>
+          <option value="MATERIAL">Mua học liệu</option>
         </select>
         <select
           value={status}
@@ -173,13 +214,13 @@ export default function AdminOrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Mã đơn</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Giáo viên</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Loại đơn</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Thanh toán</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Số tiền</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Ngày tạo</th>
+                <th onClick={() => toggleSort('orderId')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Mã đơn<SortIcon col="orderId" /></th>
+                <th onClick={() => toggleSort('teacherName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Giáo viên<SortIcon col="teacherName" /></th>
+                <th onClick={() => toggleSort('orderType')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Loại đơn<SortIcon col="orderType" /></th>
+                <th onClick={() => toggleSort('status')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Trạng thái<SortIcon col="status" /></th>
+                <th onClick={() => toggleSort('paymentMethod')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Thanh toán<SortIcon col="paymentMethod" /></th>
+                <th onClick={() => toggleSort('totalAmount')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Số tiền<SortIcon col="totalAmount" /></th>
+                <th onClick={() => toggleSort('createdAt')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Ngày tạo<SortIcon col="createdAt" /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -192,20 +233,20 @@ export default function AdminOrdersPage() {
                   <td colSpan={7} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
-                items.map((order) => (
+                sortedItems.map((order) => (
                   <tr key={order.orderId} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-900">{order.orderCode || `#${order.orderId}`}</td>
+                    <td className="px-5 py-3 font-medium text-gray-900">#{order.orderId}</td>
                     <td className="px-5 py-3 text-gray-700">{order.teacherName || (order.teacherId ? `GV ${order.teacherId}` : '-')}</td>
                     <td className="px-5 py-3">
                       {order.orderTypeName || order.orderType
                         ? <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            Number(order.orderType) === 2 || (order.orderType || '').toLowerCase().includes('material')
+                            order.orderType === 'MATERIAL'
                               ? 'bg-violet-50 text-violet-700'
                               : 'bg-blue-50 text-blue-700'
                           }`}>
                             {order.orderTypeName
-                              || (Number(order.orderType) === 1 ? 'Mua gói'
-                                : Number(order.orderType) === 2 ? 'Mua học liệu'
+                              || (order.orderType === 'PLAN' ? 'Mua gói'
+                                : order.orderType === 'MATERIAL' ? 'Mua học liệu'
                                 : order.orderType)}
                           </span>
                         : <span className="text-gray-400">-</span>}
@@ -218,11 +259,9 @@ export default function AdminOrdersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-gray-600">{order.paymentMethod || '-'}</td>
-                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(order.totalAmount ?? order.amount ?? 0)}</td>
+                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(order.totalAmount ?? 0)}</td>
                     <td className="px-5 py-3 text-gray-500">
-                      {(order.orderDate || order.createdAt)
-                        ? fmtVnDateTime(order.orderDate || order.createdAt)
-                        : '-'}
+                      {order.orderDate ? fmtVnDateTime(order.orderDate) : '-'}
                     </td>
                   </tr>
                 ))

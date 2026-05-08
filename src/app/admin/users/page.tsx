@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Ban, CheckCircle2, ChevronDown, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle2, ChevronDown, ChevronUp, ChevronsUpDown, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Pagination from '@/components/admin/Pagination';
 import { notify, MSGS } from '@/components/common';
@@ -68,6 +68,43 @@ export default function AdminUsersPage() {
   const [status, setStatus] = useState<string>('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ChevronsUpDown className="inline ml-1 h-3 w-3 text-gray-400" />;
+    return sortDir === 'asc'
+      ? <ChevronUp className="inline ml-1 h-3 w-3 text-blue-500" />
+      : <ChevronDown className="inline ml-1 h-3 w-3 text-blue-500" />;
+  };
+
+  const sortedUsers = useMemo(() => {
+    if (!sortKey) return users;
+    return [...users].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortKey === 'fullName') { av = a.fullName ?? a.username ?? ''; bv = b.fullName ?? b.username ?? ''; }
+      else if (sortKey === 'roleName') { av = a.roleName ?? a.role?.roleName ?? ''; bv = b.roleName ?? b.role?.roleName ?? ''; }
+      else if (sortKey === 'status') { av = Number(a.status ?? 0); bv = Number(b.status ?? 0); }
+      else if (sortKey === 'createdAt') { av = a.createdAt ?? ''; bv = b.createdAt ?? ''; }
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv), 'vi')
+        : String(bv).localeCompare(String(av), 'vi');
+    });
+  }, [users, sortKey, sortDir]);
 
   const [selectedUserCodes, setSelectedUserCodes] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'ban' | 'unban' | 'export' | ''>('');
@@ -515,10 +552,10 @@ export default function AdminUsersPage() {
                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Người dùng</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Vai trò</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Ngày tạo</th>
+                <th onClick={() => toggleSort('fullName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Người dùng<SortIcon col="fullName" /></th>
+                <th onClick={() => toggleSort('roleName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Vai trò<SortIcon col="roleName" /></th>
+                <th onClick={() => toggleSort('status')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Trạng thái<SortIcon col="status" /></th>
+                <th onClick={() => toggleSort('createdAt')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Ngày tạo<SortIcon col="createdAt" /></th>
                 <th className="px-5 py-3 text-right font-medium text-gray-500">Hành động</th>
               </tr>
             </thead>
@@ -536,7 +573,7 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                sortedUsers.map((user) => (
                   <tr key={user.userCode} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
                       <input
