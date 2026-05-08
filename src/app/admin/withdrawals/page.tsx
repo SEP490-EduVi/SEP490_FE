@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import Pagination from '@/components/admin/Pagination';
 import { adminServices } from '@/services/adminServices';
 import { notify, MSGS } from '@/components/common';
@@ -53,6 +54,45 @@ export default function AdminWithdrawalsPage() {
   const [selected, setSelected] = useState<AdminWithdrawalResponse | null>(null);
   const [decision, setDecision] = useState<'approve' | 'reject'>('approve');
   const [adminNote, setAdminNote] = useState('');
+
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ChevronsUpDown className="inline ml-1 h-3 w-3 text-gray-400" />;
+    return sortDir === 'asc'
+      ? <ChevronUp className="inline ml-1 h-3 w-3 text-blue-500" />
+      : <ChevronDown className="inline ml-1 h-3 w-3 text-blue-500" />;
+  };
+
+  const sortedItems = useMemo(() => {
+    if (!sortKey) return items;
+    return [...items].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortKey === 'withdrawalId') { av = a.withdrawalId; bv = b.withdrawalId; }
+      else if (sortKey === 'accountHolderName') { av = a.accountHolderName ?? ''; bv = b.accountHolderName ?? ''; }
+      else if (sortKey === 'amount') { av = a.amount; bv = b.amount; }
+      else if (sortKey === 'bankName') { av = a.bankName ?? ''; bv = b.bankName ?? ''; }
+      else if (sortKey === 'status') { av = Number(a.status ?? 0); bv = Number(b.status ?? 0); }
+      else if (sortKey === 'createdAt') { av = a.createdAt ?? ''; bv = b.createdAt ?? ''; }
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv), 'vi')
+        : String(bv).localeCompare(String(av), 'vi');
+    });
+  }, [items, sortKey, sortDir]);
 
   const normalizedStatus = useMemo(() => {
     if (status === 'CONFIRMED') return 1;
@@ -157,12 +197,12 @@ export default function AdminWithdrawalsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">ID</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Chuyên gia</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Số tiền</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Ngân hàng</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Trạng thái</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Thời gian</th>
+                <th onClick={() => toggleSort('withdrawalId')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">ID<SortIcon col="withdrawalId" /></th>
+                <th onClick={() => toggleSort('accountHolderName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Chuyên gia<SortIcon col="accountHolderName" /></th>
+                <th onClick={() => toggleSort('amount')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Số tiền<SortIcon col="amount" /></th>
+                <th onClick={() => toggleSort('bankName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Ngân hàng<SortIcon col="bankName" /></th>
+                <th onClick={() => toggleSort('status')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Trạng thái<SortIcon col="status" /></th>
+                <th onClick={() => toggleSort('createdAt')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Thời gian<SortIcon col="createdAt" /></th>
                 <th className="px-5 py-3 text-left font-medium text-gray-500">Hành động</th>
               </tr>
             </thead>
@@ -176,14 +216,14 @@ export default function AdminWithdrawalsPage() {
                   <td colSpan={7} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
-                items.map((w) => {
+                sortedItems.map((w) => {
                   const mappedStatus = mapWithdrawalStatus(w.status, w.statusName);
                   const canProcess = mappedStatus === 'CONFIRMED';
 
                   return (
                     <tr key={w.withdrawalId} className="hover:bg-gray-50">
                       <td className="px-5 py-3 font-medium text-gray-900">#{w.withdrawalId}</td>
-                      <td className="px-5 py-3 text-gray-700">{w.userFullName || (w.userId ? `User ${w.userId}` : '-')}</td>
+                      <td className="px-5 py-3 text-gray-700">{w.accountHolderName || '-'}</td>
                       <td className="px-5 py-3 font-semibold text-gray-900">{formatVND(w.amount)}</td>
                       <td className="px-5 py-3 text-gray-600">
                         <p className="font-medium">{w.bankName}</p>
@@ -231,7 +271,7 @@ export default function AdminWithdrawalsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <h3 className="text-lg font-semibold text-gray-900">Xử lý yêu cầu rút tiền #{selected.withdrawalId}</h3>
-            <p className="mt-1 text-sm text-gray-500">{selected.userFullName || 'Chuyên gia'} - {formatVND(selected.amount)}</p>
+            <p className="mt-1 text-sm text-gray-500">{selected.accountHolderName} - {formatVND(selected.amount)}</p>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button

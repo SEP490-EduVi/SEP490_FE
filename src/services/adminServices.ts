@@ -246,7 +246,7 @@ export const adminServices = {
       {
         params: normalizeParams({
           TeacherId: teacherId,
-          OrderType: orderType ? Number(orderType) : undefined,
+          OrderType: orderType || undefined,
           Status: status,
           PaymentMethod: paymentMethod,
           FromDate: fromDate,

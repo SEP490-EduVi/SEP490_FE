@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import Pagination from '@/components/admin/Pagination';
 import { adminServices } from '@/services/adminServices';
 import { AdminWalletResponse } from '@/types/admin';
@@ -15,6 +16,44 @@ export default function AdminWalletsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [total, setTotal] = useState(0);
+
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ChevronsUpDown className="inline ml-1 h-3 w-3 text-gray-400" />;
+    return sortDir === 'asc'
+      ? <ChevronUp className="inline ml-1 h-3 w-3 text-blue-500" />
+      : <ChevronDown className="inline ml-1 h-3 w-3 text-blue-500" />;
+  };
+
+  const sortedItems = useMemo(() => {
+    if (!sortKey) return items;
+    return [...items].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortKey === 'walletId') { av = a.walletId; bv = b.walletId; }
+      else if (sortKey === 'fullName') { av = a.fullName ?? a.username ?? ''; bv = b.fullName ?? b.username ?? ''; }
+      else if (sortKey === 'email') { av = a.email ?? ''; bv = b.email ?? ''; }
+      else if (sortKey === 'balance') { av = a.balance; bv = b.balance; }
+      else if (sortKey === 'lastUpdated') { av = a.lastUpdated ?? a.updatedAt ?? ''; bv = b.lastUpdated ?? b.updatedAt ?? ''; }
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv), 'vi')
+        : String(bv).localeCompare(String(av), 'vi');
+    });
+  }, [items, sortKey, sortDir]);
 
   const loadWallets = async (targetPage = page) => {
     setLoading(true);
@@ -52,11 +91,11 @@ export default function AdminWalletsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Mã ví</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Người dùng</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Email</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Số dư</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-500">Cập nhật</th>
+                <th onClick={() => toggleSort('walletId')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Mã ví<SortIcon col="walletId" /></th>
+                <th onClick={() => toggleSort('fullName')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Người dùng<SortIcon col="fullName" /></th>
+                <th onClick={() => toggleSort('email')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Email<SortIcon col="email" /></th>
+                <th onClick={() => toggleSort('balance')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Số dư<SortIcon col="balance" /></th>
+                <th onClick={() => toggleSort('lastUpdated')} className="cursor-pointer select-none px-5 py-3 text-left font-medium text-gray-500 hover:text-gray-700">Cập nhật<SortIcon col="lastUpdated" /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -69,7 +108,7 @@ export default function AdminWalletsPage() {
                   <td colSpan={5} className="px-5 py-16 text-center text-gray-400">Không có dữ liệu.</td>
                 </tr>
               ) : (
-                items.map((wallet) => (
+                sortedItems.map((wallet) => (
                   <tr key={wallet.walletId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{wallet.walletId}</td>
                     <td className="px-5 py-3 text-gray-700">{wallet.fullName || wallet.username || wallet.userCode || `Người dùng ${wallet.userId}`}</td>
