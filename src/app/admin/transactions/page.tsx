@@ -11,7 +11,7 @@ const formatVND = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
 const toStartOfDayIso = (date: string) => (date ? new Date(`${date}T00:00:00`).toISOString() : undefined);
 const toEndOfDayIso = (date: string) => (date ? new Date(`${date}T23:59:59`).toISOString() : undefined);
 
-const getTxStatusLabel = (status?: number | string, statusName?: string | null) => {
+const getTxStatusLabel = (status?: number | string | null, statusName?: string | null) => {
   if (typeof status === 'number') {
     if (status === 1) return 'Hoàn tất';
     if (status === 0) return 'Đang xử lý';
@@ -29,7 +29,7 @@ const getTxStatusLabel = (status?: number | string, statusName?: string | null) 
   return statusName || 'Không xác định';
 };
 
-const getTxStatusClass = (status?: number | string, statusName?: string | null) => {
+const getTxStatusClass = (status?: number | string | null, statusName?: string | null) => {
   const label = getTxStatusLabel(status, statusName);
   if (label === 'Hoàn tất') return 'bg-emerald-50 text-emerald-700';
   if (label === 'Đang xử lý') return 'bg-amber-50 text-amber-700';
@@ -248,7 +248,7 @@ export default function AdminTransactionsPage() {
                 sortedItems.map((tx) => (
                   <tr key={tx.transactionId} className="hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-gray-900">#{tx.transactionId}</td>
-                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.username || tx.userCode || (tx.userId ? `Người dùng ${tx.userId}` : '-')}</td>
+                    <td className="px-5 py-3 text-gray-700">{tx.fullName || tx.username || (tx.userId ? `Người dùng ${tx.userId}` : '-')}</td>
                     <td className="px-5 py-3 text-gray-600">{toTxTypeVi(tx.transactionTypeCode, tx.transactionType)}</td>
                     <td className="px-5 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getTxStatusClass(tx.status, tx.statusName)}`}>

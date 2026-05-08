@@ -12,7 +12,7 @@ const PAGE_SIZE = 10;
 const formatVND = (value?: number | null) => `${Number(value ?? 0).toLocaleString('vi-VN')} đ`;
 
 // Status (theo guide): 1=CONFIRMED (chờ xử lý), 2=SUCCESS (đã duyệt), 3=REJECTED (từ chối)
-const mapWithdrawalStatus = (status?: number | string, statusName?: string | null) => {
+const mapWithdrawalStatus = (status?: number | string | null, statusName?: string | null) => {
   if (typeof status === 'number') {
     if (status === 1) return 'CONFIRMED';
     if (status === 2) return 'SUCCESS';
@@ -217,7 +217,7 @@ export default function AdminWithdrawalsPage() {
                 </tr>
               ) : (
                 sortedItems.map((w) => {
-                  const mappedStatus = mapWithdrawalStatus(w.status, w.statusName);
+                  const mappedStatus = mapWithdrawalStatus(w.status);
                   const canProcess = mappedStatus === 'CONFIRMED';
 
                   return (
