@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { PresentationGamePlayer } from '@/components/mediapipe-game/PresentationGamePlayer';
 import { GameEditorView, GameEditorPlayable } from '@/components/mediapipe-game/GameEditorView';
 import { useGameHub } from '@/hooks/useGameHub';
-import { getGameByCode, getGameTaskStatus } from '@/services/gamesServices';
+import { getGameByCode, getGameTaskStatus, updateGameResultJson, getAllGames, getGameResultJson } from '@/services/gamesServices';
 import type { GameProgressDto } from '@/types/api';
 import { exportToEduvi } from '@/lib/exportToEduvi';
 
@@ -57,6 +57,7 @@ export default function GameMakerPage() {
   const searchParams = useSearchParams();
   const taskIdParam = searchParams.get('taskId');
   const gameCodeParam = searchParams.get('gameCode');
+  const productGameCodeParam = searchParams.get('productGameCode');
   const [productName] = useState(() => searchParams.get('productName') ?? '');
 
   const taskIdRef = useRef<string | null>(null);
@@ -97,6 +98,13 @@ export default function GameMakerPage() {
       }
 
       if (isTerminalStatus(event.status)) {
+        // Try to capture productGameCode from result object (BE may include it)
+        if (event.result && typeof event.result === 'object') {
+          const r = event.result as Record<string, unknown>;
+          const gc = (r.productGameCode ?? r.gameCode) as string | undefined;
+          if (gc) gameCodeRef.current = gc;
+        }
+
         const result = normalizePlayableResult(event.result as Record<string, unknown> | null);
         if (result) {
           stopPolling();
@@ -104,6 +112,18 @@ export default function GameMakerPage() {
           setIsEditing(true);
           setIsLoading(false);
           setStatusText('');
+          // Fallback: if productGameCode not in SignalR result, fetch from game list
+          if (!gameCodeRef.current) {
+            const pc = searchParams.get('productCode');
+            if (pc) {
+              getAllGames()
+                .then((games) => {
+                  const match = games.find((g) => g.productCode === pc);
+                  if (match) gameCodeRef.current = match.productGameCode;
+                })
+                .catch(() => {});
+            }
+          }
         } else {
           // Task result is null even though status is terminal — fall back to game record
           const gc = gameCodeRef.current;
@@ -127,6 +147,8 @@ export default function GameMakerPage() {
         if (detail.result) {
           const stored = normalizePlayableResult(detail.result);
           if (stored) {
+            // Capture productGameCode from game record
+            if (detail.productGameCode) gameCodeRef.current = detail.productGameCode;
             setPlayable(stored);
             setIsEditing(true);
             setIsLoading(false);
@@ -185,15 +207,54 @@ export default function GameMakerPage() {
     [applyProgressUpdate, fallbackToGameByCode, stopPolling],
   );
 
-  // On mount, start polling for the taskId in the URL
+  // On mount: load game data from API
   useEffect(() => {
     gameCodeRef.current = gameCodeParam;
-    if (taskIdParam) {
+
+    if (gameCodeParam && productGameCodeParam) {
+      // Load via /api/Games/{gameCode} + /api/Games/{productGameCode}/result-json
+      gameCodeRef.current = productGameCodeParam;
+      setIsLoading(true);
+      setStatusText('Đang tải dữ liệu game...');
+      getGameResultJson(productGameCodeParam)
+        .then((latest) => {
+          const stored = normalizePlayableResult(latest as Record<string, unknown>);
+          if (stored) {
+            setPlayable(stored);
+            setIsEditing(true);
+            setIsLoading(false);
+            setStatusText('');
+          } else {
+            // result-json empty, fallback to game record result field
+            return getGameByCode(gameCodeParam).then((detail) => {
+              const rawResult = detail.result;
+              let parsedResult: Record<string, unknown> | null = null;
+              if (typeof rawResult === 'string') {
+                try { parsedResult = JSON.parse(rawResult as string); } catch { /* ignore */ }
+              } else {
+                parsedResult = rawResult;
+              }
+              const fromRecord = normalizePlayableResult(parsedResult);
+              if (fromRecord) {
+                setPlayable(fromRecord);
+                setIsEditing(true);
+              } else {
+                setStatusText('Không tìm thấy dữ liệu game.');
+              }
+              setIsLoading(false);
+            });
+          }
+        })
+        .catch(() => {
+          setIsLoading(false);
+          setStatusText('Không tải được dữ liệu game.');
+        });
+    } else if (taskIdParam) {
       resumeExistingTask(taskIdParam);
     }
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskIdParam]);
+  }, [gameCodeParam, productGameCodeParam, taskIdParam]);
 
   // Export game to .eduvi
   const handleExportGameEduvi = useCallback(async (edited: GameEditorPlayable) => {
@@ -264,6 +325,12 @@ export default function GameMakerPage() {
       <GameEditorView
         playable={playable as any}
         productName={productName}
+        productGameCode={productGameCodeParam ?? gameCodeRef.current ?? undefined}
+        onSave={async (edited) => {
+          const gc = productGameCodeParam ?? gameCodeRef.current;
+          if (!gc) throw new Error('No game code');
+          await updateGameResultJson(gc, edited);
+        }}
         onExportGameEduvi={handleExportGameEduvi}
         isExportingGameEduvi={isExportingGameEduvi}
         onStart={(edited) => {

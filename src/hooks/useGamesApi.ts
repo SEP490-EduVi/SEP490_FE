@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as gamesService from '@/services/gamesServices';
+import type { GameEditorPlayable } from '@/components/mediapipe-game/GameEditorView';
 
 const KEY = 'games';
 
@@ -33,5 +34,12 @@ export function useDeleteGame() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
     },
+  });
+}
+
+export function useUpdateGameResultJson() {
+  return useMutation({
+    mutationFn: ({ productGameCode, edited }: { productGameCode: string; edited: GameEditorPlayable }) =>
+      gamesService.updateGameResultJson(productGameCode, edited),
   });
 }

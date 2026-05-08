@@ -39,22 +39,15 @@ export async function getGamesByProductCode(productCode: string): Promise<GameDt
 }
 
 export async function getGameResultJson(productGameCode: string): Promise<unknown> {
-  const response = await api.get<string>(
+  const { data } = await api.get<ApiResponse<{ productGameCode: string; resultJson: string }>>(
     API_ENDPOINTS.GAMES.GET_RESULT_JSON(productGameCode),
-    { responseType: 'text' },
   );
-
-  const raw = response.data;
-  if (typeof raw !== 'string') return raw;
-
-  const trimmed = raw.trim();
-  if (!trimmed) return {};
-
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    return { raw: trimmed };
+  const resultJson = data.result?.resultJson;
+  if (!resultJson) return null;
+  if (typeof resultJson === 'string') {
+    try { return JSON.parse(resultJson); } catch { return null; }
   }
+  return resultJson;
 }
 
 export async function getGameByCode(gameCode: string): Promise<GameDetailDto> {
@@ -66,4 +59,8 @@ export async function getGameByCode(gameCode: string): Promise<GameDetailDto> {
 
 export async function deleteGame(gameCode: string): Promise<void> {
   await api.delete(API_ENDPOINTS.GAMES.DELETE(gameCode));
+}
+
+export async function updateGameResultJson(productGameCode: string, payload: unknown): Promise<void> {
+  await api.put(API_ENDPOINTS.GAMES.UPDATE_RESULT_JSON(productGameCode), { resultJson: JSON.stringify(payload) });
 }

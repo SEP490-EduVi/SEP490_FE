@@ -823,7 +823,7 @@ export function Toolbar() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số câu</label>
                 <input
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                   type="number"

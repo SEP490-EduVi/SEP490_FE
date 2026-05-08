@@ -28,6 +28,8 @@ type Props = {
   onExportGameEduvi?: (edited: GameEditorPlayable) => void;
   isExportingGameEduvi?: boolean;
   productName?: string;
+  productGameCode?: string;
+  onSave?: (edited: GameEditorPlayable) => Promise<void>;
 };
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -344,6 +346,7 @@ export function GameEditorView({
   onExportGameEduvi,
   isExportingGameEduvi = false,
   productName,
+  onSave,
 }: Props) {
   const [edited, setEdited] = React.useState<GameEditorPlayable>(() => cloneDeep(playable));
 
@@ -363,7 +366,12 @@ export function GameEditorView({
     }));
   };
 
-  const handleStart = () => onStart(edited);
+  const handleStart = async () => {
+    if (onSave) {
+      try { await onSave(edited); } catch { /* ignore save error, still start */ }
+    }
+    onStart(edited);
+  };
   const handleExportGameEduvi = () => {
     if (!onExportGameEduvi || isExportingGameEduvi) return;
     onExportGameEduvi(edited);
@@ -462,18 +470,6 @@ export function GameEditorView({
       {/* ── Editor body ── */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-5 py-6">
-
-          {/* Notice */}
-          <div
-            className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 mb-5 text-xs leading-relaxed"
-            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.35)', color: 'rgba(146,64,14,0.95)' }}
-          >
-            <span className="text-base leading-none mt-0.5">💡</span>
-            <span>
-              Nội dung chỉ lưu tạm trên trình duyệt. Khi thoát trang, dữ liệu sẽ được xoá tự động.
-              Chỉnh sửa xong, nhấn <strong className="text-amber-700">Bắt đầu</strong> để chơi.
-            </span>
-          </div>
 
           {/* Round editor */}
           {isHover && (

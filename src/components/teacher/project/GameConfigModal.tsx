@@ -109,13 +109,15 @@ export default function GameConfigModal({ productCode, productName, onClose }: G
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Số vòng</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Số câu <span className="text-xs text-gray-400 font-normal">(tối đa 19)</span>
+            </label>
             <input
               type="number"
               min={1}
-              max={20}
+              max={19}
               value={roundCount}
-              onChange={(e) => setRoundCount(Math.max(1, Number(e.target.value) || 1))}
+              onChange={(e) => setRoundCount(Math.min(19, Math.max(1, Number(e.target.value) || 1)))}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>

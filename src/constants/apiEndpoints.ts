@@ -55,8 +55,10 @@ export const API_ENDPOINTS = {
     CREATE_PLAYABLE_TASK: buildGamesEndpoint('/playable'),
     // GET /api/Games/status/{taskId} — read latest task status
     GET_TASK_STATUS: (taskId: string) => buildGamesEndpoint(`/status/${taskId}`),
-    // GET /api/Games/{productGameCode}/result-json — get game result payload for export
+    // GET  /api/Games/{productGameCode}/result-json — get game result payload for export
     GET_RESULT_JSON: (productGameCode: string) => buildGamesEndpoint(`/${productGameCode}/result-json`),
+    // PUT  /api/Games/{productGameCode}/result-json — update game result payload
+    UPDATE_RESULT_JSON: (productGameCode: string) => buildGamesEndpoint(`/${productGameCode}/result-json`),
     // GET /api/Games — list all games for current user
     GET_ALL: buildGamesEndpoint(''),
     // GET /api/Games/{gameCode} — get game detail
